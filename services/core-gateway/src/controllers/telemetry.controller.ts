@@ -5,6 +5,8 @@ import { aiService } from '../services/ai.service.js';
 import { alertService } from '../services/alert.service.js';
 import { simulationService } from '../services/simulation.service.js';
 import { NodeTelemetry } from '../types/index.js';
+import { TelemetryLogModel } from '../models/telemetryLog.model.js';
+import { isDatabaseConnected } from '../config/database.js';
 
 // Schema for incoming telemetry from physical ESP32 or simulated gateway
 const telemetryIngestSchema = z.object({
@@ -16,6 +18,7 @@ const telemetryIngestSchema = z.object({
   tilt_y: z.number().default(0),
   accel_rms: z.number().optional().default(1.0),
   vibration_detected: z.boolean().optional().default(false),
+  wake_reason: z.enum(['TIMER_HEARTBEAT', 'MOTION_INTERRUPT', 'MANUAL']).optional().default('TIMER_HEARTBEAT'),
   battery_pct: z.number().optional().default(100)
 });
 
@@ -49,7 +52,7 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
       isPhysicalNode: true
     };
 
-    // Store in-memory state
+    // Store in RAM state
     stateService.setTelemetry(telemetry);
 
     // Map physical node to Banihal Sector
@@ -76,12 +79,38 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
       weather
     });
 
+    const isCrisisEvent = lsiResult.riskLevel === 'CRITICAL' || lsiResult.riskLevel === 'WARNING';
+
     // Check if alert escalation needed
     let generatedAlert = null;
     if (lsiResult.riskLevel !== 'LOW') {
-      generatedAlert = alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
+      generatedAlert = await alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
     } else {
       stateService.updateSectorRisk(sector.id, 'LOW', lsiResult.lsiScore);
+    }
+
+    // Persist to MongoDB Atlas TelemetryLog
+    if (isDatabaseConnected()) {
+      try {
+        await TelemetryLogModel.create({
+          nodeId: telemetry.nodeId,
+          sectorId: sector.id,
+          timestamp: new Date(telemetry.timestamp),
+          soilMoisturePct: telemetry.soilMoisturePct,
+          tiltMagnitude: telemetry.tiltMagnitude,
+          tiltDelta: telemetry.tiltDelta,
+          accelRms: telemetry.accelRms,
+          rain1hIntensityMm: weather.rain1hIntensityMm,
+          rain24hCumulativeMm: weather.rain24hCumulativeMm,
+          lsiScore: lsiResult.lsiScore,
+          riskLevel: lsiResult.riskLevel,
+          wakeReason: data.wake_reason,
+          isCrisisEvent,
+          batteryPct: telemetry.batteryPct
+        });
+      } catch (e: any) {
+        console.warn('⚠️ [MongoDB] TelemetryLog write error:', e.message);
+      }
     }
 
     // Broadcast over WebSocket to active UI clients
@@ -89,12 +118,14 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
       socketEmitter('TELEMETRY_STREAM', {
         telemetry,
         lsiResult,
-        sector
+        sector,
+        wakeReason: data.wake_reason
       });
       socketEmitter('PHYSICAL_NODE_DATA', {
         telemetry,
         lsiResult,
-        sector
+        sector,
+        wakeReason: data.wake_reason
       });
     }
 
@@ -121,6 +152,36 @@ export const getAllSectors = (req: Request, res: Response): void => {
   res.json({
     success: true,
     sectors: stateService.getAllSectors()
+  });
+};
+
+export const getTelemetryHistory = async (req: Request, res: Response): Promise<void> => {
+  const { nodeId, limit = 50 } = req.query;
+
+  if (isDatabaseConnected()) {
+    try {
+      const query: any = {};
+      if (nodeId) query.nodeId = nodeId;
+      const history = await TelemetryLogModel.find(query)
+        .sort({ timestamp: -1 })
+        .limit(Number(limit));
+
+      res.json({
+        success: true,
+        source: 'MongoDB_Atlas',
+        count: history.length,
+        history
+      });
+      return;
+    } catch (e: any) {
+      console.warn('⚠️ [MongoDB] Error reading telemetry history:', e.message);
+    }
+  }
+
+  res.json({
+    success: true,
+    source: 'In_Memory',
+    history: stateService.getAllTelemetry()
   });
 };
 

@@ -3,6 +3,7 @@ import {
   ingestTelemetry,
   getAllTelemetry,
   getAllSectors,
+  getTelemetryHistory,
   triggerDemoCrisis
 } from '../controllers/telemetry.controller.js';
 
@@ -14,6 +15,7 @@ router.post('/ingest', ingestTelemetry);
 // Querying current status
 router.get('/nodes', getAllTelemetry);
 router.get('/sectors', getAllSectors);
+router.get('/history', getTelemetryHistory);
 
 // Hackathon demonstration trigger
 router.post('/demo-crisis', triggerDemoCrisis);

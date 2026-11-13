@@ -3,6 +3,7 @@ import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import cors from 'cors';
 import { config } from './config/index.js';
+import { connectDatabase, isDatabaseConnected } from './config/database.js';
 
 // Route Handlers
 import authRoutes from './routes/auth.routes.js';
@@ -17,6 +18,7 @@ import { simulationService } from './services/simulation.service.js';
 import { setTelemetrySocketEmitter } from './controllers/telemetry.controller.js';
 import { setAlertSocketEmitter } from './controllers/alerts.controller.js';
 import { setWeatherSocketEmitter } from './controllers/weather.controller.js';
+import { seedDefaultUsers } from './controllers/auth.controller.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -64,6 +66,7 @@ app.get('/api/health', async (req, res) => {
     status: 'HEALTHY',
     service: 'RescueNex Core Gateway',
     timestamp: new Date().toISOString(),
+    database: isDatabaseConnected() ? 'MONGODB_ATLAS_CONNECTED' : 'IN_MEMORY_FALLBACK',
     aiEngineStatus: aiStatus,
     simulationActive: config.enableNodeSimulation
   });
@@ -80,6 +83,10 @@ io.on('connection', (socket) => {
 
 // Initialize Background Operations
 const startServer = async () => {
+  // 1. Connect to MongoDB Atlas (if MONGODB_URI is provided)
+  await connectDatabase();
+  await seedDefaultUsers();
+
   server.listen(config.port, () => {
     console.log(`=======================================================`);
     console.log(`🚀 RescueNex Core Gateway running on port ${config.port}`);
@@ -88,7 +95,7 @@ const startServer = async () => {
     console.log(`=======================================================`);
   });
 
-  // 1. Initial Weather Sync across all J&K mountain sectors
+  // 2. Initial Weather Sync across all J&K mountain sectors
   console.log('[WeatherService] Performing initial meteorological sync...');
   await weatherService.syncAllSectors();
   console.log('[WeatherService] Initial weather synchronization complete.');
@@ -100,7 +107,7 @@ const startServer = async () => {
     });
   }, config.weatherPollIntervalMins * 60 * 1000);
 
-  // 2. Start simulation service for neighboring mountain nodes
+  // 3. Start simulation service for neighboring mountain nodes
   if (config.enableNodeSimulation) {
     console.log('[SimulationService] Starting simulated telemetry stream for mountain sectors...');
     simulationService.startSimulation(io);

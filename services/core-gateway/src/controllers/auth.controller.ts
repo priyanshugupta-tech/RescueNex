@@ -6,11 +6,16 @@ import { config } from '../config/index.js';
 import { stateService } from '../services/state.service.js';
 import { User, UserRole } from '../types/index.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import { UserModel } from '../models/user.model.js';
+import { isDatabaseConnected } from '../config/database.js';
 
-// Seed default users for rapid testing
-const seedDefaultUsers = async () => {
+// Seed default users into in-memory or Atlas
+export const seedDefaultUsers = async () => {
+  const defaultPasswordHash = await bcrypt.hash('admin123', 10);
+  const operatorPasswordHash = await bcrypt.hash('bro123', 10);
+
+  // In-memory seed
   if (stateService.users.size === 0) {
-    const defaultPasswordHash = await bcrypt.hash('admin123', 10);
     stateService.users.set('admin@sdma.gov.in', {
       id: 'USR_ADMIN_01',
       name: 'Priyanshu Gupta (SDMA Officer)',
@@ -20,7 +25,6 @@ const seedDefaultUsers = async () => {
       passwordHash: defaultPasswordHash
     });
 
-    const operatorPasswordHash = await bcrypt.hash('bro123', 10);
     stateService.users.set('operator@bro.gov.in', {
       id: 'USR_BRO_01',
       name: 'BRO Field Commander (NH-44)',
@@ -30,8 +34,27 @@ const seedDefaultUsers = async () => {
       passwordHash: operatorPasswordHash
     });
   }
+
+  // Atlas seed if connected
+  if (isDatabaseConnected()) {
+    try {
+      const existingAdmin = await UserModel.findOne({ email: 'admin@sdma.gov.in' });
+      if (!existingAdmin) {
+        await UserModel.create({
+          name: 'Priyanshu Gupta (SDMA Officer)',
+          email: 'admin@sdma.gov.in',
+          passwordHash: defaultPasswordHash,
+          role: 'ADMIN',
+          agency: 'SDMA',
+          phone: '+919999999999'
+        });
+        console.log('✅ [MongoDB] Seeded default SDMA Admin user into Atlas.');
+      }
+    } catch (e: any) {
+      console.warn('⚠️ [MongoDB] User seed check skipped:', e.message);
+    }
+  }
 };
-seedDefaultUsers();
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -43,32 +66,57 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   role: z.enum(['ADMIN', 'OPERATOR', 'SCOUT', 'PUBLIC']).default('PUBLIC'),
-  agency: z.enum(['SDMA', 'SDRF', 'BRO', 'COMMUTER']).optional()
+  agency: z.enum(['SDMA', 'SDRF', 'BRO', 'COMMUTER']).optional(),
+  phone: z.string().optional()
 });
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = loginSchema.parse(req.body);
-    const userWithHash = stateService.users.get(email);
 
-    if (!userWithHash) {
+    let user: User | null = null;
+    let passwordHash: string | null = null;
+
+    // Check MongoDB Atlas first if connected
+    if (isDatabaseConnected()) {
+      const dbUser = await UserModel.findOne({ email });
+      if (dbUser) {
+        user = {
+          id: dbUser._id.toString(),
+          name: dbUser.name,
+          email: dbUser.email,
+          role: dbUser.role,
+          agency: dbUser.agency
+        };
+        passwordHash = dbUser.passwordHash;
+      }
+    }
+
+    // Fallback to in-memory state
+    if (!user) {
+      const memUser = stateService.users.get(email);
+      if (memUser) {
+        user = {
+          id: memUser.id,
+          name: memUser.name,
+          email: memUser.email,
+          role: memUser.role,
+          agency: memUser.agency
+        };
+        passwordHash = memUser.passwordHash;
+      }
+    }
+
+    if (!user || !passwordHash) {
       res.status(401).json({ success: false, message: 'Invalid email or password.' });
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, userWithHash.passwordHash);
+    const isMatch = await bcrypt.compare(password, passwordHash);
     if (!isMatch) {
       res.status(401).json({ success: false, message: 'Invalid email or password.' });
       return;
     }
-
-    const user: User = {
-      id: userWithHash.id,
-      name: userWithHash.name,
-      email: userWithHash.email,
-      role: userWithHash.role,
-      agency: userWithHash.agency
-    };
 
     const token = jwt.sign(user, config.jwtSecret, { expiresIn: '1d' });
 
@@ -85,31 +133,52 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, role, agency } = registerSchema.parse(req.body);
+    const { name, email, password, role, agency, phone } = registerSchema.parse(req.body);
 
-    if (stateService.users.has(email)) {
+    // Check uniqueness
+    if (isDatabaseConnected()) {
+      const existing = await UserModel.findOne({ email });
+      if (existing) {
+        res.status(409).json({ success: false, message: 'User with this email already exists.' });
+        return;
+      }
+    } else if (stateService.users.has(email)) {
       res.status(409).json({ success: false, message: 'User with this email already exists.' });
       return;
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const newUser: User & { passwordHash: string } = {
-      id: `USR_${Date.now()}`,
+    let userId = `USR_${Date.now()}`;
+
+    // Save to Atlas if connected
+    if (isDatabaseConnected()) {
+      const created = await UserModel.create({
+        name,
+        email,
+        passwordHash,
+        role,
+        agency,
+        phone
+      });
+      userId = created._id.toString();
+    }
+
+    // Always keep in-memory sync for sub-millisecond route checks
+    stateService.users.set(email, {
+      id: userId,
       name,
       email,
       role: role as UserRole,
       agency: agency as any,
       passwordHash
-    };
-
-    stateService.users.set(email, newUser);
+    });
 
     const user: User = {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      agency: newUser.agency
+      id: userId,
+      name,
+      email,
+      role: role as UserRole,
+      agency: agency as any
     };
 
     const token = jwt.sign(user, config.jwtSecret, { expiresIn: '1d' });
