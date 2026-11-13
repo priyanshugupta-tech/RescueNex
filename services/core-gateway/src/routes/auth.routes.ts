@@ -6,26 +6,26 @@ import {
   getPendingUsers,
   approveUser,
   googleOAuthLogin,
-  setup2FA,
-  verifyAndEnable2FA
+  sendEmailOTP,
+  verifyEmailOTP
 } from '../controllers/auth.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Standard Login & Self-Serve Public Registration
+// 📧 Resend Email OTP Signup/Login (Public / Commuters)
+router.post('/send-otp', sendEmailOTP);
+router.post('/verify-otp', verifyEmailOTP);
+
+// 🌐 Google OAuth 2.0 (Public / Commuters)
+router.post('/oauth/google', googleOAuthLogin);
+
+// 🔑 Standard Official Login & Registration (Disaster Teams)
 router.post('/login', login);
 router.post('/register', register);
 router.get('/me', authenticateToken, getCurrentUser);
 
-// OAuth 2.0 (Google Sign-In for Public/Commuters)
-router.post('/oauth/google', googleOAuthLogin);
-
-// 2FA TOTP (Google Authenticator / Authy)
-router.post('/2fa/setup', authenticateToken, setup2FA);
-router.post('/2fa/verify', authenticateToken, verifyAndEnable2FA);
-
-// Main Admin Approval Management (Priyanshu Gupta Only)
+// 👑 Main Admin Approval Management (Priyanshu Gupta Only)
 router.get('/pending', authenticateToken, requireRole(['ADMIN']), getPendingUsers);
 router.post('/approve/:id', authenticateToken, requireRole(['ADMIN']), approveUser);
 

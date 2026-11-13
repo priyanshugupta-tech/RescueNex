@@ -2,14 +2,14 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import speakeasy from 'speakeasy';
-import QRCode from 'qrcode';
 import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/index.js';
 import { stateService } from '../services/state.service.js';
+import { emailService } from '../services/email.service.js';
 import { User, UserRole } from '../types/index.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { UserModel } from '../models/user.model.js';
+import { OtpModel } from '../models/otp.model.js';
 import { isDatabaseConnected } from '../config/database.js';
 
 const MAIN_ADMIN_USERNAME = 'lead@rescuenex';
@@ -17,6 +17,9 @@ const MAIN_ADMIN_PASSWORD = 'gupta18';
 const MAIN_ADMIN_NAME = 'Priyanshu Gupta';
 
 const googleClient = new OAuth2Client(config.googleClientId);
+
+// In-memory OTP store for offline/local development fallback
+const memoryOtpStore = new Map<string, { otp: string; expiresAt: number }>();
 
 // Seed Main Admin user
 export const seedDefaultUsers = async () => {
@@ -31,7 +34,6 @@ export const seedDefaultUsers = async () => {
     role: 'ADMIN',
     agency: 'SDMA',
     isApproved: true,
-    twoFactorEnabled: false,
     authProvider: 'LOCAL',
     passwordHash: defaultPasswordHash
   });
@@ -49,7 +51,6 @@ export const seedDefaultUsers = async () => {
           role: 'ADMIN',
           agency: 'SDMA',
           isApproved: true,
-          twoFactorEnabled: false,
           authProvider: 'LOCAL',
           phone: '+919999999999'
         });
@@ -67,8 +68,7 @@ export const seedDefaultUsers = async () => {
 
 const loginSchema = z.object({
   username: z.string().min(3),
-  password: z.string().min(4),
-  totpCode: z.string().optional() // Required if user has 2FA enabled
+  password: z.string().min(4)
 });
 
 const registerSchema = z.object({
@@ -81,14 +81,154 @@ const registerSchema = z.object({
   phone: z.string().optional()
 });
 
+const sendOtpSchema = z.object({
+  email: z.string().email()
+});
+
+const verifyOtpSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6),
+  name: z.string().optional()
+});
+
+// ==========================================
+// 📧 RESEND EMAIL OTP AUTHENTICATION (PUBLIC)
+// ==========================================
+
+export const sendEmailOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = sendOtpSchema.parse(req.body);
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Generate secure 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save in Atlas
+    if (isDatabaseConnected()) {
+      await OtpModel.deleteMany({ email: cleanEmail }); // Delete old OTPs
+      await OtpModel.create({
+        email: cleanEmail,
+        otp,
+        expiresAt
+      });
+    }
+
+    // Save in Memory
+    memoryOtpStore.set(cleanEmail, { otp, expiresAt: expiresAt.getTime() });
+
+    // Send email via Resend
+    await emailService.sendOTP(cleanEmail, otp);
+
+    res.json({
+      success: true,
+      message: `A 6-digit verification code has been sent to ${cleanEmail}.`
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || 'Error generating OTP.' });
+  }
+};
+
+export const verifyEmailOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otp, name } = verifyOtpSchema.parse(req.body);
+    const cleanEmail = email.toLowerCase().trim();
+
+    let isValid = false;
+
+    // Check Atlas
+    if (isDatabaseConnected()) {
+      const record = await OtpModel.findOne({ email: cleanEmail, otp });
+      if (record && record.expiresAt > new Date()) {
+        isValid = true;
+        await OtpModel.deleteMany({ email: cleanEmail }); // Invalidate used OTP
+      }
+    }
+
+    // Fallback to Memory Store
+    if (!isValid) {
+      const memRecord = memoryOtpStore.get(cleanEmail);
+      if (memRecord && memRecord.otp === otp && memRecord.expiresAt > Date.now()) {
+        isValid = true;
+        memoryOtpStore.delete(cleanEmail);
+      }
+    }
+
+    if (!isValid) {
+      res.status(400).json({ success: false, message: 'Invalid or expired verification code.' });
+      return;
+    }
+
+    // OTP Verified! Find existing or auto-create Public User
+    let user: any = null;
+
+    if (isDatabaseConnected()) {
+      user = await UserModel.findOne({ email: cleanEmail });
+      if (!user) {
+        const username = cleanEmail.split('@')[0] + '_' + Math.floor(100 + Math.random() * 900);
+        user = await UserModel.create({
+          name: name || cleanEmail.split('@')[0],
+          username,
+          email: cleanEmail,
+          role: 'PUBLIC',
+          agency: 'COMMUTER',
+          isApproved: true, // Public users are instantly active
+          authProvider: 'LOCAL'
+        });
+      }
+    } else {
+      user = stateService.users.get(cleanEmail);
+      if (!user) {
+        const username = cleanEmail.split('@')[0];
+        user = {
+          id: `USR_${Date.now()}`,
+          name: name || username,
+          username,
+          email: cleanEmail,
+          role: 'PUBLIC',
+          agency: 'COMMUTER',
+          isApproved: true,
+          authProvider: 'LOCAL'
+        };
+        stateService.users.set(username, user);
+      }
+    }
+
+    const tokenPayload: User = {
+      id: user.id || user._id?.toString(),
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      agency: user.agency,
+      isApproved: true,
+      authProvider: user.authProvider
+    };
+
+    const token = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: '1d' });
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully. Logged in.',
+      token,
+      user: tokenPayload
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || 'OTP verification error.' });
+  }
+};
+
+// ==========================================
+// 🔑 OFFICIAL / STANDARD USERNAME LOGIN
+// ==========================================
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, password, totpCode } = loginSchema.parse(req.body);
+    const { username, password } = loginSchema.parse(req.body);
     const lookupKey = username.toLowerCase().trim();
 
     let user: any = null;
     let passwordHash: string | null = null;
-    let twoFactorSecret: string | undefined = undefined;
 
     // Check MongoDB Atlas first
     if (isDatabaseConnected()) {
@@ -98,7 +238,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       if (dbUser) {
         user = dbUser;
         passwordHash = dbUser.passwordHash || null;
-        twoFactorSecret = dbUser.twoFactorSecret;
       }
     }
 
@@ -122,37 +261,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 1. NON-PUBLIC ROLES REQUIRE MAIN ADMIN APPROVAL
+    // NON-PUBLIC ROLES REQUIRE MAIN ADMIN APPROVAL
     if (user.role !== 'PUBLIC' && !user.isApproved) {
       res.status(403).json({
         success: false,
         message: 'Non-public role requires approval from Main Admin (Priyanshu Gupta).'
       });
       return;
-    }
-
-    // 2. 2FA ENFORCEMENT (If enabled)
-    if (user.twoFactorEnabled) {
-      if (!totpCode) {
-        res.status(403).json({
-          success: false,
-          requires2FA: true,
-          message: 'Two-Factor Authentication code required.'
-        });
-        return;
-      }
-
-      const verified = speakeasy.totp.verify({
-        secret: twoFactorSecret || '',
-        encoding: 'base32',
-        token: totpCode,
-        window: 1
-      });
-
-      if (!verified) {
-        res.status(401).json({ success: false, message: 'Invalid 2FA authentication code.' });
-        return;
-      }
     }
 
     const tokenPayload: User = {
@@ -163,7 +278,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       role: user.role,
       agency: user.agency,
       isApproved: user.isApproved,
-      twoFactorEnabled: user.twoFactorEnabled,
       authProvider: user.authProvider
     };
 
@@ -213,7 +327,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         agency: role === 'PUBLIC' ? 'COMMUTER' : agency,
         phone,
         isApproved,
-        twoFactorEnabled: false,
         authProvider: 'LOCAL'
       });
       userId = created._id.toString();
@@ -227,7 +340,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       role: role as UserRole,
       agency: role === 'PUBLIC' ? 'COMMUTER' : agency,
       isApproved,
-      twoFactorEnabled: false,
       authProvider: 'LOCAL',
       passwordHash
     });
@@ -248,9 +360,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 // ==========================================
 // 🌐 OAUTH 2.0 (Google Login for Public Users)
 // ==========================================
+
 export const googleOAuthLogin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { credential } = req.body; // Google ID Token from Google Identity Services
+    const { credential } = req.body;
 
     if (!credential) {
       res.status(400).json({ success: false, message: 'Google OAuth credential token required.' });
@@ -266,7 +379,6 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
       });
       payload = ticket.getPayload();
     } else {
-      // In local dev without Google Client ID, decode safe claims
       payload = jwt.decode(credential);
     }
 
@@ -290,9 +402,8 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
           email,
           role: 'PUBLIC',
           agency: 'COMMUTER',
-          isApproved: true, // Public is always auto-approved
-          authProvider: 'GOOGLE',
-          twoFactorEnabled: false
+          isApproved: true,
+          authProvider: 'GOOGLE'
         });
       }
     } else {
@@ -304,8 +415,7 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
         role: 'PUBLIC',
         agency: 'COMMUTER',
         isApproved: true,
-        authProvider: 'GOOGLE',
-        twoFactorEnabled: false
+        authProvider: 'GOOGLE'
       };
       stateService.users.set(username, user);
     }
@@ -335,94 +445,13 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
 };
 
 // ==========================================
-// 🛡️ TWO-FACTOR AUTHENTICATION (2FA - TOTP)
-// ==========================================
-export const setup2FA = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const username = req.user?.username;
-    if (!username) {
-      res.status(401).json({ success: false, message: 'Unauthorized.' });
-      return;
-    }
-
-    const secret = speakeasy.generateSecret({
-      name: `RescueNex (${username})`,
-      issuer: 'RescueNex National Alert'
-    });
-
-    const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url || '');
-
-    // Temporarily save secret
-    if (isDatabaseConnected()) {
-      await UserModel.findOneAndUpdate(
-        { username },
-        { twoFactorSecret: secret.base32 }
-      );
-    }
-
-    res.json({
-      success: true,
-      message: 'Scan the QR code in Google Authenticator or Authy to configure 2FA.',
-      secret: secret.base32,
-      qrCodeDataUrl
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || '2FA setup error.' });
-  }
-};
-
-export const verifyAndEnable2FA = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const username = req.user?.username;
-    const { token } = req.body;
-
-    if (!username || !token) {
-      res.status(400).json({ success: false, message: '6-digit 2FA token required.' });
-      return;
-    }
-
-    let secret = '';
-    if (isDatabaseConnected()) {
-      const user = await UserModel.findOne({ username });
-      secret = user?.twoFactorSecret || '';
-    }
-
-    const verified = speakeasy.totp.verify({
-      secret,
-      encoding: 'base32',
-      token,
-      window: 1
-    });
-
-    if (!verified) {
-      res.status(400).json({ success: false, message: 'Invalid 2FA code. Please try again.' });
-      return;
-    }
-
-    if (isDatabaseConnected()) {
-      await UserModel.findOneAndUpdate(
-        { username },
-        { twoFactorEnabled: true }
-      );
-    }
-
-    res.json({
-      success: true,
-      message: 'Two-Factor Authentication (2FA) is now ACTIVE on your account.'
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || '2FA verification error.' });
-  }
-};
-
-// ==========================================
 // 👑 MAIN ADMIN APPROVAL MANAGEMENT
 // ==========================================
+
 export const getPendingUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (isDatabaseConnected()) {
     try {
-      // Exclude public users; return pending official roles
-      const pendingDb = await UserModel.find({ isApproved: false, role: { $ne: 'PUBLIC' } }).select('-passwordHash -twoFactorSecret');
+      const pendingDb = await UserModel.find({ isApproved: false, role: { $ne: 'PUBLIC' } }).select('-passwordHash');
       res.json({ success: true, pendingUsers: pendingDb });
       return;
     } catch (e: any) {
