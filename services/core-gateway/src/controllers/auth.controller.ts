@@ -243,7 +243,7 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
         const failedRecord = await rateLimitService.recordFailedOtpAttempt(cleanEmail);
         if (failedRecord.isLocked) {
           res.status(429).json({
-            message: 'Maximum 5 OTP attempts exceeded. Verification locked for 15 minutes.'
+            message: 'Maximum 5 OTP attempts exceeded. Verification locked for 5 minutes.'
           });
           return;
         }
@@ -410,12 +410,12 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
       if (failRecord.isLocked) {
         res.status(429).json({
-          message: 'Maximum 5 unsuccessful login attempts exceeded within 2 minutes. Account is now locked for 30 minutes.'
+          message: 'Maximum 5 unsuccessful login attempts exceeded within 2 minutes. Account is now locked for 5 minutes.'
         });
         return;
       }
       res.status(401).json({
-        message: `incorrect password! (Attempt ${failRecord.attempts} of 5. After 5 attempts, account will be locked for 30 minutes)`
+        message: `incorrect password! (Attempt ${failRecord.attempts} of 5. After 5 attempts, account will be locked for 5 minutes)`
       });
       return;
     }

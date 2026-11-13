@@ -13,11 +13,11 @@ export class RateLimitService {
   // Configurable thresholds matching user specification
   private readonly LOGIN_WINDOW_MS = 2 * 60 * 1000;         // 2 minutes window
   private readonly LOGIN_MAX_ATTEMPTS = 5;                  // 5 attempts allowed in 2 min
-  private readonly LOGIN_LOCKOUT_MS = 30 * 60 * 1000;       // 30 minutes cooldown
+  private readonly LOGIN_LOCKOUT_MS = 5 * 60 * 1000;        // 5 minutes cooldown
 
   private readonly OTP_WINDOW_MS = 2 * 60 * 1000;           // 2 minutes OTP window
   private readonly OTP_MAX_ATTEMPTS = 5;                    // 5 OTP guesses allowed
-  private readonly OTP_LOCKOUT_MS = 15 * 60 * 1000;         // 15 minutes OTP cooldown
+  private readonly OTP_LOCKOUT_MS = 5 * 60 * 1000;          // 5 minutes OTP cooldown
   private readonly OTP_MIN_INTERVAL_MS = 60 * 1000;         // 60s cooldown between OTP requests
 
   // ========================================================
@@ -94,7 +94,7 @@ export class RateLimitService {
         return {
           attempts: record.attempts,
           isLocked: true,
-          remainingMinutes: 30
+          remainingMinutes: 5
         };
       }
 
@@ -113,7 +113,7 @@ export class RateLimitService {
     mem.attempts += 1;
     if (mem.attempts >= this.LOGIN_MAX_ATTEMPTS) {
       mem.lockUntil = now + this.LOGIN_LOCKOUT_MS;
-      return { attempts: mem.attempts, isLocked: true, remainingMinutes: 30 };
+      return { attempts: mem.attempts, isLocked: true, remainingMinutes: 5 };
     }
 
     return { attempts: mem.attempts, isLocked: false };
@@ -219,7 +219,7 @@ export class RateLimitService {
       if (record.attempts >= this.OTP_MAX_ATTEMPTS) {
         record.lockUntil = new Date(now + this.OTP_LOCKOUT_MS);
         await record.save();
-        return { attempts: record.attempts, isLocked: true, remainingMinutes: 15 };
+        return { attempts: record.attempts, isLocked: true, remainingMinutes: 5 };
       }
 
       await record.save();
@@ -236,7 +236,7 @@ export class RateLimitService {
     mem.attempts += 1;
     if (mem.attempts >= this.OTP_MAX_ATTEMPTS) {
       mem.lockUntil = now + this.OTP_LOCKOUT_MS;
-      return { attempts: mem.attempts, isLocked: true, remainingMinutes: 15 };
+      return { attempts: mem.attempts, isLocked: true, remainingMinutes: 5 };
     }
 
     return { attempts: mem.attempts, isLocked: false };
