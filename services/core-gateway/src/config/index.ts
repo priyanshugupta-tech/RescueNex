@@ -6,11 +6,15 @@ dotenv.config();
 export const config = {
   port: parseInt(process.env.PORT || '5000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  jwtSecret: process.env.JWT_SECRET || 'rescuenex_dev_secret_key_change_in_prod',
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
+  jwtSecret: process.env.JWT_SECRET || 'rescuenex_dev_access_secret_2026',
+  jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'rescuenex_dev_refresh_secret_2026',
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   aiEngineUrl: process.env.AI_ENGINE_URL || 'http://localhost:8000',
   weatherPollIntervalMins: parseInt(process.env.WEATHER_POLL_INTERVAL_MINS || '15', 10),
-  googleClientId: process.env.GOOGLE_CLIENT_ID || ''
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  resendApiKey: process.env.RESEND_API_KEY || '',
+  resendFromEmail: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
 };
 
 // Strategic Reference Zones in J&K for Geofencing & Alert Routing

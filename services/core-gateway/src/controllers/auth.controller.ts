@@ -10,6 +10,7 @@ import { User, UserRole } from '../types/index.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { UserModel } from '../models/user.model.js';
 import { OtpModel } from '../models/otp.model.js';
+import { SessionModel } from '../models/session.model.js';
 import { isDatabaseConnected } from '../config/database.js';
 
 const MAIN_ADMIN_USERNAME = 'lead@rescuenex';
@@ -18,14 +19,55 @@ const MAIN_ADMIN_NAME = 'Priyanshu Gupta';
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
-// In-memory OTP store for offline/local development fallback
+// In-memory fallback stores
 const memoryOtpStore = new Map<string, { otp: string; expiresAt: number }>();
+const memorySessionStore = new Map<string, { userId: string; refreshToken: string; expiresAt: number }>();
+
+// Helper: Generates Access Token + Refresh Token and logs active Session
+const generateTokenPairAndSession = async (user: User, req: Request) => {
+  const tokenPayload = {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    agency: user.agency,
+    isApproved: user.isApproved
+  };
+
+  const accessToken = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: config.jwtAccessExpiresIn as any });
+  const refreshToken = jwt.sign({ id: user.id, username: user.username }, config.jwtRefreshSecret, { expiresIn: config.jwtRefreshExpiresIn as any });
+
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const userAgent = req.headers['user-agent'] || 'Unknown Device';
+  const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown IP';
+
+  // Persist session to MongoDB Atlas
+  if (isDatabaseConnected()) {
+    try {
+      await SessionModel.create({
+        userId: user.id,
+        refreshToken,
+        userAgent,
+        ipAddress,
+        isValid: true,
+        expiresAt
+      });
+    } catch (e: any) {
+      console.warn('⚠️ [Session] Failed to persist session to Atlas:', e.message);
+    }
+  }
+
+  // Memory fallback sync
+  memorySessionStore.set(refreshToken, { userId: user.id, refreshToken, expiresAt: expiresAt.getTime() });
+
+  return { accessToken, refreshToken, expiresIn: config.jwtAccessExpiresIn };
+};
 
 // Seed Main Admin user
 export const seedDefaultUsers = async () => {
   const defaultPasswordHash = await bcrypt.hash(MAIN_ADMIN_PASSWORD, 10);
 
-  // In-memory seed
   stateService.users.set(MAIN_ADMIN_USERNAME, {
     id: 'USR_LEAD_01',
     name: MAIN_ADMIN_NAME,
@@ -38,7 +80,6 @@ export const seedDefaultUsers = async () => {
     passwordHash: defaultPasswordHash
   });
 
-  // Atlas seed if connected
   if (isDatabaseConnected()) {
     try {
       const existing = await UserModel.findOne({ username: MAIN_ADMIN_USERNAME });
@@ -66,55 +107,43 @@ export const seedDefaultUsers = async () => {
   }
 };
 
-const loginSchema = z.object({
-  username: z.string().min(3),
-  password: z.string().min(4)
-});
+// ==========================================
+// 1. SIGNUP WITH EMAIL OTP (OTP is ONLY here!)
+// ==========================================
 
-const registerSchema = z.object({
-  name: z.string().min(2),
-  username: z.string().min(3),
-  password: z.string().min(6),
-  role: z.enum(['ADMIN', 'OPERATOR', 'SCOUT', 'PUBLIC']).default('PUBLIC'),
-  agency: z.enum(['SDMA', 'SDRF', 'BRO', 'COMMUTER']).optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional()
-});
-
-const sendOtpSchema = z.object({
+const sendSignupOtpSchema = z.object({
   email: z.string().email()
 });
 
-const verifyOtpSchema = z.object({
-  email: z.string().email(),
-  otp: z.string().length(6),
-  name: z.string().optional()
-});
-
-// ==========================================
-// 📧 RESEND EMAIL OTP AUTHENTICATION (PUBLIC)
-// ==========================================
-
-export const sendEmailOTP = async (req: Request, res: Response): Promise<void> => {
+export const sendSignupOTP = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = sendOtpSchema.parse(req.body);
+    const { email } = sendSignupOtpSchema.parse(req.body);
     const cleanEmail = email.toLowerCase().trim();
 
-    // Generate secure 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Save in Atlas
+    // Check if email already registered
     if (isDatabaseConnected()) {
-      await OtpModel.deleteMany({ email: cleanEmail }); // Delete old OTPs
-      await OtpModel.create({
-        email: cleanEmail,
-        otp,
-        expiresAt
-      });
+      const existing = await UserModel.findOne({ email: cleanEmail });
+      if (existing) {
+        res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
+        return;
+      }
+    } else {
+      for (const [, u] of stateService.users) {
+        if (u.email === cleanEmail) {
+          res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
+          return;
+        }
+      }
     }
 
-    // Save in Memory
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    if (isDatabaseConnected()) {
+      await OtpModel.deleteMany({ email: cleanEmail });
+      await OtpModel.create({ email: cleanEmail, otp, expiresAt });
+    }
+
     memoryOtpStore.set(cleanEmail, { otp, expiresAt: expiresAt.getTime() });
 
     // Send email via Resend
@@ -122,187 +151,57 @@ export const sendEmailOTP = async (req: Request, res: Response): Promise<void> =
 
     res.json({
       success: true,
-      message: `A 6-digit verification code has been sent to ${cleanEmail}.`
+      message: `Verification code sent to ${cleanEmail}. Please enter it to complete signup.`
     });
   } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'Error generating OTP.' });
+    res.status(400).json({ success: false, message: error.message || 'Error generating signup OTP.' });
   }
 };
 
-export const verifyEmailOTP = async (req: Request, res: Response): Promise<void> => {
+const signupSchema = z.object({
+  name: z.string().min(2),
+  username: z.string().min(3),
+  email: z.string().email(),
+  password: z.string().min(6),
+  otp: z.string().length(6),
+  role: z.enum(['ADMIN', 'OPERATOR', 'SCOUT', 'PUBLIC']).default('PUBLIC'),
+  agency: z.enum(['SDMA', 'SDRF', 'BRO', 'COMMUTER']).optional(),
+  phone: z.string().optional()
+});
+
+export const signup = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, otp, name } = verifyOtpSchema.parse(req.body);
+    const { name, username, email, password, otp, role, agency, phone } = signupSchema.parse(req.body);
     const cleanEmail = email.toLowerCase().trim();
+    const cleanUsername = username.toLowerCase().trim();
 
-    let isValid = false;
-
-    // Check Atlas
+    // Verify OTP
+    let isOtpValid = false;
     if (isDatabaseConnected()) {
       const record = await OtpModel.findOne({ email: cleanEmail, otp });
       if (record && record.expiresAt > new Date()) {
-        isValid = true;
-        await OtpModel.deleteMany({ email: cleanEmail }); // Invalidate used OTP
+        isOtpValid = true;
+        await OtpModel.deleteMany({ email: cleanEmail });
       }
     }
 
-    // Fallback to Memory Store
-    if (!isValid) {
+    if (!isOtpValid) {
       const memRecord = memoryOtpStore.get(cleanEmail);
       if (memRecord && memRecord.otp === otp && memRecord.expiresAt > Date.now()) {
-        isValid = true;
+        isOtpValid = true;
         memoryOtpStore.delete(cleanEmail);
       }
     }
 
-    if (!isValid) {
-      res.status(400).json({ success: false, message: 'Invalid or expired verification code.' });
+    if (!isOtpValid) {
+      res.status(400).json({ success: false, message: 'Invalid or expired OTP verification code.' });
       return;
     }
 
-    // OTP Verified! Find existing or auto-create Public User
-    let user: any = null;
-
+    // Check username uniqueness
     if (isDatabaseConnected()) {
-      user = await UserModel.findOne({ email: cleanEmail });
-      if (!user) {
-        const username = cleanEmail.split('@')[0] + '_' + Math.floor(100 + Math.random() * 900);
-        user = await UserModel.create({
-          name: name || cleanEmail.split('@')[0],
-          username,
-          email: cleanEmail,
-          role: 'PUBLIC',
-          agency: 'COMMUTER',
-          isApproved: true, // Public users are instantly active
-          authProvider: 'LOCAL'
-        });
-      }
-    } else {
-      user = stateService.users.get(cleanEmail);
-      if (!user) {
-        const username = cleanEmail.split('@')[0];
-        user = {
-          id: `USR_${Date.now()}`,
-          name: name || username,
-          username,
-          email: cleanEmail,
-          role: 'PUBLIC',
-          agency: 'COMMUTER',
-          isApproved: true,
-          authProvider: 'LOCAL'
-        };
-        stateService.users.set(username, user);
-      }
-    }
-
-    const tokenPayload: User = {
-      id: user.id || user._id?.toString(),
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      agency: user.agency,
-      isApproved: true,
-      authProvider: user.authProvider
-    };
-
-    const token = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: '1d' });
-
-    res.json({
-      success: true,
-      message: 'Email verified successfully. Logged in.',
-      token,
-      user: tokenPayload
-    });
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'OTP verification error.' });
-  }
-};
-
-// ==========================================
-// 🔑 OFFICIAL / STANDARD USERNAME LOGIN
-// ==========================================
-
-export const login = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { username, password } = loginSchema.parse(req.body);
-    const lookupKey = username.toLowerCase().trim();
-
-    let user: any = null;
-    let passwordHash: string | null = null;
-
-    // Check MongoDB Atlas first
-    if (isDatabaseConnected()) {
-      const dbUser = await UserModel.findOne({
-        $or: [{ username: lookupKey }, { email: lookupKey }]
-      });
-      if (dbUser) {
-        user = dbUser;
-        passwordHash = dbUser.passwordHash || null;
-      }
-    }
-
-    // Fallback to in-memory state
-    if (!user) {
-      const memUser = stateService.users.get(lookupKey);
-      if (memUser) {
-        user = memUser;
-        passwordHash = memUser.passwordHash;
-      }
-    }
-
-    if (!user || !passwordHash) {
-      res.status(401).json({ success: false, message: 'Invalid username or password.' });
-      return;
-    }
-
-    const isMatch = await bcrypt.compare(password, passwordHash);
-    if (!isMatch) {
-      res.status(401).json({ success: false, message: 'Invalid username or password.' });
-      return;
-    }
-
-    // NON-PUBLIC ROLES REQUIRE MAIN ADMIN APPROVAL
-    if (user.role !== 'PUBLIC' && !user.isApproved) {
-      res.status(403).json({
-        success: false,
-        message: 'Non-public role requires approval from Main Admin (Priyanshu Gupta).'
-      });
-      return;
-    }
-
-    const tokenPayload: User = {
-      id: user.id || user._id?.toString(),
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      agency: user.agency,
-      isApproved: user.isApproved,
-      authProvider: user.authProvider
-    };
-
-    const token = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: '1d' });
-
-    res.json({
-      success: true,
-      message: 'Login successful.',
-      token,
-      user: tokenPayload
-    });
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'Validation error.' });
-  }
-};
-
-export const register = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, username, password, role, agency, email, phone } = registerSchema.parse(req.body);
-    const cleanUsername = username.toLowerCase().trim();
-
-    // Check uniqueness
-    if (isDatabaseConnected()) {
-      const existing = await UserModel.findOne({ username: cleanUsername });
-      if (existing) {
+      const existingUser = await UserModel.findOne({ username: cleanUsername });
+      if (existingUser) {
         res.status(409).json({ success: false, message: 'Username is already taken.' });
         return;
       }
@@ -312,16 +211,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    let userId = `USR_${Date.now()}`;
-
-    // RULE: PUBLIC role is AUTO-APPROVED. Non-public roles REQUIRE Main Admin approval!
     const isApproved = role === 'PUBLIC' || cleanUsername === MAIN_ADMIN_USERNAME;
+    let userId = `USR_${Date.now()}`;
 
     if (isDatabaseConnected()) {
       const created = await UserModel.create({
         name,
         username: cleanUsername,
-        email,
+        email: cleanEmail,
         passwordHash,
         role,
         agency: role === 'PUBLIC' ? 'COMMUTER' : agency,
@@ -332,33 +229,226 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       userId = created._id.toString();
     }
 
-    stateService.users.set(cleanUsername, {
+    const newUser: User = {
       id: userId,
       name,
       username: cleanUsername,
-      email,
+      email: cleanEmail,
       role: role as UserRole,
       agency: role === 'PUBLIC' ? 'COMMUTER' : agency,
       isApproved,
-      authProvider: 'LOCAL',
-      passwordHash
-    });
+      authProvider: 'LOCAL'
+    };
 
+    stateService.users.set(cleanUsername, { ...newUser, passwordHash });
+
+    // If PUBLIC role: Auto-approved -> create active session and return token pair
+    if (isApproved) {
+      const tokens = await generateTokenPairAndSession(newUser, req);
+      res.status(201).json({
+        success: true,
+        message: 'Account registered and verified successfully.',
+        user: newUser,
+        tokens
+      });
+      return;
+    }
+
+    // Non-public role: Awaits Main Admin approval
     res.status(201).json({
       success: true,
-      message: isApproved
-        ? 'Account registered successfully. You can now log in.'
-        : 'Official registration submitted. Non-public role requires approval from Main Admin (Priyanshu Gupta).',
-      requiresApproval: !isApproved,
-      role
+      message: 'Official account registered with verified email. Awaiting approval from Main Admin (Priyanshu Gupta).',
+      requiresApproval: true,
+      user: newUser
     });
   } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'Validation error.' });
+    res.status(400).json({ success: false, message: error.message || 'Signup failed.' });
   }
 };
 
 // ==========================================
-// 🌐 OAUTH 2.0 (Google Login for Public Users)
+// 2. STANDARD LOGIN (NO OTP! Username + Password)
+// ==========================================
+
+const loginSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(4)
+});
+
+export const login = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { username, password } = loginSchema.parse(req.body);
+    const lookupKey = username.toLowerCase().trim();
+
+    let userDoc: any = null;
+    let passwordHash: string | null = null;
+
+    if (isDatabaseConnected()) {
+      userDoc = await UserModel.findOne({
+        $or: [{ username: lookupKey }, { email: lookupKey }]
+      });
+      if (userDoc) {
+        passwordHash = userDoc.passwordHash || null;
+      }
+    }
+
+    if (!userDoc) {
+      const memUser = stateService.users.get(lookupKey);
+      if (memUser) {
+        userDoc = memUser;
+        passwordHash = memUser.passwordHash;
+      }
+    }
+
+    if (!userDoc || !passwordHash) {
+      res.status(401).json({ success: false, message: 'Invalid username or password.' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, passwordHash);
+    if (!isMatch) {
+      res.status(401).json({ success: false, message: 'Invalid username or password.' });
+      return;
+    }
+
+    // Check approval
+    if (userDoc.role !== 'PUBLIC' && !userDoc.isApproved) {
+      res.status(403).json({
+        success: false,
+        message: 'Non-public role requires approval from Main Admin (Priyanshu Gupta).'
+      });
+      return;
+    }
+
+    const user: User = {
+      id: userDoc.id || userDoc._id?.toString(),
+      name: userDoc.name,
+      username: userDoc.username,
+      email: userDoc.email,
+      role: userDoc.role,
+      agency: userDoc.agency,
+      isApproved: userDoc.isApproved,
+      authProvider: userDoc.authProvider
+    };
+
+    // Maintain session & generate Access Token + Refresh Token
+    const tokens = await generateTokenPairAndSession(user, req);
+
+    res.json({
+      success: true,
+      message: 'Login successful.',
+      user,
+      tokens
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || 'Login error.' });
+  }
+};
+
+// ==========================================
+// 3. REFRESH TOKEN & SESSION ROTATION
+// ==========================================
+
+export const refreshToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(400).json({ success: false, message: 'Refresh token is required.' });
+      return;
+    }
+
+    // Verify token signature
+    let decoded: any;
+    try {
+      decoded = jwt.verify(refreshToken, config.jwtRefreshSecret);
+    } catch {
+      res.status(401).json({ success: false, message: 'Invalid or expired refresh token.' });
+      return;
+    }
+
+    // Verify active session in Database
+    let sessionValid = false;
+    if (isDatabaseConnected()) {
+      const session = await SessionModel.findOne({ refreshToken, isValid: true });
+      if (session && session.expiresAt > new Date()) {
+        sessionValid = true;
+      }
+    } else {
+      const memSession = memorySessionStore.get(refreshToken);
+      if (memSession && memSession.expiresAt > Date.now()) {
+        sessionValid = true;
+      }
+    }
+
+    if (!sessionValid) {
+      res.status(401).json({ success: false, message: 'Session expired or revoked. Please log in again.' });
+      return;
+    }
+
+    // Fetch user details
+    let user: any = null;
+    if (isDatabaseConnected()) {
+      user = await UserModel.findById(decoded.id);
+    }
+    if (!user) {
+      user = stateService.users.get(decoded.username);
+    }
+
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found.' });
+      return;
+    }
+
+    const tokenPayload = {
+      id: user.id || user._id?.toString(),
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      agency: user.agency,
+      isApproved: user.isApproved
+    };
+
+    // Issue fresh Access Token
+    const newAccessToken = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: config.jwtAccessExpiresIn as any });
+
+    res.json({
+      success: true,
+      accessToken: newAccessToken,
+      expiresIn: config.jwtAccessExpiresIn
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Token refresh error.' });
+  }
+};
+
+// ==========================================
+// 4. LOGOUT & SESSION REVOCATION
+// ==========================================
+
+export const logout = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (refreshToken) {
+      if (isDatabaseConnected()) {
+        await SessionModel.findOneAndUpdate({ refreshToken }, { isValid: false });
+      }
+      memorySessionStore.delete(refreshToken);
+    }
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully. Session invalidated.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Logout error.' });
+  }
+};
+
+// ==========================================
+// 5. GOOGLE OAUTH 2.0 (Public Users)
 // ==========================================
 
 export const googleOAuthLogin = async (req: Request, res: Response): Promise<void> => {
@@ -371,7 +461,6 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
     }
 
     let payload: any = null;
-
     if (config.googleClientId) {
       const ticket = await googleClient.verifyIdToken({
         idToken: credential,
@@ -431,13 +520,13 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
       authProvider: 'GOOGLE'
     };
 
-    const token = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: '1d' });
+    const tokens = await generateTokenPairAndSession(tokenPayload, req);
 
     res.json({
       success: true,
       message: 'Google OAuth login successful.',
-      token,
-      user: tokenPayload
+      user: tokenPayload,
+      tokens
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message || 'Google OAuth failed.' });

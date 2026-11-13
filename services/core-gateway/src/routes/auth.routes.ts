@@ -1,28 +1,34 @@
 import { Router } from 'express';
 import {
+  sendSignupOTP,
+  signup,
   login,
-  register,
+  refreshToken,
+  logout,
+  googleOAuthLogin,
   getCurrentUser,
   getPendingUsers,
-  approveUser,
-  googleOAuthLogin,
-  sendEmailOTP,
-  verifyEmailOTP
+  approveUser
 } from '../controllers/auth.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// 📧 Resend Email OTP Signup/Login (Public / Commuters)
-router.post('/send-otp', sendEmailOTP);
-router.post('/verify-otp', verifyEmailOTP);
+// 📧 Signup with Resend Email OTP (OTP is ONLY on signup!)
+router.post('/send-signup-otp', sendSignupOTP);
+router.post('/signup', signup);
+
+// 🔑 Standard Login (NO OTP! Username + Password)
+router.post('/login', login);
+
+// 🔄 Token Refresh & Session Revocation
+router.post('/refresh-token', refreshToken);
+router.post('/logout', logout);
 
 // 🌐 Google OAuth 2.0 (Public / Commuters)
 router.post('/oauth/google', googleOAuthLogin);
 
-// 🔑 Standard Official Login & Registration (Disaster Teams)
-router.post('/login', login);
-router.post('/register', register);
+// 👤 Current Authenticated User Profile
 router.get('/me', authenticateToken, getCurrentUser);
 
 // 👑 Main Admin Approval Management (Priyanshu Gupta Only)
