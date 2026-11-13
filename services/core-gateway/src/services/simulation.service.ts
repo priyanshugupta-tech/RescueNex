@@ -2,7 +2,7 @@ import { Server } from 'socket.io';
 import { stateService } from './state.service.js';
 import { aiService } from './ai.service.js';
 import { alertService } from './alert.service.js';
-import { NodeTelemetry, MountainSector } from '../types/index.js';
+import { NodeTelemetry, MountainSector, LSIResult } from '../types/index.js';
 
 export class SimulationService {
   private timer?: NodeJS.Timeout;
@@ -16,7 +16,7 @@ export class SimulationService {
     this.timer = setInterval(async () => {
       const sectors = stateService.getAllSectors();
 
-      // Simulate 3 neighboring mountain stations (excluding physical node sector)
+      // Simulate neighboring mountain stations (excluding physical node sector)
       const simulatedSectors = sectors.filter((s) => s.id !== 'SECTOR_BANIHAL');
 
       for (const sector of simulatedSectors) {
@@ -35,18 +35,25 @@ export class SimulationService {
           weatherCode: 51
         };
 
-        const lsiResult = await aiService.evaluateRisk({
-          nodeId: telemetry.nodeId,
-          sectorId: sector.id,
-          latitude: sector.latitude,
-          longitude: sector.longitude,
-          telemetry,
-          weather
-        });
+        let lsiResult: LSIResult | null = null;
+        let aiStatus = 'ONLINE';
 
-        // Trigger alert if elevated
-        if (lsiResult.riskLevel !== 'LOW') {
-          alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
+        try {
+          lsiResult = await aiService.evaluateRisk({
+            nodeId: telemetry.nodeId,
+            sectorId: sector.id,
+            latitude: sector.latitude,
+            longitude: sector.longitude,
+            telemetry,
+            weather
+          });
+
+          // Trigger alert if elevated
+          if (lsiResult.riskLevel !== 'LOW') {
+            await alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
+          }
+        } catch {
+          aiStatus = 'OFFLINE';
         }
 
         // Broadcast node telemetry
@@ -54,7 +61,8 @@ export class SimulationService {
           this.io.emit('TELEMETRY_STREAM', {
             telemetry,
             lsiResult,
-            sector
+            sector,
+            aiStatus
           });
         }
       }
@@ -69,7 +77,6 @@ export class SimulationService {
   }
 
   private generateSimulatedTelemetry(sector: MountainSector): NodeTelemetry {
-    // Default baseline values with subtle random natural noise
     const baseTiltX = sector.id === 'SECTOR_RAMBAN' ? 3.5 : 1.2;
     const baseTiltY = sector.id === 'SECTOR_RAMBAN' ? -2.1 : 0.8;
     const noise = (Math.random() - 0.5) * 0.2;
@@ -78,7 +85,6 @@ export class SimulationService {
     const tiltY = Number((baseTiltY + noise).toFixed(2));
     const tiltMagnitude = Number(Math.sqrt(tiltX * tiltX + tiltY * tiltY).toFixed(2));
 
-    // Soil moisture varies slightly
     const baseMoisture = sector.id === 'SECTOR_RAMBAN' ? 62.0 : 45.0;
     const soilMoisturePct = Number((baseMoisture + (Math.random() - 0.5) * 2.0).toFixed(1));
 
@@ -100,7 +106,7 @@ export class SimulationService {
   }
 
   /**
-   * Demo Trigger: Instantly simulates a critical landslide breach for evaluation / jury testing
+   * Demo Trigger: Simulates a critical landslide breach for evaluation / jury testing
    */
   public async injectDemoCrisisEvent(sectorId: string): Promise<void> {
     const sector = stateService.getSector(sectorId);
@@ -109,13 +115,13 @@ export class SimulationService {
     const criticalTelemetry: NodeTelemetry = {
       nodeId: `NODE_${sector.id.replace('SECTOR_', '')}_01`,
       timestamp: Date.now(),
-      soilMoisturePct: 89.5, // fully saturated ground
+      soilMoisturePct: 89.5,
       temperatureC: 11.2,
       humidityPct: 98.0,
-      tiltX: 14.8,           // sharp tilt breach
+      tiltX: 14.8,
       tiltY: -8.2,
       tiltMagnitude: 16.92,
-      tiltDelta: 6.4,        // critical displacement
+      tiltDelta: 6.4,
       accelRms: 2.45,
       vibrationDetected: true,
       batteryPct: 88,
@@ -124,11 +130,10 @@ export class SimulationService {
 
     stateService.setTelemetry(criticalTelemetry);
 
-    // Weather cloudburst event
     stateService.setWeather(sector.id, {
       sectorId: sector.id,
       timestamp: Date.now(),
-      rain1hIntensityMm: 38.0, // cloudburst downpour
+      rain1hIntensityMm: 38.0,
       rain24hCumulativeMm: 165.0,
       antecedentRain7dMm: 290.0,
       cloudburstRisk: true,
@@ -138,22 +143,30 @@ export class SimulationService {
     });
 
     const weather = stateService.getWeather(sector.id)!;
-    const lsiResult = await aiService.evaluateRisk({
-      nodeId: criticalTelemetry.nodeId,
-      sectorId: sector.id,
-      latitude: sector.latitude,
-      longitude: sector.longitude,
-      telemetry: criticalTelemetry,
-      weather
-    });
+    let lsiResult: LSIResult | null = null;
+    let aiStatus = 'ONLINE';
 
-    alertService.triggerEmergencyAlert(sector, criticalTelemetry.nodeId, lsiResult);
+    try {
+      lsiResult = await aiService.evaluateRisk({
+        nodeId: criticalTelemetry.nodeId,
+        sectorId: sector.id,
+        latitude: sector.latitude,
+        longitude: sector.longitude,
+        telemetry: criticalTelemetry,
+        weather
+      });
+
+      await alertService.triggerEmergencyAlert(sector, criticalTelemetry.nodeId, lsiResult);
+    } catch {
+      aiStatus = 'OFFLINE';
+    }
 
     if (this.io) {
       this.io.emit('TELEMETRY_STREAM', {
         telemetry: criticalTelemetry,
         lsiResult,
-        sector
+        sector,
+        aiStatus
       });
     }
   }

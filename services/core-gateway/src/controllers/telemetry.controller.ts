@@ -4,7 +4,7 @@ import { stateService } from '../services/state.service.js';
 import { aiService } from '../services/ai.service.js';
 import { alertService } from '../services/alert.service.js';
 import { simulationService } from '../services/simulation.service.js';
-import { NodeTelemetry } from '../types/index.js';
+import { NodeTelemetry, LSIResult } from '../types/index.js';
 import { TelemetryLogModel } from '../models/telemetryLog.model.js';
 import { isDatabaseConnected } from '../config/database.js';
 
@@ -69,24 +69,30 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
       weatherCode: 0
     };
 
-    // AI Dynamic Risk Evaluation (Fuses ESP32 + IMD Weather)
-    const lsiResult = await aiService.evaluateRisk({
-      nodeId: telemetry.nodeId,
-      sectorId: sector.id,
-      latitude: sector.latitude,
-      longitude: sector.longitude,
-      telemetry,
-      weather
-    });
-
-    const isCrisisEvent = lsiResult.riskLevel === 'CRITICAL' || lsiResult.riskLevel === 'WARNING';
-
-    // Check if alert escalation needed
+    // Attempt AI Risk Evaluation via Python microservice
+    let lsiResult: LSIResult | null = null;
+    let aiStatus = 'ONLINE';
     let generatedAlert = null;
-    if (lsiResult.riskLevel !== 'LOW') {
-      generatedAlert = await alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
-    } else {
-      stateService.updateSectorRisk(sector.id, 'LOW', lsiResult.lsiScore);
+
+    try {
+      lsiResult = await aiService.evaluateRisk({
+        nodeId: telemetry.nodeId,
+        sectorId: sector.id,
+        latitude: sector.latitude,
+        longitude: sector.longitude,
+        telemetry,
+        weather
+      });
+
+      // Process alert if AI reports elevated hazard
+      if (lsiResult.riskLevel !== 'LOW') {
+        generatedAlert = await alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
+      } else {
+        stateService.updateSectorRisk(sector.id, 'LOW', lsiResult.lsiScore);
+      }
+    } catch (aiError: any) {
+      aiStatus = 'OFFLINE';
+      console.warn(`[AI Engine] ${aiError.message}`);
     }
 
     // Persist to MongoDB Atlas TelemetryLog
@@ -102,10 +108,10 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
           accelRms: telemetry.accelRms,
           rain1hIntensityMm: weather.rain1hIntensityMm,
           rain24hCumulativeMm: weather.rain24hCumulativeMm,
-          lsiScore: lsiResult.lsiScore,
-          riskLevel: lsiResult.riskLevel,
+          lsiScore: lsiResult ? lsiResult.lsiScore : 0,
+          riskLevel: lsiResult ? lsiResult.riskLevel : 'LOW',
           wakeReason: data.wake_reason,
-          isCrisisEvent,
+          isCrisisEvent: lsiResult ? (lsiResult.riskLevel === 'CRITICAL' || lsiResult.riskLevel === 'WARNING') : false,
           batteryPct: telemetry.batteryPct
         });
       } catch (e: any) {
@@ -119,19 +125,24 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
         telemetry,
         lsiResult,
         sector,
+        aiStatus,
         wakeReason: data.wake_reason
       });
       socketEmitter('PHYSICAL_NODE_DATA', {
         telemetry,
         lsiResult,
         sector,
+        aiStatus,
         wakeReason: data.wake_reason
       });
     }
 
     res.status(200).json({
       success: true,
-      message: 'Telemetry ingested and evaluated successfully.',
+      message: aiStatus === 'ONLINE'
+        ? 'Telemetry ingested and evaluated by Python AI microservice.'
+        : 'Telemetry ingested. Python AI microservice is currently OFFLINE (prediction skipped).',
+      aiStatus,
       telemetry,
       lsiResult,
       alert: generatedAlert
