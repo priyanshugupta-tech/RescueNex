@@ -6,13 +6,16 @@ export interface IUserDocument extends Document {
   name: string;
   username: string;
   email?: string;
-  passwordHash: string;
+  passwordHash?: string;
   role: UserRole;
   agency?: 'SDMA' | 'SDRF' | 'BRO' | 'COMMUTER';
   phone?: string;
   isApproved: boolean;
   approvedBy?: string;
   approvedAt?: Date;
+  authProvider: 'LOCAL' | 'GOOGLE';
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,8 +31,8 @@ const UserSchema = new Schema<IUserDocument>(
       trim: true,
       index: true
     },
-    email: { type: String, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true },
+    email: { type: String, lowercase: true, trim: true, index: true },
+    passwordHash: { type: String },
     role: {
       type: String,
       enum: ['ADMIN', 'OPERATOR', 'SCOUT', 'PUBLIC'],
@@ -44,7 +47,14 @@ const UserSchema = new Schema<IUserDocument>(
     phone: { type: String, trim: true },
     isApproved: { type: Boolean, default: false, index: true },
     approvedBy: { type: String },
-    approvedAt: { type: Date }
+    approvedAt: { type: Date },
+    authProvider: {
+      type: String,
+      enum: ['LOCAL', 'GOOGLE'],
+      default: 'LOCAL'
+    },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String }
   },
   {
     timestamps: true,
@@ -54,6 +64,7 @@ const UserSchema = new Schema<IUserDocument>(
         delete ret._id;
         delete ret.__v;
         delete ret.passwordHash;
+        delete ret.twoFactorSecret;
         return ret;
       }
     }

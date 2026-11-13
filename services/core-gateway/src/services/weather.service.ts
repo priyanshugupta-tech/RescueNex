@@ -9,19 +9,19 @@ export class WeatherService {
   private activeScenarios: Map<string, WeatherScenario> = new Map();
 
   /**
-   * Fetches real-time weather & rainfall intensity for a given sector
+   * Fetches real-time weather & rainfall intensity for dynamic GPS coordinates
    */
   public async syncSectorWeather(sectorId: string, latitude: number, longitude: number): Promise<SectorWeatherData> {
     // Check if the user locked this sector to a jury demo scenario
     const activeScenario = this.activeScenarios.get(sectorId);
     if (activeScenario && activeScenario !== 'LIVE') {
-      return this.applyPresetScenario(sectorId, activeScenario);
+      return this.applyPresetScenario(sectorId, activeScenario, latitude, longitude);
     }
 
     try {
-      // Using Open-Meteo Free API (supports mountain coordinates)
+      // Dynamic GPS weather fetch via Open-Meteo (works globally on live coordinates)
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&hourly=precipitation&past_days=7&forecast_days=1`;
-      
+
       const response = await axios.get(url, { timeout: 8000 });
       const current = response.data.current;
       const hourly = response.data.hourly;
@@ -37,6 +37,8 @@ export class WeatherService {
 
       const weatherData: SectorWeatherData = {
         sectorId,
+        latitude,
+        longitude,
         timestamp: Date.now(),
         rain1hIntensityMm: Number(rain1hIntensityMm.toFixed(2)),
         rain24hCumulativeMm: Number(rain24hCumulativeMm.toFixed(1)),
@@ -56,6 +58,8 @@ export class WeatherService {
 
       const fallback: SectorWeatherData = {
         sectorId,
+        latitude,
+        longitude,
         timestamp: Date.now(),
         rain1hIntensityMm: 0,
         rain24hCumulativeMm: 15.0,
@@ -73,7 +77,12 @@ export class WeatherService {
   /**
    * Injects a deterministic weather scenario for presentation / jury evaluation
    */
-  public applyPresetScenario(sectorId: string, scenario: WeatherScenario): SectorWeatherData {
+  public applyPresetScenario(
+    sectorId: string,
+    scenario: WeatherScenario,
+    latitude: number = 33.4975,
+    longitude: number = 75.2014
+  ): SectorWeatherData {
     let rain1hIntensityMm = 0;
     let rain24hCumulativeMm = 0;
     let antecedentRain7dMm = 10;
@@ -87,18 +96,20 @@ export class WeatherService {
       antecedentRain7dMm = 160.0;
       cloudburstRisk = false;
       relativeHumidityPct = 85.0;
-      weatherCode = 61; // Moderate rain
+      weatherCode = 61;
     } else if (scenario === 'CLOUDBURST') {
-      rain1hIntensityMm = 48.0; // Extreme cloudburst rate
+      rain1hIntensityMm = 48.0;
       rain24hCumulativeMm = 185.0;
       antecedentRain7dMm = 340.0;
       cloudburstRisk = true;
       relativeHumidityPct = 98.0;
-      weatherCode = 65; // Heavy torrential rain
+      weatherCode = 65;
     }
 
     const weatherData: SectorWeatherData = {
       sectorId,
+      latitude,
+      longitude,
       timestamp: Date.now(),
       rain1hIntensityMm,
       rain24hCumulativeMm,

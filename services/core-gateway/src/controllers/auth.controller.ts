@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import speakeasy from 'speakeasy';
+import QRCode from 'qrcode';
+import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/index.js';
 import { stateService } from '../services/state.service.js';
 import { User, UserRole } from '../types/index.js';
@@ -12,6 +15,8 @@ import { isDatabaseConnected } from '../config/database.js';
 const MAIN_ADMIN_USERNAME = 'lead@rescuenex';
 const MAIN_ADMIN_PASSWORD = 'gupta18';
 const MAIN_ADMIN_NAME = 'Priyanshu Gupta';
+
+const googleClient = new OAuth2Client(config.googleClientId);
 
 // Seed Main Admin user
 export const seedDefaultUsers = async () => {
@@ -26,6 +31,8 @@ export const seedDefaultUsers = async () => {
     role: 'ADMIN',
     agency: 'SDMA',
     isApproved: true,
+    twoFactorEnabled: false,
+    authProvider: 'LOCAL',
     passwordHash: defaultPasswordHash
   });
 
@@ -42,11 +49,12 @@ export const seedDefaultUsers = async () => {
           role: 'ADMIN',
           agency: 'SDMA',
           isApproved: true,
+          twoFactorEnabled: false,
+          authProvider: 'LOCAL',
           phone: '+919999999999'
         });
         console.log(`✅ [MongoDB] Seeded Main Admin (${MAIN_ADMIN_USERNAME}) into Atlas.`);
       } else {
-        // Ensure credentials and approval match requested configuration
         existing.passwordHash = defaultPasswordHash;
         existing.isApproved = true;
         await existing.save();
@@ -59,42 +67,38 @@ export const seedDefaultUsers = async () => {
 
 const loginSchema = z.object({
   username: z.string().min(3),
-  password: z.string().min(4)
+  password: z.string().min(4),
+  totpCode: z.string().optional() // Required if user has 2FA enabled
 });
 
 const registerSchema = z.object({
   name: z.string().min(2),
   username: z.string().min(3),
   password: z.string().min(6),
-  role: z.enum(['ADMIN', 'OPERATOR', 'SCOUT', 'PUBLIC']).default('OPERATOR'),
+  role: z.enum(['ADMIN', 'OPERATOR', 'SCOUT', 'PUBLIC']).default('PUBLIC'),
   agency: z.enum(['SDMA', 'SDRF', 'BRO', 'COMMUTER']).optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional()
 });
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, password } = loginSchema.parse(req.body);
+    const { username, password, totpCode } = loginSchema.parse(req.body);
     const lookupKey = username.toLowerCase().trim();
 
-    let user: User | null = null;
+    let user: any = null;
     let passwordHash: string | null = null;
+    let twoFactorSecret: string | undefined = undefined;
 
-    // Check MongoDB Atlas first if connected
+    // Check MongoDB Atlas first
     if (isDatabaseConnected()) {
       const dbUser = await UserModel.findOne({
         $or: [{ username: lookupKey }, { email: lookupKey }]
       });
       if (dbUser) {
-        user = {
-          id: dbUser._id.toString(),
-          name: dbUser.name,
-          username: dbUser.username,
-          email: dbUser.email,
-          role: dbUser.role,
-          agency: dbUser.agency,
-          isApproved: dbUser.isApproved
-        };
-        passwordHash = dbUser.passwordHash;
+        user = dbUser;
+        passwordHash = dbUser.passwordHash || null;
+        twoFactorSecret = dbUser.twoFactorSecret;
       }
     }
 
@@ -102,15 +106,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     if (!user) {
       const memUser = stateService.users.get(lookupKey);
       if (memUser) {
-        user = {
-          id: memUser.id,
-          name: memUser.name,
-          username: memUser.username,
-          email: memUser.email,
-          role: memUser.role,
-          agency: memUser.agency,
-          isApproved: memUser.isApproved
-        };
+        user = memUser;
         passwordHash = memUser.passwordHash;
       }
     }
@@ -126,22 +122,58 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Admin Approval Check: Non-approved users cannot log in
-    if (!user.isApproved) {
+    // 1. NON-PUBLIC ROLES REQUIRE MAIN ADMIN APPROVAL
+    if (user.role !== 'PUBLIC' && !user.isApproved) {
       res.status(403).json({
         success: false,
-        message: 'Account pending approval from Main Admin (Priyanshu Gupta).'
+        message: 'Non-public role requires approval from Main Admin (Priyanshu Gupta).'
       });
       return;
     }
 
-    const token = jwt.sign(user, config.jwtSecret, { expiresIn: '1d' });
+    // 2. 2FA ENFORCEMENT (If enabled)
+    if (user.twoFactorEnabled) {
+      if (!totpCode) {
+        res.status(403).json({
+          success: false,
+          requires2FA: true,
+          message: 'Two-Factor Authentication code required.'
+        });
+        return;
+      }
+
+      const verified = speakeasy.totp.verify({
+        secret: twoFactorSecret || '',
+        encoding: 'base32',
+        token: totpCode,
+        window: 1
+      });
+
+      if (!verified) {
+        res.status(401).json({ success: false, message: 'Invalid 2FA authentication code.' });
+        return;
+      }
+    }
+
+    const tokenPayload: User = {
+      id: user.id || user._id?.toString(),
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      agency: user.agency,
+      isApproved: user.isApproved,
+      twoFactorEnabled: user.twoFactorEnabled,
+      authProvider: user.authProvider
+    };
+
+    const token = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: '1d' });
 
     res.json({
       success: true,
       message: 'Login successful.',
       token,
-      user
+      user: tokenPayload
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message || 'Validation error.' });
@@ -150,7 +182,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, username, password, role, agency, phone } = registerSchema.parse(req.body);
+    const { name, username, password, role, agency, email, phone } = registerSchema.parse(req.body);
     const cleanUsername = username.toLowerCase().trim();
 
     // Check uniqueness
@@ -168,50 +200,229 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const passwordHash = await bcrypt.hash(password, 10);
     let userId = `USR_${Date.now()}`;
 
-    // All registered accounts (except Main Admin) require Admin Approval
-    const isApproved = cleanUsername === MAIN_ADMIN_USERNAME;
+    // RULE: PUBLIC role is AUTO-APPROVED. Non-public roles REQUIRE Main Admin approval!
+    const isApproved = role === 'PUBLIC' || cleanUsername === MAIN_ADMIN_USERNAME;
 
-    // Save to Atlas if connected
     if (isDatabaseConnected()) {
       const created = await UserModel.create({
         name,
         username: cleanUsername,
+        email,
         passwordHash,
         role,
-        agency,
+        agency: role === 'PUBLIC' ? 'COMMUTER' : agency,
         phone,
-        isApproved
+        isApproved,
+        twoFactorEnabled: false,
+        authProvider: 'LOCAL'
       });
       userId = created._id.toString();
     }
 
-    // Keep in-memory sync
     stateService.users.set(cleanUsername, {
       id: userId,
       name,
       username: cleanUsername,
+      email,
       role: role as UserRole,
-      agency: agency as any,
+      agency: role === 'PUBLIC' ? 'COMMUTER' : agency,
       isApproved,
+      twoFactorEnabled: false,
+      authProvider: 'LOCAL',
       passwordHash
     });
 
     res.status(201).json({
       success: true,
       message: isApproved
-        ? 'Main Admin account created and active.'
-        : 'Registration submitted successfully. Account is pending approval by Main Admin (Priyanshu Gupta).',
-      requiresApproval: !isApproved
+        ? 'Account registered successfully. You can now log in.'
+        : 'Official registration submitted. Non-public role requires approval from Main Admin (Priyanshu Gupta).',
+      requiresApproval: !isApproved,
+      role
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message || 'Validation error.' });
   }
 };
 
+// ==========================================
+// 🌐 OAUTH 2.0 (Google Login for Public Users)
+// ==========================================
+export const googleOAuthLogin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { credential } = req.body; // Google ID Token from Google Identity Services
+
+    if (!credential) {
+      res.status(400).json({ success: false, message: 'Google OAuth credential token required.' });
+      return;
+    }
+
+    let payload: any = null;
+
+    if (config.googleClientId) {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: config.googleClientId
+      });
+      payload = ticket.getPayload();
+    } else {
+      // In local dev without Google Client ID, decode safe claims
+      payload = jwt.decode(credential);
+    }
+
+    if (!payload || !payload.email) {
+      res.status(400).json({ success: false, message: 'Invalid Google OAuth credential.' });
+      return;
+    }
+
+    const email = payload.email.toLowerCase().trim();
+    const name = payload.name || 'Google User';
+    const username = email.split('@')[0] + '_oauth';
+
+    let user: any = null;
+
+    if (isDatabaseConnected()) {
+      user = await UserModel.findOne({ email });
+      if (!user) {
+        user = await UserModel.create({
+          name,
+          username,
+          email,
+          role: 'PUBLIC',
+          agency: 'COMMUTER',
+          isApproved: true, // Public is always auto-approved
+          authProvider: 'GOOGLE',
+          twoFactorEnabled: false
+        });
+      }
+    } else {
+      user = {
+        id: `USR_GOOGLE_${Date.now()}`,
+        name,
+        username,
+        email,
+        role: 'PUBLIC',
+        agency: 'COMMUTER',
+        isApproved: true,
+        authProvider: 'GOOGLE',
+        twoFactorEnabled: false
+      };
+      stateService.users.set(username, user);
+    }
+
+    const tokenPayload: User = {
+      id: user.id || user._id?.toString(),
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      role: 'PUBLIC',
+      agency: 'COMMUTER',
+      isApproved: true,
+      authProvider: 'GOOGLE'
+    };
+
+    const token = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: '1d' });
+
+    res.json({
+      success: true,
+      message: 'Google OAuth login successful.',
+      token,
+      user: tokenPayload
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || 'Google OAuth failed.' });
+  }
+};
+
+// ==========================================
+// 🛡️ TWO-FACTOR AUTHENTICATION (2FA - TOTP)
+// ==========================================
+export const setup2FA = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const username = req.user?.username;
+    if (!username) {
+      res.status(401).json({ success: false, message: 'Unauthorized.' });
+      return;
+    }
+
+    const secret = speakeasy.generateSecret({
+      name: `RescueNex (${username})`,
+      issuer: 'RescueNex National Alert'
+    });
+
+    const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url || '');
+
+    // Temporarily save secret
+    if (isDatabaseConnected()) {
+      await UserModel.findOneAndUpdate(
+        { username },
+        { twoFactorSecret: secret.base32 }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Scan the QR code in Google Authenticator or Authy to configure 2FA.',
+      secret: secret.base32,
+      qrCodeDataUrl
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || '2FA setup error.' });
+  }
+};
+
+export const verifyAndEnable2FA = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const username = req.user?.username;
+    const { token } = req.body;
+
+    if (!username || !token) {
+      res.status(400).json({ success: false, message: '6-digit 2FA token required.' });
+      return;
+    }
+
+    let secret = '';
+    if (isDatabaseConnected()) {
+      const user = await UserModel.findOne({ username });
+      secret = user?.twoFactorSecret || '';
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret,
+      encoding: 'base32',
+      token,
+      window: 1
+    });
+
+    if (!verified) {
+      res.status(400).json({ success: false, message: 'Invalid 2FA code. Please try again.' });
+      return;
+    }
+
+    if (isDatabaseConnected()) {
+      await UserModel.findOneAndUpdate(
+        { username },
+        { twoFactorEnabled: true }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Two-Factor Authentication (2FA) is now ACTIVE on your account.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || '2FA verification error.' });
+  }
+};
+
+// ==========================================
+// 👑 MAIN ADMIN APPROVAL MANAGEMENT
+// ==========================================
 export const getPendingUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (isDatabaseConnected()) {
     try {
-      const pendingDb = await UserModel.find({ isApproved: false }).select('-passwordHash');
+      // Exclude public users; return pending official roles
+      const pendingDb = await UserModel.find({ isApproved: false, role: { $ne: 'PUBLIC' } }).select('-passwordHash -twoFactorSecret');
       res.json({ success: true, pendingUsers: pendingDb });
       return;
     } catch (e: any) {
@@ -220,7 +431,7 @@ export const getPendingUsers = async (req: AuthenticatedRequest, res: Response):
   }
 
   const pendingMem = Array.from(stateService.users.values())
-    .filter((u) => !u.isApproved)
+    .filter((u) => !u.isApproved && u.role !== 'PUBLIC')
     .map(({ passwordHash, ...user }) => user);
 
   res.json({
@@ -245,7 +456,6 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response): Pro
         await user.save();
         approved = true;
 
-        // Sync in memory
         const mem = stateService.users.get(user.username);
         if (mem) mem.isApproved = true;
       }
@@ -255,7 +465,6 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response): Pro
   }
 
   if (!approved) {
-    // Check in-memory by ID or username
     for (const [, user] of stateService.users) {
       if (user.id === id || user.username === id) {
         user.isApproved = true;
@@ -272,7 +481,7 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response): Pro
 
   res.json({
     success: true,
-    message: `User '${id}' approved successfully by ${adminName}. The user can now log in.`
+    message: `Official user '${id}' approved successfully by ${adminName}. The account is now active.`
   });
 };
 

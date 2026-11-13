@@ -8,11 +8,20 @@ export interface User {
   role: UserRole;
   agency?: 'SDMA' | 'SDRF' | 'BRO' | 'COMMUTER';
   isApproved: boolean;
+  twoFactorEnabled?: boolean;
+  authProvider?: 'LOCAL' | 'GOOGLE';
 }
 
 export interface NodeTelemetry {
   nodeId: string;
   timestamp: number;
+  // Dynamic Live GPS from Onboard Module (No hardcoding)
+  latitude: number;
+  longitude: number;
+  altitudeM?: number;
+  gpsFix?: boolean;
+
+  // Sensor Payload
   soilMoisturePct: number;    // 0 - 100%
   temperatureC: number;
   humidityPct: number;
@@ -23,11 +32,13 @@ export interface NodeTelemetry {
   accelRms: number;           // acceleration magnitude
   vibrationDetected: boolean;
   batteryPct?: number;
-  isPhysicalNode?: boolean;   // true for your live hardware node
+  isPhysicalNode?: boolean;
 }
 
 export interface SectorWeatherData {
   sectorId: string;
+  latitude: number;
+  longitude: number;
   timestamp: number;
   rain1hIntensityMm: number;
   rain24hCumulativeMm: number;

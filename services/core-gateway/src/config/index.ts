@@ -10,13 +10,10 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   aiEngineUrl: process.env.AI_ENGINE_URL || 'http://localhost:8000',
   weatherPollIntervalMins: parseInt(process.env.WEATHER_POLL_INTERVAL_MINS || '15', 10),
-  defaultCoordinates: {
-    latitude: parseFloat(process.env.DEFAULT_LATITUDE || '33.4975'),
-    longitude: parseFloat(process.env.DEFAULT_LONGITUDE || '75.2014')
-  }
+  googleClientId: process.env.GOOGLE_CLIENT_ID || ''
 };
 
-// Strategic High-Risk Mountain Sectors along NH-44 & Arterials in J&K
+// Strategic Reference Zones in J&K for Geofencing & Alert Routing
 export const STRATEGIC_SECTORS: MountainSector[] = [
   {
     id: 'SECTOR_BANIHAL',

@@ -20,6 +20,8 @@ class StateService {
       this.sectors.set(sec.id, { ...sec });
       this.sectorWeather.set(sec.id, {
         sectorId: sec.id,
+        latitude: sec.latitude,
+        longitude: sec.longitude,
         timestamp: Date.now(),
         rain1hIntensityMm: 0,
         rain24hCumulativeMm: 12.5,

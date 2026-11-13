@@ -5,6 +5,10 @@ export interface ITelemetryLogDocument extends Document {
   nodeId: string;
   sectorId: string;
   timestamp: Date;
+  latitude: number;
+  longitude: number;
+  altitudeM?: number;
+  gpsFix: boolean;
   soilMoisturePct: number;
   tiltMagnitude: number;
   tiltDelta: number;
@@ -23,6 +27,10 @@ const TelemetryLogSchema = new Schema<ITelemetryLogDocument>(
     nodeId: { type: String, required: true, index: true },
     sectorId: { type: String, required: true, index: true },
     timestamp: { type: Date, default: Date.now, index: true },
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
+    altitudeM: { type: Number },
+    gpsFix: { type: Boolean, default: true },
     soilMoisturePct: { type: Number, required: true },
     tiltMagnitude: { type: Number, required: true },
     tiltDelta: { type: Number, required: true },
