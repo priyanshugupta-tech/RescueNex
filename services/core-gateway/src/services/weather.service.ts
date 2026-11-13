@@ -2,13 +2,24 @@ import axios from 'axios';
 import { stateService } from './state.service.js';
 import { SectorWeatherData } from '../types/index.js';
 
+export type WeatherScenario = 'LIVE' | 'CLEAR' | 'MONSOON' | 'CLOUDBURST';
+
 export class WeatherService {
+  // Sectors that are temporarily locked to a demo scenario
+  private activeScenarios: Map<string, WeatherScenario> = new Map();
+
   /**
    * Fetches real-time weather & rainfall intensity for a given sector
    */
   public async syncSectorWeather(sectorId: string, latitude: number, longitude: number): Promise<SectorWeatherData> {
+    // Check if the user locked this sector to a jury demo scenario
+    const activeScenario = this.activeScenarios.get(sectorId);
+    if (activeScenario && activeScenario !== 'LIVE') {
+      return this.applyPresetScenario(sectorId, activeScenario);
+    }
+
     try {
-      // Using Open-Meteo Free API (no key required, supports mountain coordinates)
+      // Using Open-Meteo Free API (supports mountain coordinates)
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&hourly=precipitation&past_days=7&forecast_days=1`;
       
       const response = await axios.get(url, { timeout: 8000 });
@@ -57,6 +68,59 @@ export class WeatherService {
       stateService.setWeather(sectorId, fallback);
       return fallback;
     }
+  }
+
+  /**
+   * Injects a deterministic weather scenario for presentation / jury evaluation
+   */
+  public applyPresetScenario(sectorId: string, scenario: WeatherScenario): SectorWeatherData {
+    let rain1hIntensityMm = 0;
+    let rain24hCumulativeMm = 0;
+    let antecedentRain7dMm = 10;
+    let cloudburstRisk = false;
+    let relativeHumidityPct = 45.0;
+    let weatherCode = 0;
+
+    if (scenario === 'MONSOON') {
+      rain1hIntensityMm = 18.5;
+      rain24hCumulativeMm = 75.0;
+      antecedentRain7dMm = 160.0;
+      cloudburstRisk = false;
+      relativeHumidityPct = 85.0;
+      weatherCode = 61; // Moderate rain
+    } else if (scenario === 'CLOUDBURST') {
+      rain1hIntensityMm = 48.0; // Extreme cloudburst rate
+      rain24hCumulativeMm = 185.0;
+      antecedentRain7dMm = 340.0;
+      cloudburstRisk = true;
+      relativeHumidityPct = 98.0;
+      weatherCode = 65; // Heavy torrential rain
+    }
+
+    const weatherData: SectorWeatherData = {
+      sectorId,
+      timestamp: Date.now(),
+      rain1hIntensityMm,
+      rain24hCumulativeMm,
+      antecedentRain7dMm,
+      cloudburstRisk,
+      temperatureC: scenario === 'CLOUDBURST' ? 11.5 : 18.0,
+      relativeHumidityPct,
+      weatherCode
+    };
+
+    if (scenario === 'LIVE') {
+      this.activeScenarios.delete(sectorId);
+    } else {
+      this.activeScenarios.set(sectorId, scenario);
+    }
+
+    stateService.setWeather(sectorId, weatherData);
+    return weatherData;
+  }
+
+  public getActiveScenario(sectorId: string): WeatherScenario {
+    return this.activeScenarios.get(sectorId) || 'LIVE';
   }
 
   /**
