@@ -1,38 +1,45 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 import { UserRole } from '../types/index.js';
 
 export interface IUserDocument extends Document {
-  id: string;
-  name: string;
-  username: string;
-  email?: string;
-  passwordHash?: string;
+  _id: Types.ObjectId;
+  userName: string;
+  email: string;
+  password?: string;
   role: UserRole;
   agency?: 'SDMA' | 'SDRF' | 'BRO' | 'COMMUTER';
-  phone?: string;
+  isVerified: boolean;
+  verificationExpiresAt?: Date;
   isApproved: boolean;
   approvedBy?: string;
   approvedAt?: Date;
   authProvider: 'LOCAL' | 'GOOGLE';
-  twoFactorEnabled: boolean;
-  twoFactorSecret?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const UserSchema = new Schema<IUserDocument>(
   {
-    name: { type: String, required: true, trim: true },
-    username: {
+    userName: {
       type: String,
-      required: true,
+      required: [true, 'userName is required!'],
       unique: true,
       lowercase: true,
       trim: true,
       index: true
     },
-    email: { type: String, lowercase: true, trim: true, index: true },
-    passwordHash: { type: String },
+    email: {
+      type: String,
+      required: [true, 'email is required!'],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true
+    },
+    password: {
+      type: String,
+      required: [true, 'password is required!']
+    },
     role: {
       type: String,
       enum: ['ADMIN', 'OPERATOR', 'SCOUT', 'PUBLIC'],
@@ -44,17 +51,26 @@ const UserSchema = new Schema<IUserDocument>(
       enum: ['SDMA', 'SDRF', 'BRO', 'COMMUTER'],
       default: 'COMMUTER'
     },
-    phone: { type: String, trim: true },
-    isApproved: { type: Boolean, default: false, index: true },
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    verificationExpiresAt: {
+      type: Date
+    },
+    isApproved: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
     approvedBy: { type: String },
     approvedAt: { type: Date },
     authProvider: {
       type: String,
       enum: ['LOCAL', 'GOOGLE'],
       default: 'LOCAL'
-    },
-    twoFactorEnabled: { type: Boolean, default: false },
-    twoFactorSecret: { type: String }
+    }
   },
   {
     timestamps: true,
@@ -63,8 +79,7 @@ const UserSchema = new Schema<IUserDocument>(
         ret.id = ret._id ? ret._id.toString() : ret.id;
         delete ret._id;
         delete ret.__v;
-        delete ret.passwordHash;
-        delete ret.twoFactorSecret;
+        delete ret.password;
         return ret;
       }
     }

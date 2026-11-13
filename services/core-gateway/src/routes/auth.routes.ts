@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import {
-  sendSignupOTP,
-  signup,
-  login,
-  refreshToken,
-  logout,
+  handleSignup,
+  handleOtp,
+  handleLogin,
+  handleTokengen,
+  logoutHandler,
+  logoutAllHandler,
   googleOAuthLogin,
   getCurrentUser,
   getPendingUsers,
@@ -14,21 +15,28 @@ import { authenticateToken, requireRole } from '../middleware/auth.middleware.js
 
 const router = Router();
 
-// 📧 Signup with Resend Email OTP (OTP is ONLY on signup!)
-router.post('/send-signup-otp', sendSignupOTP);
-router.post('/signup', signup);
+// 📧 Signup (Creates unverified account and sends OTP via Resend)
+router.post('/signup', handleSignup);
 
-// 🔑 Standard Login (NO OTP! Username + Password)
-router.post('/login', login);
+// 🔑 Verify OTP (SHA-256 hashed OTP verification, activates account and issues HTTP-only session cookie)
+router.post('/verify-otp', handleOtp);
+router.post('/otp', handleOtp);
 
-// 🔄 Token Refresh & Session Revocation
-router.post('/refresh-token', refreshToken);
-router.post('/logout', logout);
+// 🚪 Login (Direct Username + Password, NO OTP needed!)
+router.post('/login', handleLogin);
+
+// 🔄 Token Refresh (Reads HTTP-only refreshToken cookie, verifies active session, rotates token)
+router.get('/tokengen', handleTokengen);
+router.post('/tokengen', handleTokengen);
+
+// 🛑 Logout (Single session revoke & All sessions revoke)
+router.post('/logout', logoutHandler);
+router.post('/logout-all', logoutAllHandler);
 
 // 🌐 Google OAuth 2.0 (Public / Commuters)
 router.post('/oauth/google', googleOAuthLogin);
 
-// 👤 Current Authenticated User Profile
+// 👤 Profile Verification
 router.get('/me', authenticateToken, getCurrentUser);
 
 // 👑 Main Admin Approval Management (Priyanshu Gupta Only)

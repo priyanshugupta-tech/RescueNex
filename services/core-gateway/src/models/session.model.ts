@@ -1,28 +1,60 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 export interface ISessionDocument extends Document {
-  userId: string;
-  refreshToken: string;
-  userAgent?: string;
-  ipAddress?: string;
-  isValid: boolean;
-  expiresAt: Date;
+  user: Types.ObjectId;
+  ip: string;
+  userAgent: string;
+  refreshToken: string; // SHA-256 hashed
+  revoked: boolean;
+  deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const SessionSchema = new Schema<ISessionDocument>(
   {
-    userId: { type: String, required: true, index: true },
-    refreshToken: { type: String, required: true, unique: true, index: true },
-    userAgent: { type: String },
-    ipAddress: { type: String },
-    isValid: { type: Boolean, default: true, index: true },
-    expiresAt: { type: Date, required: true, index: { expires: 0 } } // Auto-deleted by Mongo TTL when expired
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'user is required!']
+    },
+    ip: {
+      type: String,
+      required: [true, 'ip is required!']
+    },
+    userAgent: {
+      type: String,
+      required: [true, 'userAgent is required!']
+    },
+    refreshToken: {
+      type: String,
+      required: [true, 'refreshToken is required!'],
+      unique: true,
+      index: true
+    },
+    revoked: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    deletedAt: {
+      type: Date,
+      default: null
+    }
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
+);
+
+// Prune revoked sessions after 24 hours
+SessionSchema.index(
+  { deletedAt: 1 },
+  { expireAfterSeconds: 86400, partialFilterExpression: { revoked: true } }
+);
+
+// Expire active sessions after 10 days
+SessionSchema.index(
+  { updatedAt: 1 },
+  { expireAfterSeconds: 10 * 24 * 60 * 60, partialFilterExpression: { revoked: false } }
 );
 
 export const SessionModel = model<ISessionDocument>('Session', SessionSchema);

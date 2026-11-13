@@ -37,7 +37,7 @@ export const getAlerts = async (req: Request, res: Response): Promise<void> => {
 
 export const acknowledgeAlert = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { id } = req.params;
-  const userName = req.user ? req.user.name : 'Unknown Operator';
+  const userName = req.user?.userName || req.user?.name || 'Unknown Operator';
 
   const updated = stateService.acknowledgeAlert(id, userName);
 
@@ -85,7 +85,7 @@ export const toggleSiren = (req: AuthenticatedRequest, res: Response): void => {
   }
 
   if (alertSocketEmitter) {
-    alertSocketEmitter('SIREN_STATE_CHANGED', { sectorId, active, operator: req.user?.name });
+    alertSocketEmitter('SIREN_STATE_CHANGED', { sectorId, active, operator: req.user?.userName || req.user?.name });
   }
 
   res.json({

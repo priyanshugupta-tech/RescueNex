@@ -2,26 +2,24 @@ export type UserRole = 'ADMIN' | 'OPERATOR' | 'SCOUT' | 'PUBLIC';
 
 export interface User {
   id: string;
-  name: string;
-  username: string;
-  email?: string;
+  userName: string;
+  name?: string;
+  email: string;
   role: UserRole;
   agency?: 'SDMA' | 'SDRF' | 'BRO' | 'COMMUTER';
+  isVerified: boolean;
   isApproved: boolean;
-  twoFactorEnabled?: boolean;
   authProvider?: 'LOCAL' | 'GOOGLE';
 }
 
 export interface NodeTelemetry {
   nodeId: string;
   timestamp: number;
-  // Dynamic Live GPS from Onboard Module (No hardcoding)
   latitude: number;
   longitude: number;
   altitudeM?: number;
   gpsFix?: boolean;
 
-  // Sensor Payload
   soilMoisturePct: number;    // 0 - 100%
   temperatureC: number;
   humidityPct: number;

@@ -1,57 +1,108 @@
 import { Resend } from 'resend';
+import { config } from '../config/index.js';
 
 export class EmailService {
   private resend?: Resend;
   private senderEmail: string;
 
   constructor() {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (apiKey) {
-      this.resend = new Resend(apiKey);
+    if (config.resendApiKey) {
+      this.resend = new Resend(config.resendApiKey);
     }
-    this.senderEmail = process.env.RESEND_FROM_EMAIL || 'RescueNex Alerts <onboarding@resend.dev>';
+    this.senderEmail = config.resendFromEmail || 'Security Team <noreply@deardeveloperr.in>';
   }
 
   /**
-   * Dispatches 6-digit verification OTP to the user's email via Resend
+   * Dispatches OTP email matching the exact template from sendIt
    */
-  public async sendOTP(email: string, otp: string): Promise<boolean> {
-    const subject = `${otp} is your RescueNex Verification Code`;
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
-        <h2 style="color: #0f172a; margin-bottom: 8px;">RescueNex Early Warning Platform</h2>
-        <p style="color: #475569; font-size: 15px;">Use the verification code below to sign in or create your commuter account:</p>
-        <div style="background-color: #f1f5f9; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0;">
-          <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1e293b;">${otp}</span>
-        </div>
-        <p style="color: #64748b; font-size: 13px;">This code will expire in 10 minutes. If you did not request this verification, you can safely ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-        <p style="color: #94a3b8; font-size: 12px; text-align: center;">RescueNex Disaster Intelligence • Climate-Resilient J&K</p>
-      </div>
-    `;
+  public async sendOTP(email: string, otp: string): Promise<{ success: boolean; error?: any }> {
+    const htmlTemplate = `<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Verification Code</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; color: #1f2937;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9fafb; padding: 40px 20px;">
+            <tr>
+            <td align="center">
+                <!-- Main Email Container -->
+                <table width="100%" id="email-card" style="max-width: 500px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); padding: 32px; text-align: left;">
+                
+                <!-- Application Logo / Name -->
+                <tr>
+                    <td style="padding-bottom: 24px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="font-size: 20px; font-weight: 700; color: #dc2626; letter-spacing: -0.5px;">RescueNex</span>
+                    </td>
+                </tr>
+
+                <!-- Heading -->
+                <tr>
+                    <td style="padding-top: 24px;">
+                    <h1 style="font-size: 22px; font-weight: 700; color: #111827; margin: 0 0 12px 0; letter-spacing: -0.5px;">Verify your identity</h1>
+                    <p style="font-size: 15px; line-height: 24px; color: #4b5563; margin: 0 0 24px 0;">
+                        Please use the following One-Time Password (OTP) to complete your registration process. This code is strictly valid for <strong>5 minutes</strong>.
+                    </p>
+                    </td>
+                </tr>
+
+                <!-- OTP Display Block -->
+                <tr>
+                    <td align="center" style="background-color: #f3f4f6; border-radius: 8px; padding: 16px; margin: 24px 0;">
+                    <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 700; color: #111827; letter-spacing: 6px; padding-left: 6px;">${otp}</span>
+                    </td>
+                </tr>
+
+                <!-- Safety / Security Warning -->
+                <tr>
+                    <td style="padding-top: 24px;">
+                    <p style="font-size: 13px; line-height: 20px; color: #6b7280; margin: 0 0 24px 0;">
+                        <strong>Security reminder:</strong> Never share this code with anyone. Our emergency team or automated systems will never ask you for your OTP. If you did not make this request, please ignore this email.
+                    </p>
+                    </td>
+                </tr>
+
+                <!-- Footer Information -->
+                <tr>
+                    <td style="padding-top: 16px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af; text-align: center; line-height: 18px;">
+                    <p style="margin: 0 0 4px 0;">&copy; 2026 RescueNex National Early Warning Platform. All rights reserved.</p>
+                    <p style="margin: 0;">Automated message. Please do not reply directly to this mail.</p>
+                    </td>
+                </tr>
+
+                </table>
+            </td>
+            </tr>
+        </table>
+    </body>
+</html>`;
 
     if (!this.resend) {
-      // Development console logger when RESEND_API_KEY is not yet filled in .env
       console.log(`\n======================================================`);
-      console.log(`📧 [Resend Dev Mode] Verification OTP for ${email}`);
-      console.log(`🔑 OTP CODE: ${otp} (Valid for 10 minutes)`);
+      console.log(`📧 [Resend Dev Mode] OTP for: ${email}`);
+      console.log(`🔑 OTP CODE: ${otp} (Valid for 5 minutes)`);
       console.log(`======================================================\n`);
-      return true;
+      return { success: true };
     }
 
     try {
-      await this.resend.emails.send({
+      const response = await this.resend.emails.send({
         from: this.senderEmail,
-        to: email,
-        subject,
-        html: htmlContent
+        to: [email],
+        subject: 'OTP to verify your identity at RescueNex',
+        html: htmlTemplate
       });
-      return true;
-    } catch (error: any) {
-      console.error(`⚠️ [Resend] Failed to send email to ${email}:`, error.message);
-      // Fallback console log so dev testing is never blocked
-      console.log(`📧 [Resend Fallback Code] OTP for ${email} is: ${otp}`);
-      return false;
+
+      if (response.error) {
+        console.error('⚠️ [Resend Error]:', response.error);
+        return { success: false, error: response.error };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.error('⚠️ [Resend Exception]:', err.message);
+      return { success: false, error: err };
     }
   }
 }

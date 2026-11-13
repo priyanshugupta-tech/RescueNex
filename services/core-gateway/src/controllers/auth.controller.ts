@@ -1,11 +1,13 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/index.js';
 import { stateService } from '../services/state.service.js';
 import { emailService } from '../services/email.service.js';
+import { generateOtps } from '../utils/generateOtp.js';
 import { User, UserRole } from '../types/index.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { UserModel } from '../models/user.model.js';
@@ -19,85 +21,40 @@ const MAIN_ADMIN_NAME = 'Priyanshu Gupta';
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
-// In-memory fallback stores
-const memoryOtpStore = new Map<string, { otp: string; expiresAt: number }>();
-const memorySessionStore = new Map<string, { userId: string; refreshToken: string; expiresAt: number }>();
-
-// Helper: Generates Access Token + Refresh Token and logs active Session
-const generateTokenPairAndSession = async (user: User, req: Request) => {
-  const tokenPayload = {
-    id: user.id,
-    name: user.name,
-    username: user.username,
-    email: user.email,
-    role: user.role,
-    agency: user.agency,
-    isApproved: user.isApproved
-  };
-
-  const accessToken = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: config.jwtAccessExpiresIn as any });
-  const refreshToken = jwt.sign({ id: user.id, username: user.username }, config.jwtRefreshSecret, { expiresIn: config.jwtRefreshExpiresIn as any });
-
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  const userAgent = req.headers['user-agent'] || 'Unknown Device';
-  const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown IP';
-
-  // Persist session to MongoDB Atlas
-  if (isDatabaseConnected()) {
-    try {
-      await SessionModel.create({
-        userId: user.id,
-        refreshToken,
-        userAgent,
-        ipAddress,
-        isValid: true,
-        expiresAt
-      });
-    } catch (e: any) {
-      console.warn('⚠️ [Session] Failed to persist session to Atlas:', e.message);
-    }
-  }
-
-  // Memory fallback sync
-  memorySessionStore.set(refreshToken, { userId: user.id, refreshToken, expiresAt: expiresAt.getTime() });
-
-  return { accessToken, refreshToken, expiresIn: config.jwtAccessExpiresIn };
-};
-
 // Seed Main Admin user
 export const seedDefaultUsers = async () => {
   const defaultPasswordHash = await bcrypt.hash(MAIN_ADMIN_PASSWORD, 10);
 
   stateService.users.set(MAIN_ADMIN_USERNAME, {
     id: 'USR_LEAD_01',
-    name: MAIN_ADMIN_NAME,
-    username: MAIN_ADMIN_USERNAME,
+    userName: MAIN_ADMIN_USERNAME,
     email: 'lead@rescuenex.org',
     role: 'ADMIN',
     agency: 'SDMA',
+    isVerified: true,
     isApproved: true,
     authProvider: 'LOCAL',
     passwordHash: defaultPasswordHash
-  });
+  } as any);
 
   if (isDatabaseConnected()) {
     try {
-      const existing = await UserModel.findOne({ username: MAIN_ADMIN_USERNAME });
+      const existing = await UserModel.findOne({ userName: MAIN_ADMIN_USERNAME });
       if (!existing) {
         await UserModel.create({
-          name: MAIN_ADMIN_NAME,
-          username: MAIN_ADMIN_USERNAME,
+          userName: MAIN_ADMIN_USERNAME,
           email: 'lead@rescuenex.org',
-          passwordHash: defaultPasswordHash,
+          password: defaultPasswordHash,
           role: 'ADMIN',
           agency: 'SDMA',
+          isVerified: true,
           isApproved: true,
-          authProvider: 'LOCAL',
-          phone: '+919999999999'
+          authProvider: 'LOCAL'
         });
         console.log(`✅ [MongoDB] Seeded Main Admin (${MAIN_ADMIN_USERNAME}) into Atlas.`);
       } else {
-        existing.passwordHash = defaultPasswordHash;
+        existing.password = defaultPasswordHash;
+        existing.isVerified = true;
         existing.isApproved = true;
         await existing.save();
       }
@@ -108,349 +65,509 @@ export const seedDefaultUsers = async () => {
 };
 
 // ==========================================
-// 1. SIGNUP WITH EMAIL OTP (OTP is ONLY here!)
+// 1. SIGNUP (Creates unverified user + sends OTP)
 // ==========================================
+export const handleSignup = async (req: Request, res: Response): Promise<void> => {
+  const { userName, email, password, confirmPassword, role = 'PUBLIC', agency = 'COMMUTER' } = req.body;
 
-const sendSignupOtpSchema = z.object({
-  email: z.string().email()
-});
-
-export const sendSignupOTP = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = sendSignupOtpSchema.parse(req.body);
-    const cleanEmail = email.toLowerCase().trim();
+    if (!userName || !email || !password || !confirmPassword) {
+      res.status(422).json({
+        message: 'either of the detail is missing or invalidly entered!'
+      });
+      return;
+    }
 
-    // Check if email already registered
+    if (password !== confirmPassword) {
+      res.status(422).json({
+        message: 'passwords do not match!'
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      res.status(422).json({
+        message: 'length of password is less than 8'
+      });
+      return;
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanUserName = userName.toLowerCase().trim();
+
+    // Check if user already registered
+    let existingUser: any = null;
     if (isDatabaseConnected()) {
-      const existing = await UserModel.findOne({ email: cleanEmail });
-      if (existing) {
-        res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
-        return;
-      }
+      existingUser = await UserModel.findOne({
+        $or: [{ userName: cleanUserName }, { email: cleanEmail }]
+      });
     } else {
       for (const [, u] of stateService.users) {
-        if (u.email === cleanEmail) {
-          res.status(409).json({ success: false, message: 'An account with this email already exists. Please log in.' });
-          return;
+        if (u.userName === cleanUserName || u.email === cleanEmail) {
+          existingUser = u;
+          break;
         }
       }
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    // If registered but not verified, resend OTP
+    if (existingUser) {
+      if (!existingUser.isVerified) {
+        const otp = generateOtps();
+        const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
 
-    if (isDatabaseConnected()) {
-      await OtpModel.deleteMany({ email: cleanEmail });
-      await OtpModel.create({ email: cleanEmail, otp, expiresAt });
-    }
+        if (isDatabaseConnected()) {
+          await OtpModel.deleteMany({ email: cleanEmail });
+          await OtpModel.create({
+            email: cleanEmail,
+            user: existingUser._id,
+            otpHash
+          });
+          await UserModel.updateOne(
+            { _id: existingUser._id },
+            { $set: { verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000) } }
+          );
+        }
 
-    memoryOtpStore.set(cleanEmail, { otp, expiresAt: expiresAt.getTime() });
-
-    // Send email via Resend
-    await emailService.sendOTP(cleanEmail, otp);
-
-    res.json({
-      success: true,
-      message: `Verification code sent to ${cleanEmail}. Please enter it to complete signup.`
-    });
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'Error generating signup OTP.' });
-  }
-};
-
-const signupSchema = z.object({
-  name: z.string().min(2),
-  username: z.string().min(3),
-  email: z.string().email(),
-  password: z.string().min(6),
-  otp: z.string().length(6),
-  role: z.enum(['ADMIN', 'OPERATOR', 'SCOUT', 'PUBLIC']).default('PUBLIC'),
-  agency: z.enum(['SDMA', 'SDRF', 'BRO', 'COMMUTER']).optional(),
-  phone: z.string().optional()
-});
-
-export const signup = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, username, email, password, otp, role, agency, phone } = signupSchema.parse(req.body);
-    const cleanEmail = email.toLowerCase().trim();
-    const cleanUsername = username.toLowerCase().trim();
-
-    // Verify OTP
-    let isOtpValid = false;
-    if (isDatabaseConnected()) {
-      const record = await OtpModel.findOne({ email: cleanEmail, otp });
-      if (record && record.expiresAt > new Date()) {
-        isOtpValid = true;
-        await OtpModel.deleteMany({ email: cleanEmail });
-      }
-    }
-
-    if (!isOtpValid) {
-      const memRecord = memoryOtpStore.get(cleanEmail);
-      if (memRecord && memRecord.otp === otp && memRecord.expiresAt > Date.now()) {
-        isOtpValid = true;
-        memoryOtpStore.delete(cleanEmail);
-      }
-    }
-
-    if (!isOtpValid) {
-      res.status(400).json({ success: false, message: 'Invalid or expired OTP verification code.' });
-      return;
-    }
-
-    // Check username uniqueness
-    if (isDatabaseConnected()) {
-      const existingUser = await UserModel.findOne({ username: cleanUsername });
-      if (existingUser) {
-        res.status(409).json({ success: false, message: 'Username is already taken.' });
+        await emailService.sendOTP(cleanEmail, otp);
+        res.status(201).json({
+          message: 'signup successful! Please verify the OTP sent to your email.'
+        });
+        return;
+      } else {
+        res.status(409).json({
+          message: 'user already exists!'
+        });
         return;
       }
-    } else if (stateService.users.has(cleanUsername)) {
-      res.status(409).json({ success: false, message: 'Username is already taken.' });
-      return;
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const isApproved = role === 'PUBLIC' || cleanUsername === MAIN_ADMIN_USERNAME;
-    let userId = `USR_${Date.now()}`;
+    // New User: hash password and create unverified record
+    const hash = await bcrypt.hash(password, 10);
+    const isApproved = role === 'PUBLIC' || cleanUserName === MAIN_ADMIN_USERNAME;
 
+    let newUser: any = null;
     if (isDatabaseConnected()) {
-      const created = await UserModel.create({
-        name,
-        username: cleanUsername,
+      newUser = await UserModel.create({
+        userName: cleanUserName,
         email: cleanEmail,
-        passwordHash,
-        role,
-        agency: role === 'PUBLIC' ? 'COMMUTER' : agency,
-        phone,
+        password: hash,
+        role: role as UserRole,
+        agency,
+        isVerified: false,
         isApproved,
-        authProvider: 'LOCAL'
+        verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000)
       });
-      userId = created._id.toString();
+
+      const otp = generateOtps();
+      const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+      await OtpModel.create({
+        email: cleanEmail,
+        user: newUser._id,
+        otpHash
+      });
+
+      await emailService.sendOTP(cleanEmail, otp);
+    } else {
+      newUser = {
+        _id: `USR_${Date.now()}`,
+        userName: cleanUserName,
+        email: cleanEmail,
+        password: hash,
+        role: role as UserRole,
+        agency,
+        isVerified: false,
+        isApproved,
+        verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000)
+      };
+      stateService.users.set(cleanUserName, newUser);
+
+      const otp = generateOtps();
+      await emailService.sendOTP(cleanEmail, otp);
     }
 
-    const newUser: User = {
-      id: userId,
-      name,
-      username: cleanUsername,
-      email: cleanEmail,
-      role: role as UserRole,
-      agency: role === 'PUBLIC' ? 'COMMUTER' : agency,
-      isApproved,
-      authProvider: 'LOCAL'
-    };
-
-    stateService.users.set(cleanUsername, { ...newUser, passwordHash });
-
-    // If PUBLIC role: Auto-approved -> create active session and return token pair
-    if (isApproved) {
-      const tokens = await generateTokenPairAndSession(newUser, req);
-      res.status(201).json({
-        success: true,
-        message: 'Account registered and verified successfully.',
-        user: newUser,
-        tokens
-      });
-      return;
-    }
-
-    // Non-public role: Awaits Main Admin approval
     res.status(201).json({
-      success: true,
-      message: 'Official account registered with verified email. Awaiting approval from Main Admin (Priyanshu Gupta).',
-      requiresApproval: true,
-      user: newUser
+      message: 'signup successful! Please verify the OTP sent to your email.'
     });
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'Signup failed.' });
+  } catch (err: any) {
+    res.status(500).json({ message: 'some internal server error occurred!' });
   }
 };
 
 // ==========================================
-// 2. STANDARD LOGIN (NO OTP! Username + Password)
+// 2. VERIFY OTP (Activates user & sets session cookie)
 // ==========================================
+export const handleOtp = async (req: Request, res: Response): Promise<void> => {
+  const { otp, email } = req.body;
 
-const loginSchema = z.object({
-  username: z.string().min(3),
-  password: z.string().min(4)
-});
+  if (!otp || !email) {
+    res.status(400).json({ message: 'OTP or email is missing!' });
+    return;
+  }
 
-export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, password } = loginSchema.parse(req.body);
-    const lookupKey = username.toLowerCase().trim();
+    const cleanEmail = email.toLowerCase().trim();
+    const otpHash = crypto.createHash('sha256').update(String(otp)).digest('hex');
 
-    let userDoc: any = null;
-    let passwordHash: string | null = null;
+    let user: any = null;
 
     if (isDatabaseConnected()) {
-      userDoc = await UserModel.findOne({
-        $or: [{ username: lookupKey }, { email: lookupKey }]
+      const otpRecord = await OtpModel.findOneAndDelete({
+        otpHash,
+        email: cleanEmail,
+        createdAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) }
       });
-      if (userDoc) {
-        passwordHash = userDoc.passwordHash || null;
+
+      if (!otpRecord) {
+        res.status(401).json({ message: 'invalid, expired, or already used OTP!' });
+        return;
+      }
+
+      user = await UserModel.findOne({ _id: otpRecord.user, email: cleanEmail });
+
+      if (!user) {
+        res.status(404).json({ message: 'user not found!' });
+        return;
+      }
+
+      if (user.isVerified) {
+        res.status(409).json({ message: 'account is already verified; please log in with your password.' });
+        return;
+      }
+
+      user.isVerified = true;
+      await user.save();
+    } else {
+      // In-memory fallback
+      for (const [, u] of stateService.users) {
+        if (u.email === cleanEmail) {
+          user = u;
+          user.isVerified = true;
+          break;
+        }
       }
     }
 
-    if (!userDoc) {
-      const memUser = stateService.users.get(lookupKey);
-      if (memUser) {
-        userDoc = memUser;
-        passwordHash = memUser.passwordHash;
-      }
-    }
-
-    if (!userDoc || !passwordHash) {
-      res.status(401).json({ success: false, message: 'Invalid username or password.' });
+    if (!user) {
+      res.status(404).json({ message: 'user not found!' });
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, passwordHash);
-    if (!isMatch) {
-      res.status(401).json({ success: false, message: 'Invalid username or password.' });
-      return;
-    }
-
-    // Check approval
-    if (userDoc.role !== 'PUBLIC' && !userDoc.isApproved) {
-      res.status(403).json({
-        success: false,
-        message: 'Non-public role requires approval from Main Admin (Priyanshu Gupta).'
+    // Check Main Admin approval for non-public roles
+    if (user.role !== 'PUBLIC' && !user.isApproved) {
+      res.status(201).json({
+        message: 'email verified successfully! Your official account is pending approval by Main Admin (Priyanshu Gupta).',
+        requiresAdminApproval: true
       });
       return;
     }
 
-    const user: User = {
-      id: userDoc.id || userDoc._id?.toString(),
-      name: userDoc.name,
-      username: userDoc.username,
-      email: userDoc.email,
-      role: userDoc.role,
-      agency: userDoc.agency,
-      isApproved: userDoc.isApproved,
-      authProvider: userDoc.authProvider
-    };
+    // Create Session and Issue Tokens
+    const refreshToken = jwt.sign({ id: user._id || user.id }, config.jwtSecret, { expiresIn: '7d' });
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    // Maintain session & generate Access Token + Refresh Token
-    const tokens = await generateTokenPairAndSession(user, req);
+    let session: any = null;
+    if (isDatabaseConnected()) {
+      session = await SessionModel.create({
+        user: user._id,
+        ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || 'Unknown',
+        refreshToken: hashedRefreshToken,
+        revoked: false,
+        deletedAt: null
+      });
+    }
 
-    res.json({
-      success: true,
-      message: 'Login successful.',
-      user,
-      tokens
+    const accessToken = jwt.sign(
+      { id: user._id || user.id, sid: session ? session._id : 'mem_sid', role: user.role, userName: user.userName },
+      config.jwtSecret,
+      { expiresIn: '15m' }
+    );
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: config.nodeEnv === 'production',
+      sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/auth'
     });
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'Login error.' });
+
+    res.status(201).json({
+      accessToken,
+      message: 'verification successful!',
+      user: { userName: user.userName, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'some internal server error occurred!' });
   }
 };
 
 // ==========================================
-// 3. REFRESH TOKEN & SESSION ROTATION
+// 3. LOGIN (NO OTP! Username + Password)
 // ==========================================
+export const handleLogin = async (req: Request, res: Response): Promise<void> => {
+  const { userName, password, email } = req.body;
 
-export const refreshToken = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { refreshToken } = req.body;
+    if (!password || (!userName && !email)) {
+      res.status(400).json({ message: 'invalid username or password or email' });
+      return;
+    }
+
+    const cleanQuery: any = {};
+    if (userName) cleanQuery.userName = userName.toLowerCase().trim();
+    if (email) cleanQuery.email = email.toLowerCase().trim();
+
+    let user: any = null;
+
+    if (isDatabaseConnected()) {
+      user = await UserModel.findOne({
+        $or: [
+          userName ? { userName: cleanQuery.userName } : null,
+          email ? { email: cleanQuery.email } : null
+        ].filter(Boolean) as any
+      });
+    } else {
+      for (const [, u] of stateService.users) {
+        if (
+          (cleanQuery.userName && u.userName === cleanQuery.userName) ||
+          (cleanQuery.email && u.email === cleanQuery.email)
+        ) {
+          user = u;
+          break;
+        }
+      }
+    }
+
+    if (!user) {
+      res.status(401).json({ message: 'user not found!' });
+      return;
+    }
+
+    if (!user.isVerified) {
+      res.status(403).json({ message: 'user is not verified! Please complete OTP verification.' });
+      return;
+    }
+
+    // Check Main Admin approval for non-public roles
+    if (user.role !== 'PUBLIC' && !user.isApproved) {
+      res.status(403).json({ message: 'official account pending approval from Main Admin (Priyanshu Gupta).' });
+      return;
+    }
+
+    const same = await bcrypt.compare(password, user.password || (user as any).passwordHash);
+    if (!same) {
+      res.status(401).json({ message: 'incorrect password!' });
+      return;
+    }
+
+    // Create Session
+    const refreshToken = jwt.sign({ id: user._id || user.id }, config.jwtSecret, { expiresIn: '7d' });
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    let session: any = null;
+    if (isDatabaseConnected()) {
+      session = await SessionModel.create({
+        user: user._id,
+        ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
+        refreshToken: hashedRefreshToken,
+        userAgent: req.headers['user-agent'] || 'Unknown',
+        revoked: false,
+        deletedAt: null
+      });
+    }
+
+    const accessToken = jwt.sign(
+      { id: user._id || user.id, sid: session ? session._id : 'mem_sid', role: user.role, userName: user.userName },
+      config.jwtSecret,
+      { expiresIn: '15m' }
+    );
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: config.nodeEnv === 'production',
+      sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/auth'
+    });
+
+    res.status(200).json({
+      message: 'login successful',
+      accessToken,
+      user: { userName: user.userName, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'some internal server error occurred!' });
+  }
+};
+
+// ==========================================
+// 4. TOKEN REFRESH (Rotate session & restore tokens)
+// ==========================================
+export const handleTokengen = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
-      res.status(400).json({ success: false, message: 'Refresh token is required.' });
+      res.status(401).json({ message: 'refreshToken not found!' });
       return;
     }
 
-    // Verify token signature
-    let decoded: any;
-    try {
-      decoded = jwt.verify(refreshToken, config.jwtRefreshSecret);
-    } catch {
-      res.status(401).json({ success: false, message: 'Invalid or expired refresh token.' });
-      return;
-    }
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    // Verify active session in Database
-    let sessionValid = false;
     if (isDatabaseConnected()) {
-      const session = await SessionModel.findOne({ refreshToken, isValid: true });
-      if (session && session.expiresAt > new Date()) {
-        sessionValid = true;
+      const session = await SessionModel.findOne({ refreshToken: hashedRefreshToken });
+      if (!session || session.revoked) {
+        res.status(403).json({ message: 'refreshToken is invalid or revoked!' });
+        return;
       }
-    } else {
-      const memSession = memorySessionStore.get(refreshToken);
-      if (memSession && memSession.expiresAt > Date.now()) {
-        sessionValid = true;
-      }
-    }
 
-    if (!sessionValid) {
-      res.status(401).json({ success: false, message: 'Session expired or revoked. Please log in again.' });
+      const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
+      const user = await UserModel.findById(decoded.id);
+
+      if (!user) {
+        res.status(404).json({ message: 'user not found!' });
+        return;
+      }
+
+      const newRefreshToken = jwt.sign(
+        { id: user._id, userName: user.userName },
+        config.jwtSecret,
+        { expiresIn: '7d' }
+      );
+
+      session.refreshToken = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+      await session.save();
+
+      const newAccessToken = jwt.sign(
+        { id: user._id, userName: user.userName, sid: session._id, role: user.role },
+        config.jwtSecret,
+        { expiresIn: '15m' }
+      );
+
+      res.cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        secure: config.nodeEnv === 'production',
+        sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/api/auth'
+      });
+
+      res.status(201).json({
+        message: 'tokens successfully restored!',
+        accessToken: newAccessToken
+      });
       return;
     }
 
-    // Fetch user details
-    let user: any = null;
-    if (isDatabaseConnected()) {
-      user = await UserModel.findById(decoded.id);
-    }
-    if (!user) {
-      user = stateService.users.get(decoded.username);
-    }
+    // In-memory fallback
+    const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, userName: decoded.userName },
+      config.jwtSecret,
+      { expiresIn: '15m' }
+    );
 
-    if (!user) {
-      res.status(404).json({ success: false, message: 'User not found.' });
-      return;
-    }
-
-    const tokenPayload = {
-      id: user.id || user._id?.toString(),
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      agency: user.agency,
-      isApproved: user.isApproved
-    };
-
-    // Issue fresh Access Token
-    const newAccessToken = jwt.sign(tokenPayload, config.jwtSecret, { expiresIn: config.jwtAccessExpiresIn as any });
-
-    res.json({
-      success: true,
-      accessToken: newAccessToken,
-      expiresIn: config.jwtAccessExpiresIn
+    res.status(201).json({
+      message: 'tokens successfully restored!',
+      accessToken: newAccessToken
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'Token refresh error.' });
+    if (error.name === 'TokenExpiredError') {
+      res.status(401).json({ message: 'token expired, please login again!' });
+      return;
+    }
+    res.status(401).json({ message: 'you are not authenticated!' });
   }
 };
 
 // ==========================================
-// 4. LOGOUT & SESSION REVOCATION
+// 5. LOGOUT (Revokes single session or all sessions)
 // ==========================================
-
-export const logout = async (req: Request, res: Response): Promise<void> => {
+export const logoutHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies?.refreshToken;
 
-    if (refreshToken) {
-      if (isDatabaseConnected()) {
-        await SessionModel.findOneAndUpdate({ refreshToken }, { isValid: false });
-      }
-      memorySessionStore.delete(refreshToken);
+    if (!refreshToken) {
+      res.status(400).json({ message: 'invalid refresh token!' });
+      return;
     }
 
-    res.json({
-      success: true,
-      message: 'Logged out successfully. Session invalidated.'
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    if (isDatabaseConnected()) {
+      const session = await SessionModel.findOne({ refreshToken: hashedRefreshToken });
+      if (session && !session.revoked) {
+        session.revoked = true;
+        session.deletedAt = new Date();
+        await session.save();
+      }
+    }
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
+      secure: config.nodeEnv === 'production',
+      path: '/api/auth'
     });
+
+    res.status(204).end();
+  } catch (err) {
+    res.status(500).json({ message: 'internal server error!' });
+  }
+};
+
+export const logoutAllHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      res.status(400).json({ message: 'invalid refresh token!' });
+      return;
+    }
+
+    const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+    if (isDatabaseConnected()) {
+      const session = await SessionModel.findOne({
+        user: decoded.id,
+        refreshToken: hashedRefreshToken,
+        revoked: false
+      });
+
+      if (!session) {
+        res.status(401).json({ message: 'you are not authenticated to logout!' });
+        return;
+      }
+
+      await SessionModel.updateMany(
+        { user: decoded.id, revoked: false },
+        { $set: { revoked: true, deletedAt: new Date() } }
+      );
+    }
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
+      secure: config.nodeEnv === 'production',
+      path: '/api/auth'
+    });
+
+    res.status(204).end();
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'Logout error.' });
+    if (error.name === 'TokenExpiredError') {
+      res.status(401).json({ message: 'token expired, please login again!' });
+      return;
+    }
+    res.status(401).json({ message: 'you are not authenticated to logout!' });
   }
 };
 
 // ==========================================
-// 5. GOOGLE OAUTH 2.0 (Public Users)
+// 6. GOOGLE OAUTH 2.0 (Public Users)
 // ==========================================
-
 export const googleOAuthLogin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { credential } = req.body;
@@ -478,7 +595,7 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
 
     const email = payload.email.toLowerCase().trim();
     const name = payload.name || 'Google User';
-    const username = email.split('@')[0] + '_oauth';
+    const userName = email.split('@')[0] + '_oauth';
 
     let user: any = null;
 
@@ -486,47 +603,63 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
       user = await UserModel.findOne({ email });
       if (!user) {
         user = await UserModel.create({
-          name,
-          username,
+          userName,
           email,
+          password: 'OAUTH_GOOGLE_ACCOUNT',
           role: 'PUBLIC',
           agency: 'COMMUTER',
+          isVerified: true,
           isApproved: true,
           authProvider: 'GOOGLE'
         });
       }
     } else {
       user = {
-        id: `USR_GOOGLE_${Date.now()}`,
-        name,
-        username,
+        _id: `USR_GOOGLE_${Date.now()}`,
+        userName,
         email,
         role: 'PUBLIC',
         agency: 'COMMUTER',
+        isVerified: true,
         isApproved: true,
         authProvider: 'GOOGLE'
       };
-      stateService.users.set(username, user);
+      stateService.users.set(userName, user);
     }
 
-    const tokenPayload: User = {
-      id: user.id || user._id?.toString(),
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: 'PUBLIC',
-      agency: 'COMMUTER',
-      isApproved: true,
-      authProvider: 'GOOGLE'
-    };
+    const refreshToken = jwt.sign({ id: user._id || user.id }, config.jwtSecret, { expiresIn: '7d' });
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    const tokens = await generateTokenPairAndSession(tokenPayload, req);
+    let session: any = null;
+    if (isDatabaseConnected()) {
+      session = await SessionModel.create({
+        user: user._id,
+        ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
+        refreshToken: hashedRefreshToken,
+        userAgent: req.headers['user-agent'] || 'Unknown',
+        revoked: false,
+        deletedAt: null
+      });
+    }
+
+    const accessToken = jwt.sign(
+      { id: user._id || user.id, sid: session ? session._id : 'mem_sid', role: user.role, userName: user.userName },
+      config.jwtSecret,
+      { expiresIn: '15m' }
+    );
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: config.nodeEnv === 'production',
+      sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/auth'
+    });
 
     res.json({
-      success: true,
       message: 'Google OAuth login successful.',
-      user: tokenPayload,
-      tokens
+      accessToken,
+      user: { userName: user.userName, email: user.email, role: user.role }
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message || 'Google OAuth failed.' });
@@ -534,13 +667,12 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
 };
 
 // ==========================================
-// 👑 MAIN ADMIN APPROVAL MANAGEMENT
+// 7. MAIN ADMIN APPROVAL MANAGEMENT
 // ==========================================
-
 export const getPendingUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (isDatabaseConnected()) {
     try {
-      const pendingDb = await UserModel.find({ isApproved: false, role: { $ne: 'PUBLIC' } }).select('-passwordHash');
+      const pendingDb = await UserModel.find({ isApproved: false, role: { $ne: 'PUBLIC' } }).select('-password');
       res.json({ success: true, pendingUsers: pendingDb });
       return;
     } catch (e: any) {
@@ -549,8 +681,8 @@ export const getPendingUsers = async (req: AuthenticatedRequest, res: Response):
   }
 
   const pendingMem = Array.from(stateService.users.values())
-    .filter((u) => !u.isApproved && u.role !== 'PUBLIC')
-    .map(({ passwordHash, ...user }) => user);
+    .filter((u: any) => !u.isApproved && u.role !== 'PUBLIC')
+    .map(({ password, passwordHash, ...user }: any) => user);
 
   res.json({
     success: true,
@@ -560,7 +692,7 @@ export const getPendingUsers = async (req: AuthenticatedRequest, res: Response):
 
 export const approveUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { id } = req.params;
-  const adminName = req.user?.name || MAIN_ADMIN_NAME;
+  const adminName = req.user?.userName || MAIN_ADMIN_NAME;
 
   let approved = false;
 
@@ -574,7 +706,7 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response): Pro
         await user.save();
         approved = true;
 
-        const mem = stateService.users.get(user.username);
+        const mem: any = stateService.users.get(user.userName);
         if (mem) mem.isApproved = true;
       }
     } catch (e: any) {
@@ -584,7 +716,7 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response): Pro
 
   if (!approved) {
     for (const [, user] of stateService.users) {
-      if (user.id === id || user.username === id) {
+      if ((user as any)._id === id || (user as any).id === id || user.userName === id) {
         user.isApproved = true;
         approved = true;
         break;
