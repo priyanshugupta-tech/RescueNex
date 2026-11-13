@@ -48,14 +48,24 @@ app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/weather', weatherRoutes);
 
-// System Health Check
-app.get('/api/health', (req, res) => {
+// System Health Check (Without leaking internal network topology)
+app.get('/api/health', async (req, res) => {
+  let aiStatus = 'OFFLINE_FALLBACK_ACTIVE';
+  try {
+    const aiCheck = await fetch(`${config.aiEngineUrl}/health`, { signal: AbortSignal.timeout(1000) });
+    if (aiCheck.ok) {
+      aiStatus = 'HEALTHY';
+    }
+  } catch {
+    aiStatus = 'OFFLINE_FALLBACK_ACTIVE';
+  }
+
   res.json({
     status: 'HEALTHY',
     service: 'RescueNex Core Gateway',
     timestamp: new Date().toISOString(),
-    aiEngineUrl: config.aiEngineUrl,
-    environment: config.nodeEnv
+    aiEngineStatus: aiStatus,
+    simulationActive: config.enableNodeSimulation
   });
 });
 
