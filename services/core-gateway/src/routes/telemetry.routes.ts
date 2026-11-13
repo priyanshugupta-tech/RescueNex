@@ -3,21 +3,17 @@ import {
   ingestTelemetry,
   getAllTelemetry,
   getAllSectors,
-  getTelemetryHistory,
-  triggerDemoCrisis
+  getTelemetryHistory
 } from '../controllers/telemetry.controller.js';
 
 const router = Router();
 
-// Ingestion endpoint for physical ESP32 or simulated nodes
+// Ingestion endpoint for physical ESP32
 router.post('/ingest', ingestTelemetry);
 
 // Querying current status
 router.get('/nodes', getAllTelemetry);
 router.get('/sectors', getAllSectors);
 router.get('/history', getTelemetryHistory);
-
-// Hackathon demonstration trigger
-router.post('/demo-crisis', triggerDemoCrisis);
 
 export default router;

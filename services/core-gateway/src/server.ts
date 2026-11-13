@@ -14,7 +14,6 @@ import weatherRoutes from './routes/weather.routes.js';
 // Services & Sockets
 import { alertService } from './services/alert.service.js';
 import { weatherService } from './services/weather.service.js';
-import { simulationService } from './services/simulation.service.js';
 import { setTelemetrySocketEmitter } from './controllers/telemetry.controller.js';
 import { setAlertSocketEmitter } from './controllers/alerts.controller.js';
 import { setWeatherSocketEmitter } from './controllers/weather.controller.js';
@@ -52,14 +51,14 @@ app.use('/api/weather', weatherRoutes);
 
 // System Health Check (Without leaking internal network topology)
 app.get('/api/health', async (req, res) => {
-  let aiStatus = 'OFFLINE_FALLBACK_ACTIVE';
+  let aiStatus = 'OFFLINE';
   try {
     const aiCheck = await fetch(`${config.aiEngineUrl}/health`, { signal: AbortSignal.timeout(1000) });
     if (aiCheck.ok) {
       aiStatus = 'HEALTHY';
     }
   } catch {
-    aiStatus = 'OFFLINE_FALLBACK_ACTIVE';
+    aiStatus = 'OFFLINE';
   }
 
   res.json({
@@ -67,8 +66,7 @@ app.get('/api/health', async (req, res) => {
     service: 'RescueNex Core Gateway',
     timestamp: new Date().toISOString(),
     database: isDatabaseConnected() ? 'MONGODB_ATLAS_CONNECTED' : 'IN_MEMORY_FALLBACK',
-    aiEngineStatus: aiStatus,
-    simulationActive: config.enableNodeSimulation
+    aiEngineStatus: aiStatus
   });
 });
 
@@ -81,7 +79,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Initialize Background Operations
+// Initialize Server Operations
 const startServer = async () => {
   // 1. Connect to MongoDB Atlas (if MONGODB_URI is provided)
   await connectDatabase();
@@ -106,12 +104,6 @@ const startServer = async () => {
       console.error('[WeatherService] Periodic sync error:', err.message);
     });
   }, config.weatherPollIntervalMins * 60 * 1000);
-
-  // 3. Start simulation service for neighboring mountain nodes
-  if (config.enableNodeSimulation) {
-    console.log('[SimulationService] Starting simulated telemetry stream for mountain sectors...');
-    simulationService.startSimulation(io);
-  }
 };
 
 startServer().catch((err) => {

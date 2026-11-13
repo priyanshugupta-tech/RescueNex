@@ -10,7 +10,6 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   aiEngineUrl: process.env.AI_ENGINE_URL || 'http://localhost:8000',
   weatherPollIntervalMins: parseInt(process.env.WEATHER_POLL_INTERVAL_MINS || '15', 10),
-  enableNodeSimulation: process.env.ENABLE_NODE_SIMULATION !== 'false',
   defaultCoordinates: {
     latitude: parseFloat(process.env.DEFAULT_LATITUDE || '33.4975'),
     longitude: parseFloat(process.env.DEFAULT_LONGITUDE || '75.2014')

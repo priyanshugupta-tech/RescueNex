@@ -3,12 +3,11 @@ import { z } from 'zod';
 import { stateService } from '../services/state.service.js';
 import { aiService } from '../services/ai.service.js';
 import { alertService } from '../services/alert.service.js';
-import { simulationService } from '../services/simulation.service.js';
 import { NodeTelemetry, LSIResult } from '../types/index.js';
 import { TelemetryLogModel } from '../models/telemetryLog.model.js';
 import { isDatabaseConnected } from '../config/database.js';
 
-// Schema for incoming telemetry from physical ESP32 or simulated gateway
+// Schema for incoming telemetry from physical ESP32
 const telemetryIngestSchema = z.object({
   node_id: z.string().default('NODE_BANIHAL_01'),
   soil_moisture_pct: z.number().min(0).max(100),
@@ -193,14 +192,5 @@ export const getTelemetryHistory = async (req: Request, res: Response): Promise<
     success: true,
     source: 'In_Memory',
     history: stateService.getAllTelemetry()
-  });
-};
-
-export const triggerDemoCrisis = async (req: Request, res: Response): Promise<void> => {
-  const sectorId = req.body.sector_id || 'SECTOR_RAMBAN';
-  await simulationService.injectDemoCrisisEvent(sectorId);
-  res.json({
-    success: true,
-    message: `Injected simulated landslide crisis for sector '${sectorId}'.`
   });
 };
