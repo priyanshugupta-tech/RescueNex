@@ -4,11 +4,15 @@ import { UserRole } from '../types/index.js';
 export interface IUserDocument extends Document {
   id: string;
   name: string;
-  email: string;
+  username: string;
+  email?: string;
   passwordHash: string;
   role: UserRole;
   agency?: 'SDMA' | 'SDRF' | 'BRO' | 'COMMUTER';
   phone?: string;
+  isApproved: boolean;
+  approvedBy?: string;
+  approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,7 +20,15 @@ export interface IUserDocument extends Document {
 const UserSchema = new Schema<IUserDocument>(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true
+    },
+    email: { type: String, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     role: {
       type: String,
@@ -29,7 +41,10 @@ const UserSchema = new Schema<IUserDocument>(
       enum: ['SDMA', 'SDRF', 'BRO', 'COMMUTER'],
       default: 'COMMUTER'
     },
-    phone: { type: String, trim: true }
+    phone: { type: String, trim: true },
+    isApproved: { type: Boolean, default: false, index: true },
+    approvedBy: { type: String },
+    approvedAt: { type: Date }
   },
   {
     timestamps: true,

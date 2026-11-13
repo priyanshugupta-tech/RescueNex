@@ -3,9 +3,11 @@ export type UserRole = 'ADMIN' | 'OPERATOR' | 'SCOUT' | 'PUBLIC';
 export interface User {
   id: string;
   name: string;
-  email: string;
+  username: string;
+  email?: string;
   role: UserRole;
   agency?: 'SDMA' | 'SDRF' | 'BRO' | 'COMMUTER';
+  isApproved: boolean;
 }
 
 export interface NodeTelemetry {
