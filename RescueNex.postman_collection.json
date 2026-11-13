@@ -1,0 +1,446 @@
+{
+  "info": {
+    "_postman_id": "c1f7b521-82d4-4a5c-9c94-rescuenex01",
+    "name": "RescueNex Core Gateway API Suite",
+    "description": "Comprehensive Postman Collection for RescueNex Autonomous AI-Based Early Warning & Landslide Risk Monitoring System (Jammu & Kashmir NH-44 Corridor). Includes complete authentication flows, rate limiting, dynamic GPS telemetry, weather sync, and emergency siren override.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "adminAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "scoutAccessToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. System & Health",
+      "item": [
+        {
+          "name": "GET System Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Authentication & Sessions",
+      "item": [
+        {
+          "name": "POST Admin Login (Priyanshu Gupta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) {",
+                  "  pm.collectionVariables.set('adminAccessToken', res.accessToken);",
+                  "  pm.test('Status code is 200 and token received', () => {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"lead@rescuenex\",\n  \"password\": \"gupta18\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Auth Me (Verify Session)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Tokengen (Rotate Refresh Token via Cookie)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/tokengen",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "tokengen"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Signup (New Scout - Resend Email OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"ramban_scout\",\n  \"email\": \"scout@rescuenex.org\",\n  \"password\": \"SecurePass123!\",\n  \"confirmPassword\": \"SecurePass123!\",\n  \"role\": \"SCOUT\",\n  \"agency\": \"SDRF\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"scout@rescuenex.org\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-otp"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Pending Approvals (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "pending"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Approve Pending User (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/approve/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "approve", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "USR_SAMPLE_ID"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03. Telemetry & Hardware Node (Dynamic GPS)",
+      "item": [
+        {
+          "name": "POST Ingest Live Hardware Telemetry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node_id\": \"ESP32_NEO6M_NODE1\",\n  \"latitude\": 33.2505,\n  \"longitude\": 75.2501,\n  \"altitude_m\": 1650,\n  \"gps_fix\": true,\n  \"soil_moisture_pct\": 78.4,\n  \"tilt_x\": 4.8,\n  \"tilt_y\": 2.1,\n  \"accel_rms\": 1.12,\n  \"vibration_detected\": true,\n  \"wake_reason\": \"MOTION_INTERRUPT\",\n  \"battery_pct\": 92\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/telemetry/ingest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "telemetry", "ingest"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Connected Nodes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/telemetry/nodes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "telemetry", "nodes"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Mountain Sectors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/telemetry/sectors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "telemetry", "sectors"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Telemetry History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/telemetry/history?nodeId=ESP32_NEO6M_NODE1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "telemetry", "history"],
+              "query": [
+                {
+                  "key": "nodeId",
+                  "value": "ESP32_NEO6M_NODE1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04. Weather & Meteorological Sync",
+      "item": [
+        {
+          "name": "GET Current Weather All Sectors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/weather",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "weather"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Trigger Open-Meteo GPS Sync",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/weather/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "weather", "sync"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Set Weather Simulation Scenario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectorId\": \"SECTOR_RAMBAN\",\n  \"scenario\": \"MONSOON\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/weather/scenario",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "weather", "scenario"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05. Emergency Alerts & Siren Control",
+      "item": [
+        {
+          "name": "GET Active Alerts & Audit History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET NDMA CAP v1.2 XML Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/:alertId/cap-xml",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", ":alertId", "cap-xml"],
+              "variable": [
+                {
+                  "key": "alertId",
+                  "value": "ALERT_SAMPLE_01"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Acknowledge Alert (Operator / Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/:alertId/acknowledge",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", ":alertId", "acknowledge"],
+              "variable": [
+                {
+                  "key": "alertId",
+                  "value": "ALERT_SAMPLE_01"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Emergency Siren Manual Toggle (High Security)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-emergency-confirm",
+                "value": "CONFIRM_DISASTER_OVERRIDE",
+                "description": "Mandatory safety guard header to prevent accidental siren sounding"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectorId\": \"SECTOR_RAMBAN\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/siren/toggle",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "siren", "toggle"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
