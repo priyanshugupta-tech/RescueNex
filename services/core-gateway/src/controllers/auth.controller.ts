@@ -22,7 +22,7 @@ const MAIN_ADMIN_NAME = 'Priyanshu Gupta';
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
-// Seed Main Admin user
+// Seed default main admin
 export const seedDefaultUsers = async () => {
   const defaultPasswordHash = await bcrypt.hash(MAIN_ADMIN_PASSWORD, 10);
 
@@ -52,7 +52,7 @@ export const seedDefaultUsers = async () => {
           isApproved: true,
           authProvider: 'LOCAL'
         });
-        console.log(`✅ [MongoDB] Seeded Main Admin (${MAIN_ADMIN_USERNAME}) into Atlas.`);
+        console.log(`[MongoDB] Seeded main admin (${MAIN_ADMIN_USERNAME})`);
       } else {
         existing.password = defaultPasswordHash;
         existing.isVerified = true;
@@ -60,14 +60,12 @@ export const seedDefaultUsers = async () => {
         await existing.save();
       }
     } catch (e: any) {
-      console.warn('⚠️ [MongoDB] User seed check skipped:', e.message);
+      console.warn('[MongoDB] User seed check skipped:', e.message);
     }
   }
 };
 
-// ==========================================
-// 1. SIGNUP (Creates unverified user + sends OTP)
-// ==========================================
+// Signup handler: creates unverified user and sends OTP via Resend
 export const handleSignup = async (req: Request, res: Response): Promise<void> => {
   const { userName, email, password, confirmPassword, role = 'PUBLIC', agency = 'COMMUTER' } = req.body;
 
@@ -96,7 +94,7 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
     const cleanEmail = email.toLowerCase().trim();
     const cleanUserName = userName.toLowerCase().trim();
 
-    // Check OTP Send Cooldown (Anti-Spam: 60s minimum interval)
+    // Check OTP send cooldown (60 seconds)
     const cooldownCheck = await rateLimitService.checkOtpSendCooldown(cleanEmail);
     if (!cooldownCheck.allowed) {
       res.status(429).json({
@@ -105,7 +103,7 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Check if user already registered
+    // Check existing registration
     let existingUser: any = null;
     if (isDatabaseConnected()) {
       existingUser = await UserModel.findOne({
@@ -120,7 +118,6 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    // If registered but not verified, resend OTP
     if (existingUser) {
       if (!existingUser.isVerified) {
         const otp = generateOtps();
@@ -152,7 +149,6 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    // New User: hash password and create unverified record
     const hash = await bcrypt.hash(password, 10);
     const isApproved = role === 'PUBLIC' || cleanUserName === MAIN_ADMIN_USERNAME;
 
@@ -205,9 +201,7 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// ==========================================
-// 2. VERIFY OTP (Activates user & sets session cookie)
-// ==========================================
+// OTP verification handler: validates SHA-256 OTP and creates active session
 export const handleOtp = async (req: Request, res: Response): Promise<void> => {
   const { otp, email } = req.body;
 
@@ -219,7 +213,7 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
   try {
     const cleanEmail = email.toLowerCase().trim();
 
-    // Check if locked out due to repeated failed OTP attempts
+    // Check OTP verification lockout (5 attempts in 2 min -> 5 min lock)
     const lockCheck = await rateLimitService.checkOtpVerificationLockout(cleanEmail);
     if (lockCheck.isLocked) {
       res.status(429).json({
@@ -239,7 +233,6 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       });
 
       if (!otpRecord) {
-        // Record failed OTP attempt
         const failedRecord = await rateLimitService.recordFailedOtpAttempt(cleanEmail);
         if (failedRecord.isLocked) {
           res.status(429).json({
@@ -268,7 +261,6 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       user.isVerified = true;
       await user.save();
     } else {
-      // In-memory fallback
       for (const [, u] of stateService.users) {
         if (u.email === cleanEmail) {
           user = u;
@@ -283,10 +275,10 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Clear failed OTP attempts counter on success
+    // Clear failed attempts counter on valid OTP
     await rateLimitService.clearOtpAttempts(cleanEmail);
 
-    // Check Main Admin approval for non-public roles
+    // Check admin approval for non-public roles
     if (user.role !== 'PUBLIC' && !user.isApproved) {
       res.status(201).json({
         message: 'email verified successfully! Your official account is pending approval by Main Admin (Priyanshu Gupta).',
@@ -295,7 +287,7 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Create Session and Issue Tokens
+    // Single JWT_SECRET used for both refresh and access tokens
     const refreshToken = jwt.sign({ id: user._id || user.id }, config.jwtSecret, { expiresIn: '7d' });
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
@@ -335,9 +327,7 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// ==========================================
-// 3. LOGIN (NO OTP! 5 failed attempts in 2m -> 30m lock)
-// ==========================================
+// Login handler: verifies credentials and sets refresh token cookie (no OTP needed)
 export const handleLogin = async (req: Request, res: Response): Promise<void> => {
   const { userName, password, email } = req.body;
 
@@ -349,7 +339,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 
     const lookupKey = (userName || email).toLowerCase().trim();
 
-    // 1. Check if account is currently locked out
+    // Check 5-attempt / 2-minute lockout rule
     const lockoutCheck = await rateLimitService.checkLoginLockout(lookupKey);
     if (lockoutCheck.isLocked) {
       res.status(429).json({
@@ -384,7 +374,6 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
     }
 
     if (!userDoc) {
-      // Record failed attempt for unknown user/brute-force defense
       const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
       res.status(401).json({
         message: `user not found! (Attempt ${failRecord.attempts} of 5)`
@@ -397,16 +386,14 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Check Main Admin approval for non-public roles
+    // Check main admin approval for official roles
     if (userDoc.role !== 'PUBLIC' && !userDoc.isApproved) {
       res.status(403).json({ message: 'official account pending approval from Main Admin (Priyanshu Gupta).' });
       return;
     }
 
-    // Verify password with bcrypt
     const same = await bcrypt.compare(password, userDoc.password || (userDoc as any).passwordHash);
     if (!same) {
-      // Record failed login attempt
       const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
       if (failRecord.isLocked) {
         res.status(429).json({
@@ -420,10 +407,10 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Success! Clear failed attempts counter back to 0
+    // Clear failed attempts counter on success
     await rateLimitService.clearLoginAttempts(lookupKey);
 
-    // Create Session
+    // Single JWT_SECRET used for both refresh and access tokens
     const refreshToken = jwt.sign({ id: userDoc._id || userDoc.id }, config.jwtSecret, { expiresIn: '7d' });
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
@@ -463,9 +450,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-// ==========================================
-// 4. TOKEN REFRESH (Rotate session & restore tokens)
-// ==========================================
+// Token refresh handler: rotates session and issues new access token
 export const handleTokengen = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;
@@ -522,7 +507,6 @@ export const handleTokengen = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // In-memory fallback
     const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
     const newAccessToken = jwt.sign(
       { id: decoded.id, userName: decoded.userName },
@@ -543,9 +527,7 @@ export const handleTokengen = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// ==========================================
-// 5. LOGOUT (Revokes single session or all sessions)
-// ==========================================
+// Logout handler for current device session
 export const logoutHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;
@@ -579,6 +561,7 @@ export const logoutHandler = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+// Logout-all handler: revokes all active sessions for this user across all devices
 export const logoutAllHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;
@@ -626,9 +609,7 @@ export const logoutAllHandler = async (req: Request, res: Response): Promise<voi
   }
 };
 
-// ==========================================
-// 6. GOOGLE OAUTH 2.0 (Public Users)
-// ==========================================
+// Google OAuth 2.0 login handler for public users
 export const googleOAuthLogin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { credential } = req.body;
@@ -727,9 +708,7 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
   }
 };
 
-// ==========================================
-// 7. MAIN ADMIN APPROVAL MANAGEMENT
-// ==========================================
+// Main admin approval management
 export const getPendingUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (isDatabaseConnected()) {
     try {
@@ -737,7 +716,7 @@ export const getPendingUsers = async (req: AuthenticatedRequest, res: Response):
       res.json({ success: true, pendingUsers: pendingDb });
       return;
     } catch (e: any) {
-      console.warn('⚠️ [MongoDB] Error fetching pending users:', e.message);
+      console.warn('[MongoDB] Error fetching pending users:', e.message);
     }
   }
 
@@ -771,7 +750,7 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response): Pro
         if (mem) mem.isApproved = true;
       }
     } catch (e: any) {
-      console.warn('⚠️ [MongoDB] Error approving user in Atlas:', e.message);
+      console.warn('[MongoDB] Error approving user in Atlas:', e.message);
     }
   }
 
