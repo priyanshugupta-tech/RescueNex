@@ -9,46 +9,37 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { UserModel } from '../models/user.model.js';
 import { isDatabaseConnected } from '../config/database.js';
 
-// Seed default users into in-memory or Atlas
+// Seed single default admin user for rapid testing & evaluation
 export const seedDefaultUsers = async () => {
   const defaultPasswordHash = await bcrypt.hash('admin123', 10);
-  const operatorPasswordHash = await bcrypt.hash('bro123', 10);
+  const adminEmail = 'lead@rescuenex.org';
 
   // In-memory seed
-  if (stateService.users.size === 0) {
-    stateService.users.set('admin@sdma.gov.in', {
-      id: 'USR_ADMIN_01',
-      name: 'Priyanshu Gupta (SDMA Officer)',
-      email: 'admin@sdma.gov.in',
+  if (!stateService.users.has(adminEmail)) {
+    stateService.users.set(adminEmail, {
+      id: 'USR_LEAD_01',
+      name: 'Priyanshu Gupta (Project Lead)',
+      email: adminEmail,
       role: 'ADMIN',
       agency: 'SDMA',
       passwordHash: defaultPasswordHash
-    });
-
-    stateService.users.set('operator@bro.gov.in', {
-      id: 'USR_BRO_01',
-      name: 'BRO Field Commander (NH-44)',
-      email: 'operator@bro.gov.in',
-      role: 'OPERATOR',
-      agency: 'BRO',
-      passwordHash: operatorPasswordHash
     });
   }
 
   // Atlas seed if connected
   if (isDatabaseConnected()) {
     try {
-      const existingAdmin = await UserModel.findOne({ email: 'admin@sdma.gov.in' });
+      const existingAdmin = await UserModel.findOne({ email: adminEmail });
       if (!existingAdmin) {
         await UserModel.create({
-          name: 'Priyanshu Gupta (SDMA Officer)',
-          email: 'admin@sdma.gov.in',
+          name: 'Priyanshu Gupta (Project Lead)',
+          email: adminEmail,
           passwordHash: defaultPasswordHash,
           role: 'ADMIN',
           agency: 'SDMA',
           phone: '+919999999999'
         });
-        console.log('✅ [MongoDB] Seeded default SDMA Admin user into Atlas.');
+        console.log(`✅ [MongoDB] Seeded default Admin (${adminEmail}) into Atlas.`);
       }
     } catch (e: any) {
       console.warn('⚠️ [MongoDB] User seed check skipped:', e.message);
