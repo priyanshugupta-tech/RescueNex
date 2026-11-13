@@ -7,6 +7,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/index.js';
 import { stateService } from '../services/state.service.js';
 import { emailService } from '../services/email.service.js';
+import { rateLimitService } from '../services/rateLimit.service.js';
 import { generateOtps } from '../utils/generateOtp.js';
 import { User, UserRole } from '../types/index.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
@@ -94,6 +95,15 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
 
     const cleanEmail = email.toLowerCase().trim();
     const cleanUserName = userName.toLowerCase().trim();
+
+    // Check OTP Send Cooldown (Anti-Spam: 60s minimum interval)
+    const cooldownCheck = await rateLimitService.checkOtpSendCooldown(cleanEmail);
+    if (!cooldownCheck.allowed) {
+      res.status(429).json({
+        message: `Please wait ${cooldownCheck.waitSeconds}s before requesting another verification code.`
+      });
+      return;
+    }
 
     // Check if user already registered
     let existingUser: any = null;
@@ -208,8 +218,17 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
 
   try {
     const cleanEmail = email.toLowerCase().trim();
-    const otpHash = crypto.createHash('sha256').update(String(otp)).digest('hex');
 
+    // Check if locked out due to repeated failed OTP attempts
+    const lockCheck = await rateLimitService.checkOtpVerificationLockout(cleanEmail);
+    if (lockCheck.isLocked) {
+      res.status(429).json({
+        message: `Too many failed OTP verification attempts. Verification locked for ${lockCheck.remainingMinutes} more minutes.`
+      });
+      return;
+    }
+
+    const otpHash = crypto.createHash('sha256').update(String(otp)).digest('hex');
     let user: any = null;
 
     if (isDatabaseConnected()) {
@@ -220,7 +239,17 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       });
 
       if (!otpRecord) {
-        res.status(401).json({ message: 'invalid, expired, or already used OTP!' });
+        // Record failed OTP attempt
+        const failedRecord = await rateLimitService.recordFailedOtpAttempt(cleanEmail);
+        if (failedRecord.isLocked) {
+          res.status(429).json({
+            message: 'Maximum 5 OTP attempts exceeded. Verification locked for 15 minutes.'
+          });
+          return;
+        }
+        res.status(401).json({
+          message: `invalid, expired, or already used OTP! (Attempt ${failedRecord.attempts} of 5)`
+        });
         return;
       }
 
@@ -253,6 +282,9 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ message: 'user not found!' });
       return;
     }
+
+    // Clear failed OTP attempts counter on success
+    await rateLimitService.clearOtpAttempts(cleanEmail);
 
     // Check Main Admin approval for non-public roles
     if (user.role !== 'PUBLIC' && !user.isApproved) {
@@ -304,7 +336,7 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
 };
 
 // ==========================================
-// 3. LOGIN (NO OTP! Username + Password)
+// 3. LOGIN (NO OTP! 5 failed attempts in 2m -> 30m lock)
 // ==========================================
 export const handleLogin = async (req: Request, res: Response): Promise<void> => {
   const { userName, password, email } = req.body;
@@ -315,14 +347,25 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    const lookupKey = (userName || email).toLowerCase().trim();
+
+    // 1. Check if account is currently locked out
+    const lockoutCheck = await rateLimitService.checkLoginLockout(lookupKey);
+    if (lockoutCheck.isLocked) {
+      res.status(429).json({
+        message: `Account temporarily locked due to 5 consecutive failed login attempts. Please try again after ${lockoutCheck.remainingMinutes} minutes.`
+      });
+      return;
+    }
+
     const cleanQuery: any = {};
     if (userName) cleanQuery.userName = userName.toLowerCase().trim();
     if (email) cleanQuery.email = email.toLowerCase().trim();
 
-    let user: any = null;
+    let userDoc: any = null;
 
     if (isDatabaseConnected()) {
-      user = await UserModel.findOne({
+      userDoc = await UserModel.findOne({
         $or: [
           userName ? { userName: cleanQuery.userName } : null,
           email ? { email: cleanQuery.email } : null
@@ -334,42 +377,60 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
           (cleanQuery.userName && u.userName === cleanQuery.userName) ||
           (cleanQuery.email && u.email === cleanQuery.email)
         ) {
-          user = u;
+          userDoc = u;
           break;
         }
       }
     }
 
-    if (!user) {
-      res.status(401).json({ message: 'user not found!' });
+    if (!userDoc) {
+      // Record failed attempt for unknown user/brute-force defense
+      const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
+      res.status(401).json({
+        message: `user not found! (Attempt ${failRecord.attempts} of 5)`
+      });
       return;
     }
 
-    if (!user.isVerified) {
+    if (!userDoc.isVerified) {
       res.status(403).json({ message: 'user is not verified! Please complete OTP verification.' });
       return;
     }
 
     // Check Main Admin approval for non-public roles
-    if (user.role !== 'PUBLIC' && !user.isApproved) {
+    if (userDoc.role !== 'PUBLIC' && !userDoc.isApproved) {
       res.status(403).json({ message: 'official account pending approval from Main Admin (Priyanshu Gupta).' });
       return;
     }
 
-    const same = await bcrypt.compare(password, user.password || (user as any).passwordHash);
+    // Verify password with bcrypt
+    const same = await bcrypt.compare(password, userDoc.password || (userDoc as any).passwordHash);
     if (!same) {
-      res.status(401).json({ message: 'incorrect password!' });
+      // Record failed login attempt
+      const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
+      if (failRecord.isLocked) {
+        res.status(429).json({
+          message: 'Maximum 5 unsuccessful login attempts exceeded within 2 minutes. Account is now locked for 30 minutes.'
+        });
+        return;
+      }
+      res.status(401).json({
+        message: `incorrect password! (Attempt ${failRecord.attempts} of 5. After 5 attempts, account will be locked for 30 minutes)`
+      });
       return;
     }
 
+    // Success! Clear failed attempts counter back to 0
+    await rateLimitService.clearLoginAttempts(lookupKey);
+
     // Create Session
-    const refreshToken = jwt.sign({ id: user._id || user.id }, config.jwtSecret, { expiresIn: '7d' });
+    const refreshToken = jwt.sign({ id: userDoc._id || userDoc.id }, config.jwtSecret, { expiresIn: '7d' });
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
     let session: any = null;
     if (isDatabaseConnected()) {
       session = await SessionModel.create({
-        user: user._id,
+        user: userDoc._id,
         ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
         refreshToken: hashedRefreshToken,
         userAgent: req.headers['user-agent'] || 'Unknown',
@@ -379,7 +440,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
     }
 
     const accessToken = jwt.sign(
-      { id: user._id || user.id, sid: session ? session._id : 'mem_sid', role: user.role, userName: user.userName },
+      { id: userDoc._id || userDoc.id, sid: session ? session._id : 'mem_sid', role: userDoc.role, userName: userDoc.userName },
       config.jwtSecret,
       { expiresIn: '15m' }
     );
@@ -395,7 +456,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
     res.status(200).json({
       message: 'login successful',
       accessToken,
-      user: { userName: user.userName, email: user.email, role: user.role }
+      user: { userName: userDoc.userName, email: userDoc.email, role: userDoc.role }
     });
   } catch (error) {
     res.status(500).json({ message: 'some internal server error occurred!' });
