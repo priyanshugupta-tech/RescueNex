@@ -11,13 +11,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Custom Node Icon with radar pulse for the live physical ESP32 GPS
+// Custom Node Icon for the live physical ESP32 GPS
 const createNodeIcon = (isWarning: boolean) => L.divIcon({
   className: 'custom-node-pin',
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="w-5 h-5 rounded-full ${isWarning ? 'bg-rose-500' : 'bg-sky-500'} border-2 border-white shadow-lg radar-pulse"></div>
-      <div class="absolute -top-6 px-1.5 py-0.5 rounded bg-slate-950/90 text-[10px] font-mono text-white font-bold border border-slate-700 whitespace-nowrap shadow">
+      <div class="w-4 h-4 rounded-full ${isWarning ? 'bg-rose-500' : 'bg-sky-500'} border-2 border-white shadow"></div>
+      <div class="absolute -top-6 px-1.5 py-0.5 rounded bg-[#161B22] text-[10px] font-mono text-white font-bold border border-[#30363D] whitespace-nowrap">
         ESP32-GPS
       </div>
     </div>

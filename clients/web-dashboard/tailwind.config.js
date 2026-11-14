@@ -8,12 +8,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0B0F17',
+        background: '#0D1117',
         surface: {
-          DEFAULT: '#111827',
-          dim: '#0F131C',
-          high: '#1E293B',
-          higher: '#334155'
+          DEFAULT: '#161B22',
+          dim: '#0D1117',
+          high: '#21262D',
+          higher: '#30363D'
         },
         hazard: {
           low: '#10B981',      // Muted Emerald

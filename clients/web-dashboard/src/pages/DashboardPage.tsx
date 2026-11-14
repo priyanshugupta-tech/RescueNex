@@ -70,15 +70,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         isWeatherSyncing={isSyncingWeather}
       />
 
-      {/* Weather Scenario Preset Switcher - Lustrous Opaque Style */}
-      <div className="p-3.5 rounded-xl bg-slate-900/95 border border-slate-800 shadow-md shadow-black/40 flex flex-wrap items-center justify-between gap-3 text-xs">
+      {/* Weather Scenario Preset Switcher */}
+      <div className="p-3.5 rounded-xl bg-[#161B22] border border-[#30363D] flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2">
           <CloudSun className="w-4 h-4 text-amber-400" />
           <span className="font-semibold text-slate-200 font-sans">
             Weather Simulation & Live Sync:
           </span>
           {scenarioSuccess && (
-            <span className="font-mono text-emerald-400 text-[11px] animate-pulse">
+            <span className="font-mono text-emerald-400 text-xs">
               ✓ {scenarioSuccess}
             </span>
           )}
@@ -87,45 +87,45 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="flex items-center gap-1.5 font-mono">
           <button
             onClick={() => handleApplyScenario('LIVE')}
-            className={`px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
               activeScenario === 'LIVE'
-                ? 'bg-gradient-to-b from-slate-600 via-slate-700 to-slate-800 text-white font-bold border-t border-white/40 border-b border-slate-950 shadow-md ring-1 ring-white/20'
-                : 'bg-slate-800/90 hover:bg-slate-750 text-slate-300 border border-slate-700 font-medium'
+                ? 'bg-[#21262D] text-white font-medium border border-[#30363D]'
+                : 'bg-[#0D1117] hover:bg-[#21262D] text-slate-300 border border-[#21262D]'
             }`}
           >
             Live Open-Meteo
           </button>
           <button
             onClick={() => handleApplyScenario('CLEAR')}
-            className={`px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
               activeScenario === 'CLEAR'
-                ? 'bg-gradient-to-b from-emerald-600 via-emerald-600 to-emerald-700 text-white font-bold border-t border-emerald-300/70 border-b border-emerald-950 shadow-md ring-1 ring-emerald-400/30'
-                : 'bg-slate-800/90 hover:bg-slate-750 text-slate-300 border border-slate-700 font-medium'
+                ? 'bg-emerald-700 text-white font-medium'
+                : 'bg-[#0D1117] hover:bg-[#21262D] text-slate-300 border border-[#21262D]'
             }`}
           >
             Clear Skies
           </button>
           <button
             onClick={() => handleApplyScenario('MONSOON')}
-            className={`px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
               activeScenario === 'MONSOON'
-                ? 'bg-gradient-to-b from-amber-600 via-amber-600 to-amber-700 text-white font-bold border-t border-amber-300/70 border-b border-amber-950 shadow-md ring-1 ring-amber-400/30'
-                : 'bg-slate-800/90 hover:bg-slate-750 text-slate-300 border border-slate-700 font-medium'
+                ? 'bg-amber-600 text-white font-medium'
+                : 'bg-[#0D1117] hover:bg-[#21262D] text-slate-300 border border-[#21262D]'
             }`}
           >
-            <CloudRain className="w-3.5 h-3.5 text-white" />
-            <span>Monsoon (Heavy)</span>
+            <CloudRain className="w-3.5 h-3.5" />
+            <span>Monsoon</span>
           </button>
           <button
             onClick={() => handleApplyScenario('CLOUDBURST')}
-            className={`px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
               activeScenario === 'CLOUDBURST'
-                ? 'bg-gradient-to-b from-rose-600 via-rose-600 to-rose-700 text-white font-bold border-t border-rose-300/70 border-b border-rose-950 shadow-md ring-1 ring-rose-400/30'
-                : 'bg-slate-800/90 hover:bg-slate-750 text-slate-300 border border-slate-700 font-medium'
+                ? 'bg-rose-600 text-white font-medium'
+                : 'bg-[#0D1117] hover:bg-[#21262D] text-slate-300 border border-[#21262D]'
             }`}
           >
-            <Zap className="w-3.5 h-3.5 text-white" />
-            <span>Cloudburst (Extreme)</span>
+            <Zap className="w-3.5 h-3.5" />
+            <span>Cloudburst</span>
           </button>
         </div>
       </div>
@@ -156,19 +156,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="space-y-4 flex flex-col justify-between">
           
           {/* Vernacular Broadcast Box */}
-          <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+          <div className="p-4 rounded-xl bg-[#161B22] border border-[#30363D] space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-white">
                 <Volume2 className="w-4 h-4 text-amber-400" />
-                <span>Multilingual Public Broadcast</span>
+                <span>Multilingual Broadcast</span>
               </div>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0D1117] border border-[#21262D] text-slate-300">
                 Corridor Advisory
               </span>
             </div>
 
             <div className="space-y-2.5 text-xs">
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
+              <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D]">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">English</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
@@ -177,7 +177,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
+              <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D]">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">हिंदी</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
@@ -186,8 +186,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
-                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">ڈوگری / Dogri</span>
+              <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D]">
+                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">डोकरी / Dogri</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
                     ? `"${activeSector?.name || 'रामबन'} दे कोल मट्टी खिसकने दा खतरा ऐ। होशियार रवो ते सुरक्षित ठार चलो।"`
@@ -195,7 +195,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
+              <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D]">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">कॉशुर / Kashmiri</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
@@ -207,20 +207,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           {/* Quick Sector Health Matrix */}
-          <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800">
+          <div className="p-4 rounded-xl bg-[#161B22] border border-[#30363D]">
             <h4 className="text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide">
               Key Mountain Sectors Status
             </h4>
             <div className="space-y-2 text-xs font-mono">
               {sectors.slice(0, 4).map((sec) => (
-                <div key={sec.id} className="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800/60">
+                <div key={sec.id} className="flex items-center justify-between p-2 rounded bg-[#0D1117] border border-[#21262D]">
                   <span className="text-slate-300 font-sans">{sec.name.split(' ')[0]}</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-sm ${
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                     sec.currentRiskLevel === 'CRITICAL'
-                      ? 'bg-gradient-to-b from-rose-600 to-rose-700 text-white border-t border-rose-300/60 border-b border-rose-950 ring-1 ring-rose-400/30'
+                      ? 'bg-rose-600 text-white'
                       : sec.currentRiskLevel === 'WARNING'
-                      ? 'bg-gradient-to-b from-amber-600 to-amber-700 text-white border-t border-amber-300/60 border-b border-amber-950 ring-1 ring-amber-400/30'
-                      : 'bg-gradient-to-b from-emerald-600 to-emerald-700 text-white border-t border-emerald-300/60 border-b border-emerald-950 ring-1 ring-emerald-400/30'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-emerald-600 text-white'
                   }`}>
                     {sec.currentRiskLevel} ({sec.lsiScore})
                   </span>

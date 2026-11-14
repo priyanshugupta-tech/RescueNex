@@ -93,18 +93,14 @@ export const AlertsPage: React.FC = () => {
             {activeAlerts.map((alert) => (
               <div 
                 key={alert.id}
-                className={`p-4 rounded-xl border transition ${
-                  alert.level === 'CRITICAL'
-                    ? 'bg-rose-500/5 border-rose-500/30'
-                    : 'bg-amber-500/5 border-amber-500/30'
-                }`}
+                className="p-4 rounded-xl border border-[#30363D] bg-[#161B22] transition"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold shadow-sm ${
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold ${
                       alert.level === 'CRITICAL'
-                        ? 'bg-gradient-to-b from-rose-600 to-rose-700 text-white border-t border-rose-300/60 border-b border-rose-950 ring-1 ring-rose-400/40'
-                        : 'bg-gradient-to-b from-amber-600 to-amber-700 text-white border-t border-amber-300/60 border-b border-amber-950 ring-1 ring-amber-400/40'
+                        ? 'bg-rose-600 text-white'
+                        : 'bg-amber-600 text-white'
                     }`}>
                       {alert.level}
                     </span>
