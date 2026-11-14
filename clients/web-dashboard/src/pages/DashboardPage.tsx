@@ -71,7 +71,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       />
 
       {/* Weather Scenario Preset Switcher */}
-      <div className="p-3.5 rounded-xl bg-[#161B22] border border-[#30363D] flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="p-3.5 rounded-none bg-[#161B22] border border-[#30363D] flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2">
           <CloudSun className="w-4 h-4 text-amber-400" />
           <span className="font-semibold text-slate-200 font-sans">
@@ -87,7 +87,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="flex items-center gap-1.5 font-mono">
           <button
             onClick={() => handleApplyScenario('LIVE')}
-            className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-none text-xs transition-colors flex items-center gap-1.5 ${
               activeScenario === 'LIVE'
                 ? 'bg-[#21262D] text-white font-medium border border-[#30363D]'
                 : 'bg-[#0D1117] hover:bg-[#21262D] text-slate-300 border border-[#21262D]'
@@ -97,7 +97,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </button>
           <button
             onClick={() => handleApplyScenario('CLEAR')}
-            className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-none text-xs transition-colors flex items-center gap-1.5 ${
               activeScenario === 'CLEAR'
                 ? 'bg-emerald-700 text-white font-medium'
                 : 'bg-[#0D1117] hover:bg-[#21262D] text-slate-300 border border-[#21262D]'
@@ -107,7 +107,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </button>
           <button
             onClick={() => handleApplyScenario('MONSOON')}
-            className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-none text-xs transition-colors flex items-center gap-1.5 ${
               activeScenario === 'MONSOON'
                 ? 'bg-amber-600 text-white font-medium'
                 : 'bg-[#0D1117] hover:bg-[#21262D] text-slate-300 border border-[#21262D]'
@@ -118,7 +118,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </button>
           <button
             onClick={() => handleApplyScenario('CLOUDBURST')}
-            className={`px-3 py-1.5 rounded-md text-xs transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-none text-xs transition-colors flex items-center gap-1.5 ${
               activeScenario === 'CLOUDBURST'
                 ? 'bg-rose-600 text-white font-medium'
                 : 'bg-[#0D1117] hover:bg-[#21262D] text-slate-300 border border-[#21262D]'
@@ -156,19 +156,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="space-y-4 flex flex-col justify-between">
           
           {/* Vernacular Broadcast Box */}
-          <div className="p-4 rounded-xl bg-[#161B22] border border-[#30363D] space-y-3">
+          <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-white">
                 <Volume2 className="w-4 h-4 text-amber-400" />
                 <span>Multilingual Broadcast</span>
               </div>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0D1117] border border-[#21262D] text-slate-300">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-none bg-[#0D1117] border border-[#21262D] text-slate-300">
                 Corridor Advisory
               </span>
             </div>
 
             <div className="space-y-2.5 text-xs">
-              <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D]">
+              <div className="p-2.5 rounded-none bg-[#0D1117] border border-[#21262D]">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">English</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
@@ -177,7 +177,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D]">
+              <div className="p-2.5 rounded-none bg-[#0D1117] border border-[#21262D]">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">हिंदी</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
@@ -186,7 +186,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D]">
+              <div className="p-2.5 rounded-none bg-[#0D1117] border border-[#21262D]">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">डोकरी / Dogri</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
@@ -195,7 +195,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D]">
+              <div className="p-2.5 rounded-none bg-[#0D1117] border border-[#21262D]">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">कॉशुर / Kashmiri</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
@@ -207,15 +207,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           {/* Quick Sector Health Matrix */}
-          <div className="p-4 rounded-xl bg-[#161B22] border border-[#30363D]">
+          <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D]">
             <h4 className="text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide">
               Key Mountain Sectors Status
             </h4>
             <div className="space-y-2 text-xs font-mono">
               {sectors.slice(0, 4).map((sec) => (
-                <div key={sec.id} className="flex items-center justify-between p-2 rounded bg-[#0D1117] border border-[#21262D]">
+                <div key={sec.id} className="flex items-center justify-between p-2 rounded-none bg-[#0D1117] border border-[#21262D]">
                   <span className="text-slate-300 font-sans">{sec.name.split(' ')[0]}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  <span className={`px-2 py-0.5 rounded-none text-[10px] font-bold ${
                     sec.currentRiskLevel === 'CRITICAL'
                       ? 'bg-rose-600 text-white'
                       : sec.currentRiskLevel === 'WARNING'

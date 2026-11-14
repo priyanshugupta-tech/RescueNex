@@ -19,7 +19,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
   const [email, setEmail] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'PUBLIC' | 'SCOUT' | 'OPERATOR'>('PUBLIC');
+  
+  // Password visibility: default false (hidden), eye enabled shows password, cross (EyeOff) hides
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // OTP modal state
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -139,15 +142,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="max-w-md mx-auto my-8 p-8 rounded-2xl bg-[#161B22] border border-[#30363D] shadow-2xl"
+      className="max-w-md mx-auto my-8 p-8 rounded-none bg-[#161B22] border border-[#30363D] shadow-2xl"
     >
       
-      {/* Brand Header with Large Borderless Merged Emblem */}
+      {/* Brand Header */}
       <div className="text-center mb-6">
         <img 
           src="/logo/rescuenex_emblem.png" 
           alt="RescueNex" 
-          className="w-20 h-20 sm:w-24 sm:h-24 object-contain mx-auto mb-3 drop-shadow-lg"
+          className="w-16 h-16 sm:w-20 sm:h-20 object-contain mx-auto mb-3 drop-shadow-lg"
         />
         <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-sans tracking-tight">
           Rescue<span className="text-amber-400">Nex</span>
@@ -157,13 +160,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
         </p>
       </div>
 
-      {/* Modern Tabs */}
-      <div className="flex rounded-lg bg-[#0D1117] p-1 border border-[#21262D] mb-5">
+      {/* Chaukor Square Tabs */}
+      <div className="flex rounded-none bg-[#0D1117] p-1 border border-[#21262D] mb-5">
         <button
           type="button"
           onClick={() => { setTab('login'); setError(''); }}
-          className={`flex-1 py-2 rounded-md text-xs font-semibold transition ${
-            tab === 'login' ? 'bg-[#21262D] text-white shadow' : 'text-slate-400 hover:text-white'
+          className={`flex-1 py-2 rounded-none text-xs font-semibold transition ${
+            tab === 'login' ? 'bg-[#21262D] text-white' : 'text-slate-400 hover:text-white'
           }`}
         >
           Sign In
@@ -171,8 +174,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
         <button
           type="button"
           onClick={() => { setTab('signup'); setError(''); }}
-          className={`flex-1 py-2 rounded-md text-xs font-semibold transition ${
-            tab === 'signup' ? 'bg-[#21262D] text-white shadow' : 'text-slate-400 hover:text-white'
+          className={`flex-1 py-2 rounded-none text-xs font-semibold transition ${
+            tab === 'signup' ? 'bg-[#21262D] text-white' : 'text-slate-400 hover:text-white'
           }`}
         >
           Create Account
@@ -180,7 +183,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs mb-4 flex items-center gap-2">
+        <div className="p-3 rounded-none bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs mb-4 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -211,7 +214,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="Enter your username or email"
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
+                className="w-full pl-9 pr-3 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
               />
             </div>
           </div>
@@ -226,14 +229,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full pl-9 pr-10 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
+                className="w-full pl-9 pr-10 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? "Hide password" : "Show password"}
                 className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -241,7 +245,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow mt-2 flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-none bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow mt-2 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -261,7 +265,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
             <select
               value={role}
               onChange={(e: any) => setRole(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-slate-200 focus:outline-none focus:border-amber-400 text-xs transition"
+              className="w-full px-3 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-slate-200 focus:outline-none focus:border-amber-400 text-xs transition"
             >
               <option value="PUBLIC">Public Commuter / Resident</option>
               <option value="SCOUT">Emergency Field Scout</option>
@@ -277,7 +281,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="e.g. John Doe"
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
+              className="w-full px-3 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
             />
           </div>
 
@@ -289,7 +293,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Choose a username"
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs font-mono transition"
+              className="w-full px-3 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs font-mono transition"
             />
           </div>
 
@@ -301,39 +305,59 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
+              className="w-full px-3 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-slate-300 font-medium mb-1">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 8 characters"
-                className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 8 characters"
+                  className="w-full px-3 pr-8 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-2 top-2 text-slate-500 hover:text-slate-300"
+                >
+                  {showPassword ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-slate-300 font-medium mb-1">Confirm Password</label>
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
-                className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  className="w-full px-3 pr-8 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  title={showConfirmPassword ? "Hide password" : "Show password"}
+                  className="absolute right-2 top-2 text-slate-500 hover:text-slate-300"
+                >
+                  {showConfirmPassword ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition mt-2 shadow flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-none bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition mt-2 shadow flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -350,7 +374,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
       {/* OTP Verification Modal */}
       {showOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl bg-[#161B22] border border-[#30363D] p-6 shadow-2xl">
+          <div className="w-full max-w-sm rounded-none bg-[#161B22] border border-[#30363D] p-6 shadow-2xl">
             <div className="text-center mb-4">
               <Mail className="w-8 h-8 text-amber-400 mx-auto mb-2" />
               <h3 className="text-base font-bold text-white">Enter Email Verification Code</h3>
@@ -365,21 +389,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value)}
                 placeholder="6-digit code"
-                className="w-full text-center text-xl font-mono tracking-widest py-2.5 rounded-lg bg-[#0D1117] border border-[#30363D] text-white focus:outline-none focus:border-amber-400"
+                className="w-full text-center text-xl font-mono tracking-widest py-2.5 rounded-none bg-[#0D1117] border border-[#30363D] text-white focus:outline-none focus:border-amber-400"
               />
 
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowOtpModal(false)}
-                  className="flex-1 py-2 rounded-lg bg-[#21262D] text-slate-300 text-xs font-semibold transition"
+                  className="flex-1 py-2 rounded-none bg-[#21262D] text-slate-300 text-xs font-semibold transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || otpCode.length < 6}
-                  className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-2 rounded-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>

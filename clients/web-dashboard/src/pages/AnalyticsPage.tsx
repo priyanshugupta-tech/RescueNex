@@ -50,7 +50,7 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Telemetry Log Table */}
-      <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/80 shadow-lg">
+      <div className="rounded-none border border-slate-800 overflow-hidden bg-slate-900/80 shadow-lg">
         <div className="p-3.5 border-b border-slate-800/80 flex items-center justify-between text-xs">
           <span className="font-semibold text-slate-300 font-sans flex items-center gap-1.5">
             <Database className="w-3.5 h-3.5 text-amber-400" />

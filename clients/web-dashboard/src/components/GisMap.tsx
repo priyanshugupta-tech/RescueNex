@@ -56,7 +56,7 @@ export const GisMap: React.FC<GisMapProps> = ({ sectors, telemetry, liveGps }) =
   const mapCenterLon = (liveGps.lon !== null) ? liveGps.lon : 75.20;
 
   return (
-    <div className="relative w-full h-[520px] rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+    <div className="relative w-full h-[520px] rounded-none overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
       <MapContainer
         center={[mapCenterLat, mapCenterLon]}
         zoom={11}

@@ -55,14 +55,14 @@ export const LegalModal: React.FC<LegalModalProps> = ({
       onCancel={handleDialogCancel}
       onClick={handleBackdropClick}
       aria-labelledby="legal-dialog-title"
-      className="fixed inset-0 z-50 m-auto w-full max-w-3xl rounded-2xl bg-slate-950 border border-slate-800 text-slate-100 shadow-2xl backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm p-0 overflow-hidden"
+      className="fixed inset-0 z-50 m-auto w-full max-w-3xl rounded-none bg-slate-950 border border-slate-800 text-slate-100 shadow-2xl backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm p-0 overflow-hidden"
     >
       <div className="flex flex-col max-h-[85vh]">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-gradient-to-b from-amber-500 to-amber-700 text-white shadow-md border-t border-amber-300/60 border-b border-amber-900">
+            <div className="p-2 rounded-none bg-gradient-to-b from-amber-500 to-amber-700 text-white shadow-md border-t border-amber-300/60 border-b border-amber-900">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <div>

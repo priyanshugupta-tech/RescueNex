@@ -64,13 +64,13 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       
       {/* 1. LSI Risk Score Card */}
-      <div className="p-4 rounded-xl bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
+      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Gauge className="w-4 h-4 text-amber-400" />
             <span className="text-xs font-semibold text-slate-300 font-sans">Risk Score</span>
           </div>
-          <span className={`px-2.5 py-0.5 rounded text-[11px] font-sans ${badge.bg}`}>
+          <span className={`px-2.5 py-0.5 rounded-none text-[11px] font-sans ${badge.bg}`}>
             {badge.label}
           </span>
         </div>
@@ -83,7 +83,7 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
         </div>
 
         {/* Dynamic Progress bar */}
-        <div className="w-full h-1.5 rounded-full bg-[#0D1117] overflow-hidden">
+        <div className="w-full h-1.5 rounded-none bg-[#0D1117] overflow-hidden">
           <div 
             className={`h-full transition-all duration-300 ${
               (lsiScore ?? 0) >= 75 ? 'bg-rose-500' : (lsiScore ?? 0) >= 40 ? 'bg-amber-500' : 'bg-emerald-500'
@@ -98,13 +98,13 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
       </div>
 
       {/* 2. Bi-axial Tilt Meter Card */}
-      <div className="p-4 rounded-xl bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
+      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-sky-400" />
             <span className="text-xs font-semibold text-slate-300 font-sans">Slope Tilt</span>
           </div>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0D1117] border border-[#21262D] text-slate-400">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-none bg-[#0D1117] border border-[#21262D] text-slate-400">
             {telemetry ? 'MPU-6050' : 'Standby'}
           </span>
         </div>
@@ -131,13 +131,13 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
       </div>
 
       {/* 3. Soil Moisture & Saturation Card */}
-      <div className="p-4 rounded-xl bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
+      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Droplets className="w-4 h-4 text-sky-400" />
             <span className="text-xs font-semibold text-slate-300 font-sans">Soil Moisture</span>
           </div>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0D1117] border border-[#21262D] text-slate-400">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-none bg-[#0D1117] border border-[#21262D] text-slate-400">
             Volumetric %
           </span>
         </div>
@@ -176,7 +176,7 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
       </div>
 
       {/* 4. Live Rainfall & Siren Actions Card */}
-      <div className="p-4 rounded-xl bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
+      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CloudRain className="w-4 h-4 text-sky-400" />
@@ -186,7 +186,7 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
             onClick={onTriggerWeatherSync}
             disabled={isWeatherSyncing}
             title="Sync weather"
-            className="p-1 rounded bg-[#0D1117] hover:bg-[#21262D] border border-[#21262D] text-slate-400 hover:text-white transition"
+            className="p-1 rounded-none bg-[#0D1117] hover:bg-[#21262D] border border-[#21262D] text-slate-400 hover:text-white transition"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isWeatherSyncing ? 'animate-spin text-amber-400' : ''}`} />
           </button>
@@ -206,7 +206,7 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
         {/* Emergency Siren Trigger Button - Clean & Solid */}
         <button
           onClick={onOpenSirenModal}
-          className="mt-2 w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium flex items-center justify-center gap-2 text-xs transition"
+          className="mt-2 w-full py-2 px-3 rounded-none bg-rose-600 hover:bg-rose-500 text-white font-medium flex items-center justify-center gap-2 text-xs transition"
         >
           <Volume2 className="w-3.5 h-3.5" />
           <span>Sound Emergency Siren</span>

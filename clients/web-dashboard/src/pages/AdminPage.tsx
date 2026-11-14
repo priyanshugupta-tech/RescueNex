@@ -73,7 +73,7 @@ export const AdminPage: React.FC = () => {
             <p className="text-xs font-mono text-slate-400">Checking pending authorization requests...</p>
           </div>
         ) : pendingUsers.length === 0 ? (
-          <div className="p-8 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+          <div className="p-8 rounded-none bg-slate-900/60 border border-slate-800 text-center space-y-2">
             <UserCheck className="w-8 h-8 text-slate-500 mx-auto" />
             <p className="text-sm font-semibold text-slate-300">No Pending Officer Approvals</p>
             <p className="text-xs text-slate-500">All registered field accounts are verified and active.</p>
@@ -85,7 +85,7 @@ export const AdminPage: React.FC = () => {
               return (
                 <div
                   key={userId}
-                  className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md"
+                  className="p-4 rounded-none bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md"
                 >
                   <div>
                     <div className="flex items-center gap-2">

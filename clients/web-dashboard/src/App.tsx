@@ -12,7 +12,7 @@ import { LegalModal } from './components/LegalModal.tsx';
 import { api } from './services/api.ts';
 import { socketService } from './services/socket.ts';
 import { MountainSector, NodeTelemetry, SectorWeatherData } from './types/index.ts';
-import { Lock, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MainApp: React.FC = () => {
@@ -159,46 +159,14 @@ const MainApp: React.FC = () => {
       {/* Main Content Area: 1.5x side padding (px-9 sm:px-16 lg:px-20) */}
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-9 sm:px-16 lg:px-20 py-8">
         
-        {/* Protected Route Redirect Loader (1 second transition with message) */}
+        {/* Simple Redirect Loader */}
         {isRedirecting ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            className="min-h-[55vh] flex flex-col items-center justify-center text-center p-8 space-y-5"
-          >
-            <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
-                <Lock className="w-8 h-8" />
-              </div>
-              <div className="absolute -top-1 -right-1">
-                <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <h3 className="text-xl font-extrabold text-white font-sans tracking-tight">
-                Restricted Operational Access
-              </h3>
-              <p className="text-sm text-slate-300 font-sans max-w-md">
-                {redirectMessage}
-              </p>
-            </div>
-
-            {/* Tactical 1s Progress Bar */}
-            <div className="w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: '100%' }}
-                transition={{ duration: 0.95, ease: 'easeInOut' }}
-                className="h-full bg-amber-400"
-              />
-            </div>
-
-            <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
-              Establishing Secure Session Protocol
-            </span>
-          </motion.div>
+          <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-3">
+            <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+            <p className="text-sm text-slate-300 font-sans">
+              Redirecting to Sign In...
+            </p>
+          </div>
         ) : (
           <AnimatePresence mode="wait">
             <motion.div

@@ -86,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <span>Alerts</span>
             {activeAlertCount > 0 && (
-              <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white animate-pulse">
+              <span className="ml-1.5 px-1.5 py-0.5 rounded-none text-[10px] font-bold bg-rose-600 text-white animate-pulse">
                 {activeAlertCount}
               </span>
             )}
@@ -134,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={logout}
                 title="Logout"
-                className="p-2 rounded-lg bg-[#161B22] border border-[#30363D] text-slate-400 hover:text-rose-400 transition-colors"
+                className="p-2 rounded-none bg-[#161B22] border border-[#30363D] text-slate-400 hover:text-rose-400 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -142,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             <button
               onClick={() => onSelectTab('auth')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#161B22] hover:bg-[#21262D] text-slate-200 border border-[#30363D] text-xs font-semibold transition-all hover:border-slate-500 shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-none bg-[#161B22] hover:bg-[#21262D] text-slate-200 border border-[#30363D] text-xs font-semibold transition-all hover:border-slate-500 shadow-sm"
             >
               <UserIcon className="w-4 h-4 text-amber-400" />
               <span>Sign In</span>

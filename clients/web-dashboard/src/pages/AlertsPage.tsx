@@ -88,7 +88,7 @@ export const AlertsPage: React.FC = () => {
             <p className="text-xs text-slate-400 font-mono">Loading active disaster bulletins...</p>
           </div>
         ) : activeAlerts.length === 0 ? (
-          <div className="p-8 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+          <div className="p-8 rounded-none bg-slate-900/60 border border-slate-800 text-center space-y-2">
             <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto" />
             <p className="text-sm font-semibold text-slate-200">No Critical Landslide Threats Active</p>
             <p className="text-xs text-slate-500">All monitored mountain corridors are reporting stable slope conditions.</p>
@@ -98,11 +98,11 @@ export const AlertsPage: React.FC = () => {
             {activeAlerts.map((alert) => (
               <div 
                 key={alert.id}
-                className="p-4 rounded-xl border border-[#30363D] bg-[#161B22] transition"
+                className="p-4 rounded-none border border-[#30363D] bg-[#161B22]"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                    <span className={`px-2.5 py-0.5 rounded-none text-[10px] font-mono font-bold ${
                       alert.level === 'CRITICAL'
                         ? 'bg-rose-600 text-white'
                         : 'bg-amber-600 text-white'
@@ -121,7 +121,7 @@ export const AlertsPage: React.FC = () => {
                     {/* CAP XML Download Button */}
                     <button
                       onClick={() => handleDownloadCAP(alert.id)}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono border border-slate-700 transition"
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono border border-slate-700 transition"
                       title="Download Common Alerting Protocol (CAP v1.2) XML Document"
                     >
                       <FileCode className="w-3.5 h-3.5 text-amber-400" />
@@ -172,7 +172,7 @@ export const AlertsPage: React.FC = () => {
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
             Past Incident Audit History
           </h3>
-          <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/60 text-xs">
+          <div className="rounded-none border border-slate-800 overflow-hidden bg-slate-900/60 text-xs">
             <div className="divide-y divide-slate-800/80">
               {historyAlerts.slice(0, 5).map((h) => (
                 <div key={h.id} className="p-3 flex items-center justify-between gap-3">
