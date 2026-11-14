@@ -50,13 +50,15 @@ export interface SectorWeatherData {
 export type RiskLevel = 'LOW' | 'ADVISORY' | 'WARNING' | 'CRITICAL';
 
 export interface LSIResult {
-  lsiScore: number;           // 0.0 to 1.0
+  lsiScore: number;           // 0.0 to 100.0
   riskLevel: RiskLevel;
   confidence: number;
   anomalyDetected: boolean;
   isFalseAlarm: boolean;
   triggerSiren: boolean;
   recommendation: string;
+  timeToFailureHours?: number | null;
+  topContributingFactors?: Array<{ factor: string; contributionPercent: number; severity: string }>;
   explanation: {
     soilFactor: number;
     tiltFactor: number;

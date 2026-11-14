@@ -51,6 +51,13 @@ async def predict_sensor(sample: SensorTelemetryInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/predict/lsi", response_model=PredictionOutput, tags=["Inference"])
+async def predict_lsi(sample: SensorTelemetryInput):
+    """
+    Alias for predict_sensor endpoint.
+    """
+    return await predict_sensor(sample)
+
 @router.post("/predict/batch", response_model=BatchPredictionOutput, tags=["Inference"])
 async def predict_batch(batch: BatchPredictionInput):
     """
