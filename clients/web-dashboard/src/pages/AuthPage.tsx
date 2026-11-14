@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Lock, Mail, User, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface AuthPageProps {
@@ -14,9 +14,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
 
   // Form states
   const [fullName, setFullName] = useState('');
-  const [userName, setUserName] = useState('');
-  const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'PUBLIC' | 'SCOUT' | 'OPERATOR'>('PUBLIC');
   
@@ -79,10 +78,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
     setError('');
 
     try {
-      await login(userName, password);
+      await login(email, password);
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid username or password. Please try again.');
+      setError(err.response?.data?.message || 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -105,7 +104,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
     try {
       await signup({
         fullName,
-        userName,
         email,
         password,
         confirmPassword,
@@ -205,15 +203,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
       {tab === 'login' ? (
         <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs font-sans">
           <div>
-            <label className="block text-slate-300 font-medium mb-1.5">Username or Email</label>
+            <label className="block text-slate-300 font-medium mb-1.5">Email Address</label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
               <input
-                type="text"
+                type="email"
                 required
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="Enter your username or email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
                 className="w-full pl-9 pr-3 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
               />
             </div>
@@ -282,18 +280,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
               onChange={(e) => setFullName(e.target.value)}
               placeholder="e.g. John Doe"
               className="w-full px-3 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-slate-300 font-medium mb-1">Username</label>
-            <input
-              type="text"
-              required
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              placeholder="Choose a username"
-              className="w-full px-3 py-2 rounded-none bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs font-mono transition"
             />
           </div>
 

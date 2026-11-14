@@ -5,7 +5,7 @@ import { User } from '../types/index.ts';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (userName: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   googleLogin: (credential: string) => Promise<void>;
   signup: (formData: any) => Promise<void>;
   verifyOtp: (email: string, otp: string) => Promise<void>;
@@ -36,8 +36,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshMe();
   }, []);
 
-  const login = async (userName: string, password: string) => {
-    const res = await api.post('/api/auth/login', { userName, password });
+  const login = async (email: string, password: string) => {
+    const res = await api.post('/api/auth/login', { email, password });
     if (res.data.accessToken) {
       localStorage.setItem('rescuenex_token', res.data.accessToken);
       if (res.data.user) {

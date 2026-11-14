@@ -2,8 +2,9 @@ export type UserRole = 'ADMIN' | 'OPERATOR' | 'SCOUT' | 'PUBLIC';
 
 export interface User {
   id: string;
-  userName: string;
+  userName?: string;
   name?: string;
+  fullName?: string;
   email: string;
   role: UserRole;
   agency?: 'SDMA' | 'SDRF' | 'BRO' | 'COMMUTER';

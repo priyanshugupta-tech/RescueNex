@@ -67,12 +67,12 @@ export const seedDefaultUsers = async () => {
 
 // Signup handler: creates unverified user and sends OTP via Resend
 export const handleSignup = async (req: Request, res: Response): Promise<void> => {
-  const { userName, email, password, confirmPassword, role = 'PUBLIC', agency = 'COMMUTER' } = req.body;
+  const { fullName, email, password, confirmPassword, role = 'PUBLIC', agency = 'COMMUTER', userName } = req.body;
 
   try {
-    if (!userName || !email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword) {
       res.status(422).json({
-        message: 'either of the detail is missing or invalidly entered!'
+        message: 'Email and passwords are required!'
       });
       return;
     }
@@ -92,7 +92,7 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const cleanUserName = userName.toLowerCase().trim();
+    const cleanUserName = (userName || cleanEmail.split('@')[0] || `user_${Date.now()}`).toLowerCase().trim();
 
     // Check OTP send cooldown (60 seconds)
     const cooldownCheck = await rateLimitService.checkOtpSendCooldown(cleanEmail);
@@ -103,15 +103,15 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Check existing registration
+    // Check existing registration by email
     let existingUser: any = null;
     if (isDatabaseConnected()) {
       existingUser = await UserModel.findOne({
-        $or: [{ userName: cleanUserName }, { email: cleanEmail }]
+        $or: [{ email: cleanEmail }, { userName: cleanUserName }]
       });
     } else {
       for (const [, u] of stateService.users) {
-        if (u.userName === cleanUserName || u.email === cleanEmail) {
+        if (u.email === cleanEmail || u.userName === cleanUserName) {
           existingUser = u;
           break;
         }
@@ -153,8 +153,10 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
     const isApproved = role === 'PUBLIC' || cleanUserName === MAIN_ADMIN_USERNAME;
 
     let newUser: any = null;
+    const finalFullName = fullName?.trim() || cleanEmail.split('@')[0];
     if (isDatabaseConnected()) {
       newUser = await UserModel.create({
+        fullName: finalFullName,
         userName: cleanUserName,
         email: cleanEmail,
         password: hash,
@@ -178,6 +180,7 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
     } else {
       newUser = {
         _id: `USR_${Date.now()}`,
+        fullName: finalFullName,
         userName: cleanUserName,
         email: cleanEmail,
         password: hash,
@@ -187,6 +190,7 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
         isApproved,
         verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000)
       };
+      stateService.users.set(cleanEmail, newUser);
       stateService.users.set(cleanUserName, newUser);
 
       const otp = generateOtps();
@@ -329,15 +333,16 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
 
 // Login handler: verifies credentials and sets refresh token cookie (no OTP needed)
 export const handleLogin = async (req: Request, res: Response): Promise<void> => {
-  const { userName, password, email } = req.body;
+  const { email, password, userName } = req.body;
 
   try {
-    if (!password || (!userName && !email)) {
-      res.status(400).json({ message: 'invalid username or password or email' });
+    const loginIdentifier = (email || userName || '').toLowerCase().trim();
+    if (!password || !loginIdentifier) {
+      res.status(400).json({ message: 'Email and password are required.' });
       return;
     }
 
-    const lookupKey = (userName || email).toLowerCase().trim();
+    const lookupKey = loginIdentifier;
 
     // Check 5-attempt / 2-minute lockout rule
     const lockoutCheck = await rateLimitService.checkLoginLockout(lookupKey);
@@ -348,24 +353,20 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const cleanQuery: any = {};
-    if (userName) cleanQuery.userName = userName.toLowerCase().trim();
-    if (email) cleanQuery.email = email.toLowerCase().trim();
-
     let userDoc: any = null;
 
     if (isDatabaseConnected()) {
       userDoc = await UserModel.findOne({
         $or: [
-          userName ? { userName: cleanQuery.userName } : null,
-          email ? { email: cleanQuery.email } : null
-        ].filter(Boolean) as any
+          { email: loginIdentifier },
+          { userName: loginIdentifier }
+        ]
       });
     } else {
       for (const [, u] of stateService.users) {
         if (
-          (cleanQuery.userName && u.userName === cleanQuery.userName) ||
-          (cleanQuery.email && u.email === cleanQuery.email)
+          (u.email && u.email.toLowerCase() === loginIdentifier) ||
+          (u.userName && u.userName.toLowerCase() === loginIdentifier)
         ) {
           userDoc = u;
           break;
@@ -382,7 +383,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
         return;
       }
       res.status(401).json({
-        message: `Invalid username or password. (Attempt ${failRecord.attempts} of 5)`
+        message: `Invalid email or password. (Attempt ${failRecord.attempts} of 5)`
       });
       return;
     }
@@ -408,7 +409,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
         return;
       }
       res.status(401).json({
-        message: `Invalid username or password. (Attempt ${failRecord.attempts} of 5)`
+        message: `Invalid email or password. (Attempt ${failRecord.attempts} of 5)`
       });
       return;
     }
@@ -449,7 +450,13 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
     res.status(200).json({
       message: 'login successful',
       accessToken,
-      user: { userName: userDoc.userName, email: userDoc.email, role: userDoc.role }
+      user: {
+        id: userDoc._id || userDoc.id,
+        fullName: userDoc.fullName,
+        userName: userDoc.userName,
+        email: userDoc.email,
+        role: userDoc.role
+      }
     });
   } catch (error) {
     res.status(500).json({ message: 'some internal server error occurred!' });
@@ -771,8 +778,14 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response): Pro
         await user.save();
         approved = true;
 
-        const mem: any = stateService.users.get(user.userName);
-        if (mem) mem.isApproved = true;
+        if (user.userName) {
+          const mem: any = stateService.users.get(user.userName);
+          if (mem) mem.isApproved = true;
+        }
+        if (user.email) {
+          const memEmail: any = stateService.users.get(user.email);
+          if (memEmail) memEmail.isApproved = true;
+        }
       }
     } catch (e: any) {
       console.warn('[MongoDB] Error approving user in Atlas:', e.message);
