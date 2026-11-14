@@ -375,20 +375,26 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 
     if (!userDoc) {
       const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
+      if (failRecord.isLocked) {
+        res.status(429).json({
+          message: 'Maximum 5 unsuccessful login attempts exceeded within 2 minutes. Account is now locked for 5 minutes.'
+        });
+        return;
+      }
       res.status(401).json({
-        message: `user not found! (Attempt ${failRecord.attempts} of 5)`
+        message: `Invalid username or password. (Attempt ${failRecord.attempts} of 5)`
       });
       return;
     }
 
     if (!userDoc.isVerified) {
-      res.status(403).json({ message: 'user is not verified! Please complete OTP verification.' });
+      res.status(403).json({ message: 'Account is not verified. Please complete OTP verification.' });
       return;
     }
 
     // Check main admin approval for official roles
     if (userDoc.role !== 'PUBLIC' && !userDoc.isApproved) {
-      res.status(403).json({ message: 'official account pending approval from Main Admin (Priyanshu Gupta).' });
+      res.status(403).json({ message: 'Account pending official administrator approval.' });
       return;
     }
 
@@ -402,7 +408,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
         return;
       }
       res.status(401).json({
-        message: `incorrect password! (Attempt ${failRecord.attempts} of 5. After 5 attempts, account will be locked for 5 minutes)`
+        message: `Invalid username or password. (Attempt ${failRecord.attempts} of 5)`
       });
       return;
     }
@@ -704,7 +710,8 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
       user: { userName: user.userName, email: user.email, role: user.role }
     });
   } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message || 'Google OAuth failed.' });
+    console.error('[Google OAuth] Verification error:', error.message);
+    res.status(400).json({ success: false, message: 'Google authentication failed. Please try again.' });
   }
 };
 
