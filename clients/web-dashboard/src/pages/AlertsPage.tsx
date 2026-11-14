@@ -9,8 +9,10 @@ import {
   MapPin, 
   Clock, 
   FileCode,
-  ShieldCheck
+  ShieldCheck,
+  Loader2
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export const AlertsPage: React.FC = () => {
   const { user } = useAuth();
@@ -81,7 +83,10 @@ export const AlertsPage: React.FC = () => {
         </h3>
 
         {loading ? (
-          <p className="text-xs text-slate-500 py-6 text-center font-mono">Loading active alerts...</p>
+          <div className="py-12 flex flex-col items-center justify-center text-center space-y-2">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+            <p className="text-xs text-slate-400 font-mono">Loading active disaster bulletins...</p>
+          </div>
         ) : activeAlerts.length === 0 ? (
           <div className="p-8 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
             <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto" />

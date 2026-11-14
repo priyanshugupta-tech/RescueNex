@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
-import { TrendingUp, RefreshCw, Database } from 'lucide-react';
+import { TrendingUp, RefreshCw, Database, Loader2 } from 'lucide-react';
 
 export const AnalyticsPage: React.FC = () => {
   const [history, setHistory] = useState<any[]>([]);
@@ -60,7 +60,10 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <p className="p-8 text-center text-xs font-mono text-slate-500">Fetching readings...</p>
+          <div className="p-10 flex flex-col items-center justify-center space-y-2 text-center">
+            <Loader2 className="w-6 h-6 animate-spin text-sky-400" />
+            <p className="text-xs font-mono text-slate-400">Fetching live geotechnical readings...</p>
+          </div>
         ) : history.length === 0 ? (
           <p className="p-8 text-center text-xs text-slate-400">No historical records available yet.</p>
         ) : (

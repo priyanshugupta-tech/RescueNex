@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Lock, Mail, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, User, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface AuthPageProps {
   onSuccess: () => void;
@@ -134,16 +135,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
   };
 
   return (
-    <div className="max-w-md mx-auto my-8 p-8 rounded-2xl bg-[#161B22] border border-[#30363D] shadow-2xl">
+    <motion.div 
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="max-w-md mx-auto my-8 p-8 rounded-2xl bg-[#161B22] border border-[#30363D] shadow-2xl"
+    >
       
-      {/* Brand Header with Borderless Merged Emblem */}
+      {/* Brand Header with Large Borderless Merged Emblem */}
       <div className="text-center mb-6">
         <img 
           src="/logo/rescuenex_emblem.png" 
           alt="RescueNex" 
-          className="w-14 h-14 object-contain mx-auto mb-2"
+          className="w-20 h-20 sm:w-24 sm:h-24 object-contain mx-auto mb-3 drop-shadow-lg"
         />
-        <h2 className="text-2xl font-extrabold text-white font-sans tracking-tight">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-sans tracking-tight">
           Rescue<span className="text-amber-400">Nex</span>
         </h2>
         <p className="text-xs text-slate-400 mt-1 font-sans">
@@ -235,9 +241,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow mt-2"
+            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow mt-2 flex items-center justify-center gap-2"
           >
-            {loading ? 'Authenticating...' : 'Sign In'}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Authenticating...</span>
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
       ) : (
@@ -320,9 +333,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition mt-2 shadow"
+            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition mt-2 shadow flex items-center justify-center gap-2"
           >
-            {loading ? 'Processing...' : 'Register Account'}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              'Register Account'
+            )}
           </button>
         </form>
       )}
@@ -359,9 +379,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 <button
                   type="submit"
                   disabled={loading || otpCode.length < 6}
-                  className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition disabled:opacity-50"
+                  className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Verifying...' : 'Verify OTP'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    'Verify OTP'
+                  )}
                 </button>
               </div>
             </form>
@@ -369,6 +396,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
         </div>
       )}
 
-    </div>
+    </motion.div>
   );
 };

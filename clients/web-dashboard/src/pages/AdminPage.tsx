@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
-import { ShieldCheck, UserCheck, Check, Clock, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, UserCheck, Check, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
@@ -68,7 +68,10 @@ export const AdminPage: React.FC = () => {
         </h3>
 
         {loading ? (
-          <p className="p-8 text-center text-xs font-mono text-slate-500">Checking pending requests...</p>
+          <div className="p-10 flex flex-col items-center justify-center space-y-2 text-center">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+            <p className="text-xs font-mono text-slate-400">Checking pending authorization requests...</p>
+          </div>
         ) : pendingUsers.length === 0 ? (
           <div className="p-8 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
             <UserCheck className="w-8 h-8 text-slate-500 mx-auto" />

@@ -12,10 +12,16 @@ import { LegalModal } from './components/LegalModal.tsx';
 import { api } from './services/api.ts';
 import { socketService } from './services/socket.ts';
 import { MountainSector, NodeTelemetry, SectorWeatherData } from './types/index.ts';
+import { Lock, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MainApp: React.FC = () => {
   const { user } = useAuth();
   const [currentTab, setCurrentTab] = useState<'landing' | 'hud' | 'alerts' | 'analytics' | 'admin' | 'auth'>('landing');
+
+  // Redirect transition loader state
+  const [isRedirecting, setIsRedirecting] = useState<boolean>(false);
+  const [redirectMessage, setRedirectMessage] = useState<string>('');
 
   // Auto-redirect to dashboard when user logs in from auth/landing
   useEffect(() => {
@@ -24,11 +30,16 @@ const MainApp: React.FC = () => {
     }
   }, [user]);
 
-  // Auth Guard: protect internal operational tabs
+  // Auth Guard: protect internal operational tabs with 1-sec message & loader
   const handleSelectTab = (tab: string) => {
     const protectedTabs = ['hud', 'alerts', 'analytics', 'admin'];
     if (!user && protectedTabs.includes(tab)) {
-      setCurrentTab('auth');
+      setIsRedirecting(true);
+      setRedirectMessage('Protected Operations Area • Authentication Required. Redirecting to Secure Access...');
+      setTimeout(() => {
+        setIsRedirecting(false);
+        setCurrentTab('auth');
+      }, 1000);
       return;
     }
     if (tab === 'admin' && user?.role !== 'ADMIN') {
@@ -138,48 +149,102 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-slate-100">
-      {/* Expansive, Spacious Navbar */}
+      {/* Expansive Navbar with 1.5x side padding */}
       <Navbar
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
         activeAlertCount={activeAlertCount}
       />
 
-      {/* Main Content Area: Wide responsive layout with Auth Guard */}
-      <main className="flex-1 w-full max-w-[1700px] mx-auto p-4 sm:p-8">
-        {currentTab === 'landing' && (
-          <LandingPage
-            sectors={sectors}
-            weather={weather}
-            isAuthenticated={!!user}
-            onNavigate={handleSelectTab}
-          />
+      {/* Main Content Area: 1.5x side padding (px-9 sm:px-16 lg:px-20) */}
+      <main className="flex-1 w-full max-w-[1700px] mx-auto px-9 sm:px-16 lg:px-20 py-8">
+        
+        {/* Protected Route Redirect Loader (1 second transition with message) */}
+        {isRedirecting ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            className="min-h-[55vh] flex flex-col items-center justify-center text-center p-8 space-y-5"
+          >
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
+                <Lock className="w-8 h-8" />
+              </div>
+              <div className="absolute -top-1 -right-1">
+                <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-xl font-extrabold text-white font-sans tracking-tight">
+                Restricted Operational Access
+              </h3>
+              <p className="text-sm text-slate-300 font-sans max-w-md">
+                {redirectMessage}
+              </p>
+            </div>
+
+            {/* Tactical 1s Progress Bar */}
+            <div className="w-56 h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 0.95, ease: 'easeInOut' }}
+                className="h-full bg-amber-400"
+              />
+            </div>
+
+            <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+              Establishing Secure Session Protocol
+            </span>
+          </motion.div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+            >
+              {currentTab === 'landing' && (
+                <LandingPage
+                  sectors={sectors}
+                  weather={weather}
+                  isAuthenticated={!!user}
+                  onNavigate={handleSelectTab}
+                />
+              )}
+
+              {currentTab === 'hud' && user && (
+                <DashboardPage
+                  sectors={sectors}
+                  telemetry={telemetry}
+                  weather={weather}
+                  liveGps={liveGps}
+                  onRefreshData={loadInitialData}
+                />
+              )}
+
+              {currentTab === 'alerts' && user && <AlertsPage />}
+
+              {currentTab === 'analytics' && user && <AnalyticsPage />}
+
+              {currentTab === 'auth' && (
+                <AuthPage onSuccess={() => setCurrentTab('hud')} />
+              )}
+
+              {currentTab === 'admin' && user?.role === 'ADMIN' && <AdminPage />}
+
+              {/* Fallback Auth Guard screen if unauthenticated user arrives at deep tab */}
+              {!user && ['hud', 'alerts', 'analytics', 'admin'].includes(currentTab) && (
+                <AuthPage onSuccess={() => setCurrentTab('hud')} />
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
 
-        {currentTab === 'hud' && user && (
-          <DashboardPage
-            sectors={sectors}
-            telemetry={telemetry}
-            weather={weather}
-            liveGps={liveGps}
-            onRefreshData={loadInitialData}
-          />
-        )}
-
-        {currentTab === 'alerts' && user && <AlertsPage />}
-
-        {currentTab === 'analytics' && user && <AnalyticsPage />}
-
-        {currentTab === 'auth' && (
-          <AuthPage onSuccess={() => setCurrentTab('hud')} />
-        )}
-
-        {currentTab === 'admin' && user?.role === 'ADMIN' && <AdminPage />}
-
-        {/* Fallback Auth Guard screen if unauthenticated user attempts direct deep link */}
-        {!user && ['hud', 'alerts', 'analytics', 'admin'].includes(currentTab) && (
-          <AuthPage onSuccess={() => setCurrentTab('hud')} />
-        )}
       </main>
 
       {/* Rich Multi-Column Enterprise Footer */}

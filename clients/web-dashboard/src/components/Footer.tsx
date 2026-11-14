@@ -16,7 +16,7 @@ export const Footer: React.FC<FooterProps> = ({
 
   return (
     <footer className="border-t border-[#21262D] bg-[#0D1117] text-slate-400 font-sans mt-auto">
-      <div className="w-full max-w-[1700px] mx-auto px-6 sm:px-10 pt-10 pb-6">
+      <div className="w-full max-w-[1700px] mx-auto px-9 sm:px-16 lg:px-20 pt-12 pb-8">
         
         {/* Main Footer Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-8 border-b border-[#21262D]">
@@ -24,15 +24,15 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Col 1 & 2: Brand Identity, Logo & Tagline */}
           <div className="lg:col-span-2 space-y-2 pr-0 lg:pr-6">
             <div 
-              className="flex items-center gap-3 cursor-pointer select-none group"
+              className="flex items-center gap-4 cursor-pointer select-none group"
               onClick={() => onSelectTab('hud')}
             >
               <img 
                 src="/logo/rescuenex_emblem.png" 
                 alt="RescueNex" 
-                className="w-12 h-12 object-contain"
+                className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md transition-transform group-hover:scale-105"
               />
-              <span className="font-extrabold text-2xl tracking-tight text-white font-sans">
+              <span className="font-extrabold text-2xl sm:text-3xl tracking-tight text-white font-sans">
                 Rescue<span className="text-amber-400">Nex</span>
               </span>
             </div>
