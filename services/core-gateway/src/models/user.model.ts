@@ -3,6 +3,7 @@ import { UserRole } from '../types/index.js';
 
 export interface IUserDocument extends Document {
   _id: Types.ObjectId;
+  fullName?: string;
   userName: string;
   email: string;
   password?: string;
@@ -20,6 +21,10 @@ export interface IUserDocument extends Document {
 
 const UserSchema = new Schema<IUserDocument>(
   {
+    fullName: {
+      type: String,
+      trim: true
+    },
     userName: {
       type: String,
       required: [true, 'userName is required!'],

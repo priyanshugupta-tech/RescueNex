@@ -2,6 +2,7 @@ export type UserRole = 'ADMIN' | 'OPERATOR' | 'SCOUT' | 'PUBLIC';
 
 export interface User {
   id: string;
+  fullName?: string;
   userName: string;
   email: string;
   role: UserRole;

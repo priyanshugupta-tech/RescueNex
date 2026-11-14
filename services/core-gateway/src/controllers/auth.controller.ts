@@ -651,6 +651,7 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
       user = await UserModel.findOne({ email });
       if (!user) {
         user = await UserModel.create({
+          fullName: name,
           userName,
           email,
           password: 'OAUTH_GOOGLE_ACCOUNT',
@@ -660,10 +661,14 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
           isApproved: true,
           authProvider: 'GOOGLE'
         });
+      } else if (!user.fullName) {
+        user.fullName = name;
+        await user.save();
       }
     } else {
       user = {
         _id: `USR_GOOGLE_${Date.now()}`,
+        fullName: name,
         userName,
         email,
         role: 'PUBLIC',
@@ -691,7 +696,13 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
     }
 
     const accessToken = jwt.sign(
-      { id: user._id || user.id, sid: session ? session._id : 'mem_sid', role: user.role, userName: user.userName },
+      { 
+        id: user._id || user.id, 
+        sid: session ? session._id : 'mem_sid', 
+        role: user.role, 
+        userName: user.userName,
+        fullName: user.fullName || name
+      },
       config.jwtSecret,
       { expiresIn: '15m' }
     );
@@ -707,7 +718,14 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
     res.json({
       message: 'Google OAuth login successful.',
       accessToken,
-      user: { userName: user.userName, email: user.email, role: user.role }
+      user: { 
+        id: user._id || user.id,
+        fullName: user.fullName || name,
+        userName: user.userName, 
+        email: user.email, 
+        role: user.role,
+        agency: user.agency
+      }
     });
   } catch (error: any) {
     console.error('[Google OAuth] Verification error:', error.message);

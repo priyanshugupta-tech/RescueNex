@@ -16,30 +16,40 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { user, logout } = useAuth();
 
+  const getUserDisplayName = (u: any): string => {
+    if (!u) return '';
+    if (u.fullName && u.fullName.trim() !== '') return u.fullName;
+    
+    // Clean up oauth or technical suffixes
+    const raw = (u.userName || u.email || '').replace(/_oauth$/i, '');
+    if (raw.toLowerCase().includes('priyanshu')) {
+      return 'Priyanshu Gupta';
+    }
+    return raw
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[._-]+/g, ' ')
+      .replace(/\b\w/g, (c: string) => c.toUpperCase());
+  };
+
   return (
-    <header className="sticky top-0 z-50 bg-[#0D1117]/95 backdrop-blur-md border-b border-[#21262D] px-9 sm:px-16 lg:px-20 py-3 transition-all">
+    <header className="sticky top-0 z-50 bg-[#0D1117]/95 backdrop-blur-md border-b border-[#21262D] px-9 sm:px-16 lg:px-20 py-2 transition-all">
       <div className="w-full max-w-[1700px] mx-auto flex items-center justify-between">
         
-        {/* Left: Brand Identity with Large, Borderless Merged Emblem */}
+        {/* Left: Brand Identity with Borderless Merged Emblem */}
         <motion.div 
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-3.5 cursor-pointer select-none" 
+          className="flex items-center gap-3 cursor-pointer select-none" 
           onClick={() => onSelectTab('landing')}
         >
           <img 
             src="/logo/rescuenex_emblem.png" 
             alt="RescueNex" 
-            className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md"
+            className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md"
           />
-          <div className="flex flex-col">
-            <span className="font-extrabold text-2xl sm:text-3xl tracking-tight text-white font-sans leading-none">
-              Rescue<span className="text-amber-400">Nex</span>
-            </span>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mt-1 hidden sm:block">
-              Geotechnical Early Warning
-            </span>
-          </div>
+          <span className="font-extrabold text-2xl tracking-tight text-white font-sans leading-none">
+            Rescue<span className="text-amber-400">Nex</span>
+          </span>
         </motion.div>
 
         {/* Center: Borderless Navigation Links with Active Underline */}
@@ -114,7 +124,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           {user ? (
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-slate-200">{user.userName}</p>
+                <p className="text-xs font-semibold text-slate-200">
+                  {getUserDisplayName(user)}
+                </p>
                 <p className="text-[10px] font-mono text-amber-400 uppercase font-semibold">
                   {user.role} {user.agency ? `• ${user.agency}` : ''}
                 </p>
@@ -122,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={logout}
                 title="Logout"
-                className="p-2.5 rounded-lg bg-[#161B22] border border-[#30363D] text-slate-400 hover:text-rose-400 transition-colors"
+                className="p-2 rounded-lg bg-[#161B22] border border-[#30363D] text-slate-400 hover:text-rose-400 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -130,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             <button
               onClick={() => onSelectTab('auth')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#161B22] hover:bg-[#21262D] text-slate-200 border border-[#30363D] text-xs font-semibold transition-all hover:border-slate-500 shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#161B22] hover:bg-[#21262D] text-slate-200 border border-[#30363D] text-xs font-semibold transition-all hover:border-slate-500 shadow-sm"
             >
               <UserIcon className="w-4 h-4 text-amber-400" />
               <span>Sign In</span>
