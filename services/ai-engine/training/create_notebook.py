@@ -1,0 +1,257 @@
+import json
+import os
+
+notebook = {
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 🏔️ RescueNex AI Engine: Himalayan Landslide Early Warning ML Pipeline\n",
+    "\n",
+    "**Project:** RescueNex Early Warning System  \n",
+    "**Objective:** Multi-parameter geotechnical & hydrometeorological landslide susceptibility classification, Landslide Stability Index (LSI) regression, and Time-to-Failure (TTF) estimation.  \n",
+    "**Methodology:** Mohr-Coulomb limit equilibrium, Caine intensity-duration empirical rainfall thresholds, and Saito tertiary creep kinetics."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import os\n",
+    "import json\n",
+    "import joblib\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.preprocessing import StandardScaler\n",
+    "from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor\n",
+    "from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, f1_score, mean_absolute_error, r2_score\n",
+    "\n",
+    "print(\"Libraries loaded successfully.\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1. Load and Inspect Geotechnical Sensor Dataset"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "dataset_path = os.path.join('..', 'dataset', 'landslide_sensor_data.csv')\n",
+    "df = pd.read_csv(dataset_path)\n",
+    "print(f\"Total records: {len(df)}\")\n",
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.info()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2. Exploratory Data Analysis & Class Distribution"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class_counts = df['riskLevel'].value_counts()\n",
+    "print(class_counts)\n",
+    "\n",
+    "plt.figure(figsize=(8, 4))\n",
+    "colors = {'LOW': '#22c55e', 'ADVISORY': '#eab308', 'WARNING': '#f97316', 'CRITICAL': '#ef4444'}\n",
+    "class_counts.plot(kind='bar', color=[colors[c] for c in class_counts.index], edgecolor='black')\n",
+    "plt.title('Distribution of Landslide Risk Categories')\n",
+    "plt.xlabel('Risk Level')\n",
+    "plt.ylabel('Sensor Record Count')\n",
+    "plt.grid(axis='y', linestyle='--', alpha=0.7)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3. Feature Correlation Analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "numeric_cols = df.select_dtypes(include=[np.number]).columns\n",
+    "corr = df[numeric_cols].corr()\n",
+    "print(\"Correlation with Landslide Stability Index (lsiScore):\")\n",
+    "print(corr['lsiScore'].sort_values(ascending=False))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4. Train-Test Split and Feature Scaling"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "FEATURE_COLUMNS = [\n",
+    "    'soilMoisturePct', 'tiltMagnitude', 'tiltDelta', 'accelRms',\n",
+    "    'vibrationDetected', 'rain1hIntensityMm', 'rain24hCumulativeMm',\n",
+    "    'antecedentRain7dMm', 'slopeAngleDeg', 'temperatureC', 'humidityPct'\n",
+    "]\n",
+    "\n",
+    "X = df[FEATURE_COLUMNS]\n",
+    "y_class = df['riskLevel']\n",
+    "y_lsi = df['lsiScore']\n",
+    "\n",
+    "X_train, X_test, y_class_train, y_class_test, y_lsi_train, y_lsi_test = train_test_split(\n",
+    "    X, y_class, y_lsi, test_size=0.20, random_state=42, stratify=y_class\n",
+    ")\n",
+    "\n",
+    "scaler = StandardScaler()\n",
+    "X_train_scaled = scaler.fit_transform(X_train)\n",
+    "X_test_scaled = scaler.transform(X_test)\n",
+    "print(f\"X_train shape: {X_train.shape}, X_test shape: {X_test.shape}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5. Model 1: Multi-Class Landslide Risk Classifier (Gradient Boosting)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clf = GradientBoostingClassifier(n_estimators=150, learning_rate=0.1, max_depth=4, random_state=42)\n",
+    "clf.fit(X_train_scaled, y_class_train)\n",
+    "\n",
+    "y_pred_class = clf.predict(X_test_scaled)\n",
+    "acc = accuracy_score(y_class_test, y_pred_class)\n",
+    "f1 = f1_score(y_class_test, y_pred_class, average='weighted')\n",
+    "\n",
+    "print(f\"Classifier Accuracy: {acc*100:.2f}%\")\n",
+    "print(f\"Weighted F1-Score: {f1:.4f}\\n\")\n",
+    "print(classification_report(y_class_test, y_pred_class))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6. Model 2: Landslide Stability Index (LSI) Regressor"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "reg = GradientBoostingRegressor(n_estimators=120, learning_rate=0.1, max_depth=4, random_state=42)\n",
+    "reg.fit(X_train_scaled, y_lsi_train)\n",
+    "\n",
+    "y_pred_lsi = reg.predict(X_test_scaled)\n",
+    "mae = mean_absolute_error(y_lsi_test, y_pred_lsi)\n",
+    "r2 = r2_score(y_lsi_test, y_pred_lsi)\n",
+    "\n",
+    "print(f\"LSI Regressor MAE: {mae:.2f} points\")\n",
+    "print(f\"LSI Regressor R² Score: {r2:.4f}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 7. Feature Importance & Interpretation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "importances = clf.feature_importances_\n",
+    "indices = np.argsort(importances)[::-1]\n",
+    "\n",
+    "plt.figure(figsize=(10, 5))\n",
+    "plt.title('Feature Importances for Landslide Risk Prediction')\n",
+    "plt.bar([FEATURE_COLUMNS[i] for i in indices], importances[indices], color='#f59e0b', edgecolor='black')\n",
+    "plt.xticks(rotation=45, ha='right')\n",
+    "plt.ylabel('Relative Importance')\n",
+    "plt.grid(axis='y', linestyle='--', alpha=0.7)\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 8. Exporting Production Model Weights"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "weights_dir = os.path.join('..', '..', 'app', 'models', 'weights')\n",
+    "os.makedirs(weights_dir, exist_ok=True)\n",
+    "\n",
+    "joblib.dump(scaler, os.path.join(weights_dir, 'scaler.joblib'))\n",
+    "joblib.dump(clf, os.path.join(weights_dir, 'landslide_classifier.joblib'))\n",
+    "joblib.dump(reg, os.path.join(weights_dir, 'landslide_lsi_regressor.joblib'))\n",
+    "print(\"All models saved and ready for the FastAPI AI microservice.\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
+
+notebooks_dir = os.path.join(os.path.dirname(__file__), 'notebooks')
+os.makedirs(notebooks_dir, exist_ok=True)
+notebook_path = os.path.join(notebooks_dir, 'landslide_ai_training_and_eval.ipynb')
+
+with open(notebook_path, 'w') as f:
+    json.dump(notebook, f, indent=1)
+
+print(f"Jupyter notebook created at: {notebook_path}")

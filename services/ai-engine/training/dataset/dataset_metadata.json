@@ -1,0 +1,29 @@
+{
+  "dataset_name": "RescueNex Himalayan Landslide Sensor Dataset",
+  "total_samples": 15000,
+  "features": [
+    "soilMoisturePct",
+    "tiltMagnitude",
+    "tiltDelta",
+    "accelRms",
+    "vibrationDetected",
+    "rain1hIntensityMm",
+    "rain24hCumulativeMm",
+    "antecedentRain7dMm",
+    "slopeAngleDeg",
+    "temperatureC",
+    "humidityPct"
+  ],
+  "targets": [
+    "lsiScore",
+    "riskLevel",
+    "timeToFailureHours"
+  ],
+  "class_distribution": {
+    "LOW": 10990,
+    "CRITICAL": 2071,
+    "ADVISORY": 1170,
+    "WARNING": 769
+  },
+  "geotechnical_methodology": "Mohr-Coulomb limit equilibrium, Caine intensity-duration empirical rainfall thresholds, and Saito tertiary creep kinetics"
+}
