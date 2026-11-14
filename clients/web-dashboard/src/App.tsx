@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
 import { LandingPage } from './pages/LandingPage.tsx';
@@ -7,57 +8,81 @@ import { AlertsPage } from './pages/AlertsPage.tsx';
 import { AnalyticsPage } from './pages/AnalyticsPage.tsx';
 import { AuthPage } from './pages/AuthPage.tsx';
 import { AdminPage } from './pages/AdminPage.tsx';
+import { LegalPage } from './pages/LegalPage.tsx';
 import { Footer } from './components/Footer.tsx';
-import { LegalModal } from './components/LegalModal.tsx';
 import { api } from './services/api.ts';
 import { socketService } from './services/socket.ts';
 import { MountainSector, NodeTelemetry, SectorWeatherData } from './types/index.ts';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const MainApp: React.FC = () => {
-  const { user } = useAuth();
-  const [currentTab, setCurrentTab] = useState<'landing' | 'hud' | 'alerts' | 'analytics' | 'admin' | 'auth'>('landing');
+// Protected Route Guard with 1-second redirect loader
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Redirect transition loader state
-  const [isRedirecting, setIsRedirecting] = useState<boolean>(false);
-  const [redirectMessage, setRedirectMessage] = useState<string>('');
-
-  // Auto-redirect to dashboard when user logs in from auth/landing
   useEffect(() => {
-    if (user && (currentTab === 'auth' || currentTab === 'landing')) {
-      setCurrentTab('hud');
-    }
-  }, [user]);
-
-  // Auth Guard: protect internal operational tabs with 1-sec message & loader
-  const handleSelectTab = (tab: string) => {
-    const protectedTabs = ['hud', 'alerts', 'analytics', 'admin'];
-    if (!user && protectedTabs.includes(tab)) {
-      setIsRedirecting(true);
-      setRedirectMessage('Protected Operations Area • Authentication Required. Redirecting to Secure Access...');
-      setTimeout(() => {
-        setIsRedirecting(false);
-        setCurrentTab('auth');
+    if (!loading && !user) {
+      const timer = setTimeout(() => {
+        navigate('/auth', { state: { from: location.pathname } });
       }, 1000);
-      return;
+      return () => clearTimeout(timer);
     }
-    if (tab === 'admin' && user?.role !== 'ADMIN') {
-      setCurrentTab('hud');
-      return;
-    }
-    setCurrentTab(tab as any);
-  };
+  }, [user, loading, navigate, location]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-3">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+        <p className="text-sm text-slate-300 font-sans">Verifying security credentials...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-3">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+        <p className="text-sm text-slate-300 font-sans">Redirecting to Sign In...</p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+// Admin Route Guard
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-3">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'ADMIN') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const MainAppContent: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Live Gateway state
   const [sectors, setSectors] = useState<MountainSector[]>([]);
   const [telemetry, setTelemetry] = useState<NodeTelemetry | null>(null);
   const [weather, setWeather] = useState<SectorWeatherData | null>(null);
   const [activeAlertCount, setActiveAlertCount] = useState<number>(0);
-  const [aiOnline, setAiOnline] = useState<boolean>(false);
-  const [wsConnected, setWsConnected] = useState<boolean>(false);
-  const [isLegalOpen, setIsLegalOpen] = useState<boolean>(false);
-  const [legalTab, setLegalTab] = useState<'terms' | 'privacy' | 'sop'>('terms');
+  const [, setAiOnline] = useState<boolean>(false);
+  const [, setWsConnected] = useState<boolean>(false);
   const [liveGps, setLiveGps] = useState<{ lat: number | null; lon: number | null; fix: boolean }>({
     lat: null,
     lon: null,
@@ -147,99 +172,120 @@ const MainApp: React.FC = () => {
     };
   }, []);
 
+  const handleProtectedNavigate = (path: string) => {
+    navigate(path);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-slate-100">
-      {/* Expansive Navbar with 1.5x side padding */}
+      {/* Navbar with active route indicators */}
       <Navbar
-        currentTab={currentTab}
-        onSelectTab={handleSelectTab}
+        onProtectedNavigate={handleProtectedNavigate}
         activeAlertCount={activeAlertCount}
       />
 
-      {/* Main Content Area: 1.5x side padding (px-9 sm:px-16 lg:px-20) */}
+      {/* Main Content Area with Real URL Routing */}
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-9 sm:px-16 lg:px-20 py-8">
-        
-        {/* Simple Redirect Loader */}
-        {isRedirecting ? (
-          <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-3">
-            <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
-            <p className="text-sm text-slate-300 font-sans">
-              Redirecting to Sign In...
-            </p>
-          </div>
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-            >
-              {currentTab === 'landing' && (
-                <LandingPage
-                  sectors={sectors}
-                  weather={weather}
-                  isAuthenticated={!!user}
-                  onNavigate={handleSelectTab}
-                />
-              )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Routes location={location}>
+              {/* Home / Overview */}
+              <Route 
+                path="/" 
+                element={
+                  <LandingPage
+                    sectors={sectors}
+                    weather={weather}
+                    isAuthenticated={!!user}
+                    onNavigate={(path) => navigate(path)}
+                  />
+                } 
+              />
 
-              {currentTab === 'hud' && user && (
-                <DashboardPage
-                  sectors={sectors}
-                  telemetry={telemetry}
-                  weather={weather}
-                  liveGps={liveGps}
-                  onRefreshData={loadInitialData}
-                />
-              )}
+              {/* Protected Operations Dashboard */}
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage
+                      sectors={sectors}
+                      telemetry={telemetry}
+                      weather={weather}
+                      liveGps={liveGps}
+                      onRefreshData={loadInitialData}
+                    />
+                  </ProtectedRoute>
+                } 
+              />
 
-              {currentTab === 'alerts' && user && <AlertsPage />}
+              {/* Protected Alerts Feed */}
+              <Route 
+                path="/alerts" 
+                element={
+                  <ProtectedRoute>
+                    <AlertsPage />
+                  </ProtectedRoute>
+                } 
+              />
 
-              {currentTab === 'analytics' && user && <AnalyticsPage />}
+              {/* Protected Analytics Table */}
+              <Route 
+                path="/analytics" 
+                element={
+                  <ProtectedRoute>
+                    <AnalyticsPage />
+                  </ProtectedRoute>
+                } 
+              />
 
-              {currentTab === 'auth' && (
-                <AuthPage onSuccess={() => setCurrentTab('hud')} />
-              )}
+              {/* Protected Admin Approvals */}
+              <Route 
+                path="/admin" 
+                element={
+                  <AdminRoute>
+                    <AdminPage />
+                  </AdminRoute>
+                } 
+              />
 
-              {currentTab === 'admin' && user?.role === 'ADMIN' && <AdminPage />}
+              {/* Authentication */}
+              <Route 
+                path="/auth" 
+                element={<AuthPage onSuccess={() => navigate('/dashboard')} />} 
+              />
+              <Route path="/login" element={<Navigate to="/auth" replace />} />
 
-              {/* Fallback Auth Guard screen if unauthenticated user arrives at deep tab */}
-              {!user && ['hud', 'alerts', 'analytics', 'admin'].includes(currentTab) && (
-                <AuthPage onSuccess={() => setCurrentTab('hud')} />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        )}
+              {/* Legal & Policy Pages */}
+              <Route path="/terms" element={<LegalPage />} />
+              <Route path="/privacy" element={<LegalPage />} />
+              <Route path="/sop" element={<LegalPage />} />
 
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      {/* Rich Multi-Column Enterprise Footer */}
-      <Footer
-        onSelectTab={handleSelectTab}
-        onOpenLegal={(tab) => {
-          setLegalTab(tab);
-          setIsLegalOpen(true);
-        }}
-        activeAlertCount={activeAlertCount}
-      />
-
-      {/* Legal & Operations Dialog */}
-      <LegalModal
-        isOpen={isLegalOpen}
-        initialTab={legalTab}
-        onClose={() => setIsLegalOpen(false)}
-      />
+      {/* Footer with Real Route Links */}
+      <Footer activeAlertCount={activeAlertCount} />
     </div>
   );
 };
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <MainAppContent />
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 

@@ -176,7 +176,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <button
-              onClick={() => onNavigate(isAuthenticated ? 'hud' : 'auth')}
+              onClick={() => onNavigate(isAuthenticated ? '/dashboard' : '/auth')}
               className="flex items-center gap-2.5 px-6 py-3.5 rounded-none bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition shadow"
             >
               <span>{isAuthenticated ? 'Open Live Dashboard' : 'Sign In to Access Dashboard'}</span>
@@ -345,7 +345,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
 
         <button
-          onClick={() => onNavigate(isAuthenticated ? 'hud' : 'auth')}
+          onClick={() => onNavigate(isAuthenticated ? '/dashboard' : '/auth')}
           className="px-6 py-3.5 rounded-none bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs whitespace-nowrap transition shadow"
         >
           {isAuthenticated ? 'Go to Operations Dashboard' : 'Sign In / Register'}

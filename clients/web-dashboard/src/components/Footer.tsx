@@ -1,18 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 
 interface FooterProps {
-  onSelectTab: (tab: any) => void;
-  onOpenLegal: (tab: 'terms' | 'privacy' | 'sop') => void;
   activeAlertCount: number;
 }
 
-export const Footer: React.FC<FooterProps> = ({
-  onSelectTab,
-  onOpenLegal,
-  activeAlertCount
-}) => {
+export const Footer: React.FC<FooterProps> = ({ activeAlertCount }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <footer className="border-t border-[#21262D] bg-[#0D1117] text-slate-400 font-sans mt-auto">
@@ -22,15 +18,15 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-8 border-b border-[#21262D]">
           
           {/* Col 1 & 2: Brand Identity, Logo & Tagline */}
-          <div className="lg:col-span-2 space-y-2 pr-0 lg:pr-6">
+          <div className="lg:col-span-2 space-y-3 pr-0 lg:pr-6">
             <div 
-              className="flex items-center gap-4 cursor-pointer select-none group"
-              onClick={() => onSelectTab('hud')}
+              className="flex items-center gap-3.5 cursor-pointer select-none group"
+              onClick={() => navigate('/')}
             >
               <img 
-                src="/logo/rescuenex_emblem.png" 
+                src="/logo/rescuenex_emblem.svg" 
                 alt="RescueNex" 
-                className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md transition-transform group-hover:scale-105"
+                className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md transition-transform group-hover:scale-105"
               />
               <span className="font-extrabold text-2xl sm:text-3xl tracking-tight text-white font-sans">
                 Rescue<span className="text-amber-400">Nex</span>
@@ -39,6 +35,9 @@ export const Footer: React.FC<FooterProps> = ({
 
             <p className="text-sm font-semibold text-slate-200">
               Real-Time Landslide Risk Analytics & Early Warning Platform
+            </p>
+            <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+              Autonomous geotechnical monitoring, predictive slope stability intelligence, and emergency early warning protocols for mountain transit corridors.
             </p>
           </div>
 
@@ -50,7 +49,15 @@ export const Footer: React.FC<FooterProps> = ({
             <ul className="space-y-2 text-xs">
               <li>
                 <button
-                  onClick={() => onSelectTab('hud')}
+                  onClick={() => navigate('/')}
+                  className="hover:text-amber-400 transition-colors text-left"
+                >
+                  Overview
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate('/dashboard')}
                   className="hover:text-amber-400 transition-colors text-left"
                 >
                   Dashboard
@@ -58,12 +65,12 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button
-                  onClick={() => onSelectTab('alerts')}
+                  onClick={() => navigate('/alerts')}
                   className="hover:text-rose-400 transition-colors flex items-center gap-2 text-left"
                 >
                   <span>Alerts</span>
                   {activeAlertCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-600 text-white">
+                    <span className="px-1.5 py-0.2 rounded-none text-[10px] font-bold bg-rose-600 text-white">
                       {activeAlertCount}
                     </span>
                   )}
@@ -71,7 +78,7 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button
-                  onClick={() => onSelectTab('analytics')}
+                  onClick={() => navigate('/analytics')}
                   className="hover:text-sky-400 transition-colors text-left"
                 >
                   Analytics
@@ -80,7 +87,7 @@ export const Footer: React.FC<FooterProps> = ({
               {user?.role === 'ADMIN' ? (
                 <li>
                   <button
-                    onClick={() => onSelectTab('admin')}
+                    onClick={() => navigate('/admin')}
                     className="hover:text-amber-400 transition-colors text-left"
                   >
                     Admin
@@ -89,7 +96,7 @@ export const Footer: React.FC<FooterProps> = ({
               ) : (
                 <li>
                   <button
-                    onClick={() => onSelectTab('auth')}
+                    onClick={() => navigate('/auth')}
                     className="hover:text-amber-400 transition-colors text-left"
                   >
                     Sign In
@@ -107,7 +114,7 @@ export const Footer: React.FC<FooterProps> = ({
             <ul className="space-y-2 text-xs">
               <li>
                 <button
-                  onClick={() => onOpenLegal('terms')}
+                  onClick={() => navigate('/terms')}
                   className="hover:text-white transition-colors text-left"
                 >
                   Terms of Service
@@ -115,7 +122,7 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button
-                  onClick={() => onOpenLegal('privacy')}
+                  onClick={() => navigate('/privacy')}
                   className="hover:text-white transition-colors text-left"
                 >
                   Privacy Policy
@@ -123,7 +130,7 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li>
                 <button
-                  onClick={() => onOpenLegal('sop')}
+                  onClick={() => navigate('/sop')}
                   className="hover:text-white transition-colors text-left"
                 >
                   Disaster Advisory & SOP
@@ -137,15 +144,18 @@ export const Footer: React.FC<FooterProps> = ({
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 font-mono">
               Sensor Feeds
             </h4>
-            <ul className="space-y-2 text-xs text-slate-400">
+            <ul className="space-y-2 text-xs text-slate-400 font-mono">
               <li>
                 <span>Slope Tilt Sensors (X/Y)</span>
               </li>
               <li>
-                <span>Soil Moisture Sensors</span>
+                <span>Soil Moisture Probes</span>
               </li>
               <li>
-                <span>Live Rainfall Tracking</span>
+                <span>Live Rainfall Ingestion</span>
+              </li>
+              <li>
+                <span>Seismic Acceleration RMS</span>
               </li>
             </ul>
           </div>
@@ -153,8 +163,11 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* Bottom Sub-Footer Bar */}
-        <div className="pt-4 flex items-center justify-between text-xs text-slate-500 font-sans">
-          <span>© 2026 RescueNex. All rights reserved.</span>
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-sans gap-2">
+          <span>© 2026 RescueNex Platform. All rights reserved.</span>
+          <span className="font-mono text-[11px] text-slate-400">
+            Real-Time Geotechnical & Early Warning Network
+          </span>
         </div>
 
       </div>
