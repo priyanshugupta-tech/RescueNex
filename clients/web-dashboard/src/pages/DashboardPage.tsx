@@ -172,8 +172,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">English</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
-                    ? `"${activeSector?.name || 'NH-44 Corridor'} Alert: Elevated slope displacement detected (${activeSector?.currentRiskLevel}). Exercise extreme caution and avoid rockfall prone zones."`
-                    : `"${activeSector?.name || 'NH-44 Corridor'}: Geotechnical sensors and weather parameters are currently stable. Transit corridor open."`}
+                    ? `"${activeSector?.name || 'Mountain Sector'} Alert: Elevated slope displacement detected (${activeSector?.currentRiskLevel}). Exercise extreme caution and avoid rockfall prone zones."`
+                    : `"${activeSector?.name || 'Mountain Sector'}: Geotechnical sensors and weather parameters are currently stable. Transit corridor open."`}
                 </p>
               </div>
 
@@ -181,8 +181,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">हिंदी</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
-                    ? `"${activeSector?.name || 'राष्ट्रीय राजमार्ग 44'} चेतावनी: ढलान विस्थापन दर्ज किया गया (${activeSector?.currentRiskLevel})। कृपया सतर्क रहें और सुरक्षित स्थान पर रहें।"`
-                    : `"${activeSector?.name || 'राष्ट्रीय राजमार्ग 44'}: सभी भू-तकनीकी सेंसर सामान्य स्थिति में हैं। मार्ग आवागमन हेतु सुरक्षित है।"`}
+                    ? `"${activeSector?.name || 'पर्वतीय क्षेत्र'} चेतावनी: ढलान विस्थापन दर्ज किया गया (${activeSector?.currentRiskLevel})। कृपया सतर्क रहें और सुरक्षित स्थान पर रहें।"`
+                    : `"${activeSector?.name || 'पर्वतीय क्षेत्र'}: सभी भू-तकनीकी सेंसर सामान्य स्थिति में हैं। मार्ग आवागमन हेतु सुरक्षित है।"`}
                 </p>
               </div>
 
@@ -190,8 +190,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">डोकरी / Dogri</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
-                    ? `"${activeSector?.name || 'रामबन'} दे कोल मट्टी खिसकने दा खतरा ऐ। होशियार रवो ते सुरक्षित ठार चलो।"`
-                    : `"${activeSector?.name || 'रामबन'} दे सारे सेंसर ठीक कम करदे न। रास्ता सुरक्षित ऐ।"`}
+                    ? `"${activeSector?.name || 'पर्वतीय क्षेत्र'} दे कोल मट्टी खिसकने दा खतरा ऐ। होशियार रवो ते सुरक्षित ठार चलो।"`
+                    : `"${activeSector?.name || 'पर्वतीय क्षेत्र'} दे सारे सेंसर ठीक कम करदे न। रास्ता सुरक्षित ऐ।"`}
                 </p>
               </div>
 
@@ -199,8 +199,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">कॉशुर / Kashmiri</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
-                    ? `"${activeSector?.name || 'हाईवे 44'} प्यठ पथर प्यनुक खतरा। मेहरबानी करित होशियारी सां पकिव।"`
-                    : `"${activeSector?.name || 'हाईवे 44'}: तमाम सेंसर ठीक छु काम करान। सफर खातिर महफ़ूज़।"`}
+                    ? `"${activeSector?.name || 'पर्वतीय इलाका'} प्यठ पथर प्यनुक खतरा। मेहरबानी करित होशियारी सां पकिव।"`
+                    : `"${activeSector?.name || 'पर्वतीय इलाका'}: तमाम सेंसर ठीक छु काम करान। सफर खातिर महफ़ूज़।"`}
                 </p>
               </div>
             </div>

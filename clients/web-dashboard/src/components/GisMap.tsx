@@ -33,13 +33,13 @@ interface GisMapProps {
 }
 
 export const GisMap: React.FC<GisMapProps> = ({ sectors, telemetry, liveGps }) => {
-  // NH-44 Key Corridor Anchor Points (Jammu - Srinagar Highway)
-  const nh44Corridor: [number, number][] = [
-    [33.1500, 75.3000], // Nashri Tunnel
-    [33.2450, 75.2400], // Ramban Chanderkote
-    [33.3600, 75.2000], // Ramsu
-    [33.5100, 75.1800], // Banihal Tunnel
-    [33.6000, 75.1500]  // Qazigund Entrance
+  // Strategic Mountain Transit Corridor Anchor Points
+  const transitCorridor: [number, number][] = [
+    [33.1500, 75.3000], // South Tunnel Entry
+    [33.2450, 75.2400], // Central Valley Stretch
+    [33.3600, 75.2000], // Mid Elevation Zone
+    [33.5100, 75.1800], // High Pass Tunnel
+    [33.6000, 75.1500]  // North Entrance
   ];
 
   const getRiskColor = (risk: string) => {
@@ -69,9 +69,9 @@ export const GisMap: React.FC<GisMapProps> = ({ sectors, telemetry, liveGps }) =
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
 
-        {/* NH-44 Highway Path */}
+        {/* Mountain Transit Corridor */}
         <Polyline
-          positions={nh44Corridor}
+          positions={transitCorridor}
           pathOptions={{ color: '#F59E0B', weight: 3, opacity: 0.6, dashArray: '6, 8' }}
         />
 
@@ -91,7 +91,7 @@ export const GisMap: React.FC<GisMapProps> = ({ sectors, telemetry, liveGps }) =
             <Popup className="tactical-popup">
               <div className="p-1 font-sans text-xs">
                 <p className="font-bold text-slate-900">{sec.name}</p>
-                <p className="text-[11px] text-slate-600">{sec.highway} • {sec.kmMarker}</p>
+                <p className="text-[11px] text-slate-600 font-mono">{sec.kmMarker || 'Active Observation Zone'}</p>
                 <div className="mt-1 flex items-center justify-between border-t pt-1">
                   <span className="font-semibold text-slate-800">Risk Level:</span>
                   <span className="font-bold" style={{ color: getRiskColor(sec.currentRiskLevel) }}>

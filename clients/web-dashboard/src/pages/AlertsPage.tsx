@@ -86,7 +86,7 @@ export const AlertsPage: React.FC = () => {
           <div className="p-8 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
             <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto" />
             <p className="text-sm font-semibold text-slate-200">No Critical Landslide Threats Active</p>
-            <p className="text-xs text-slate-500">All mountain corridors on NH-44 are reporting stable slope conditions.</p>
+            <p className="text-xs text-slate-500">All monitored mountain corridors are reporting stable slope conditions.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -105,7 +105,7 @@ export const AlertsPage: React.FC = () => {
                       {alert.level}
                     </span>
                     <span className="text-sm font-bold text-white font-sans">
-                      {alert.sectorName} ({alert.highway})
+                      {alert.sectorName}
                     </span>
                     <span className="text-xs font-mono text-slate-400">
                       KM: {alert.kmMarker}

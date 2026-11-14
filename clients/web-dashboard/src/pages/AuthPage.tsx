@@ -46,7 +46,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
       }
     };
 
-    // Initialize GIS if window.google is loaded
     if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
       try {
         (window as any).google.accounts.id.initialize({
@@ -65,7 +64,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
           });
         }
       } catch (e) {
-        console.warn('Google Identity Services init notice:', e);
+        console.warn('Google Identity Services notice:', e);
       }
     }
   }, [tab]);
@@ -135,14 +134,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
   };
 
   return (
-    <div className="max-w-md mx-auto my-10 p-7 rounded-2xl bg-[#161B22] border border-[#30363D] shadow-2xl">
+    <div className="max-w-md mx-auto my-8 p-8 rounded-2xl bg-[#161B22] border border-[#30363D] shadow-2xl">
       
-      {/* Brand Header */}
+      {/* Brand Header with Borderless Merged Emblem */}
       <div className="text-center mb-6">
         <img 
-          src="/logo/rescuenex_emblem.jpg" 
-          alt="RescueNex Logo" 
-          className="w-12 h-12 rounded-xl border border-slate-700 object-cover mx-auto mb-3 shadow-md"
+          src="/logo/rescuenex_emblem.png" 
+          alt="RescueNex" 
+          className="w-14 h-14 object-contain mx-auto mb-2"
         />
         <h2 className="text-2xl font-extrabold text-white font-sans tracking-tight">
           Rescue<span className="text-amber-400">Nex</span>
@@ -152,7 +151,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Modern Tabs */}
       <div className="flex rounded-lg bg-[#0D1117] p-1 border border-[#21262D] mb-5">
         <button
           type="button"
@@ -206,7 +205,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="Enter your username or email"
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
+                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
               />
             </div>
           </div>
@@ -221,12 +220,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full pl-9 pr-10 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
+                className="w-full pl-9 pr-10 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300"
+                className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -249,7 +248,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
             <select
               value={role}
               onChange={(e: any) => setRole(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-slate-200 focus:outline-none focus:border-amber-400 text-xs"
+              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-slate-200 focus:outline-none focus:border-amber-400 text-xs transition"
             >
               <option value="PUBLIC">Public Commuter / Resident</option>
               <option value="SCOUT">Emergency Field Scout</option>
@@ -265,7 +264,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="e.g. John Doe"
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
+              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
             />
           </div>
 
@@ -277,7 +276,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Choose a username"
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs font-mono"
+              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs font-mono transition"
             />
           </div>
 
@@ -289,7 +288,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
+              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
             />
           </div>
 
@@ -302,7 +301,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min 8 characters"
-                className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
+                className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
               />
             </div>
             <div>
@@ -313,7 +312,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter password"
-                className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
+                className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs transition"
               />
             </div>
           </div>
@@ -353,7 +352,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
                 <button
                   type="button"
                   onClick={() => setShowOtpModal(false)}
-                  className="flex-1 py-2 rounded-lg bg-[#21262D] text-slate-300 text-xs font-semibold"
+                  className="flex-1 py-2 rounded-lg bg-[#21262D] text-slate-300 text-xs font-semibold transition"
                 >
                   Cancel
                 </button>

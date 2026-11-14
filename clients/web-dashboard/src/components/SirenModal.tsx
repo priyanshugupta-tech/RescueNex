@@ -78,7 +78,7 @@ export const SirenModal: React.FC<SirenModalProps> = ({
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed mb-4">
-          Manual acoustic siren broadcast triggers public audio horns along the NH-44 highway stretch. 
+          Manual acoustic siren broadcast triggers physical audio warning horns across the active sector. 
           To prevent accidental triggers, enter the disaster override code below.
         </p>
 

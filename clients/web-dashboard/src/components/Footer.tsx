@@ -28,9 +28,9 @@ export const Footer: React.FC<FooterProps> = ({
               onClick={() => onSelectTab('hud')}
             >
               <img 
-                src="/logo/rescuenex_emblem.jpg" 
-                alt="RescueNex Logo" 
-                className="w-10 h-10 rounded-lg border border-slate-700 object-cover shadow-sm group-hover:border-amber-400 transition-colors"
+                src="/logo/rescuenex_emblem.png" 
+                alt="RescueNex" 
+                className="w-12 h-12 object-contain"
               />
               <span className="font-extrabold text-2xl tracking-tight text-white font-sans">
                 Rescue<span className="text-amber-400">Nex</span>

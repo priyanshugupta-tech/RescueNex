@@ -131,7 +131,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">1. Operational Scope & Purpose</h4>
                 <p>
-                  RescueNex is an autonomous, sensor-driven early warning and landslide risk monitoring platform engineered for high-altitude transit corridors, specifically National Highway 44 (NH-44 Jammu–Srinagar) and critical connecting mountain sectors in Jammu & Kashmir. The system is designed to provide real-time geotechnical telemetry to regional disaster response cells, emergency command hubs, and field operations teams.
+                  RescueNex is an autonomous, sensor-driven early warning and landslide risk monitoring platform engineered for high-altitude mountain corridors and critical connecting transit sectors. The system is designed to provide real-time geotechnical telemetry to regional disaster response cells, emergency command hubs, and field operations teams.
                 </p>
               </div>
 
@@ -170,7 +170,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">2. Hardware GPS Coordinates</h4>
                 <p>
-                  GPS coordinates collected by the Core Gateway represent stationary, physical hardware nodes installed along highway mountain slopes. The system does not track civilian travelers, vehicles, or personal mobile GPS locations.
+                  GPS coordinates collected by the Core Gateway represent stationary, physical hardware nodes installed along mountain slopes. The system does not track civilian travelers, vehicles, or personal mobile GPS locations.
                 </p>
               </div>
 
@@ -195,7 +195,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">Standard Operating Procedures (SOP) Escalation Matrix</h4>
                 <p>
-                  The following operational escalation protocol applies across all monitored highway corridors:
+                  The following operational escalation protocol applies across all monitored transit corridors:
                 </p>
               </div>
 
@@ -234,8 +234,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">Emergency Operations Coordination Contacts</h4>
                 <ul className="list-disc pl-5 space-y-1 text-slate-350">
-                  <li><strong>Regional Emergency Operations Centre (EOC):</strong> Highway Emergency Helpline: 1070 / 1077</li>
-                  <li><strong>Mountain Highway Operations Cell:</strong> Ramban–Banihal Dispatch Control</li>
+                  <li><strong>Regional Emergency Operations Centre (EOC):</strong> Emergency Helpline: 1070 / 1077</li>
+                  <li><strong>Disaster Management Field Cell:</strong> Regional Dispatch Control</li>
                   <li><strong>Technical Mission Operations:</strong> lead@rescuenex.org</li>
                 </ul>
               </div>

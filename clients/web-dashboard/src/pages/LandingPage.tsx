@@ -2,15 +2,16 @@ import React from 'react';
 import { MountainSector, SectorWeatherData } from '../types/index.ts';
 import { 
   Activity, 
-  AlertTriangle, 
   Compass, 
   Droplets, 
   CloudRain, 
-  Radio, 
   ShieldCheck, 
   Lock, 
   ArrowRight,
-  CheckCircle2
+  Cpu,
+  Layers,
+  Radio,
+  BellRing
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -21,8 +22,6 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
-  sectors,
-  weather,
   isAuthenticated,
   onNavigate
 }) => {
@@ -33,7 +32,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <section className="relative rounded-3xl bg-[#161B22] border border-[#30363D] p-8 sm:p-14 overflow-hidden">
         <div className="max-w-3xl space-y-5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D1117] border border-[#30363D] text-xs font-mono text-amber-400">
-            <span>NH-44 Strategic Highway Corridor</span>
+            <span>Mountain Transit Hazard Monitoring</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight font-sans">
@@ -41,7 +40,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-sans">
-            Autonomous geotechnical monitoring, predictive slope stability intelligence, and emergency early warning across critical mountainous highway transit corridors.
+            Geotechnical monitoring, predictive slope stability intelligence, and early warning analytics for critical mountain transit corridors.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-3">
@@ -55,96 +54,115 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <button
               onClick={() => {
-                const el = document.getElementById('sectors-overview');
+                const el = document.getElementById('operational-workflow');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
               className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#21262D] hover:bg-[#30363D] text-slate-200 font-semibold text-sm transition border border-[#30363D]"
             >
-              <span>View Monitored Sectors</span>
+              <span>View System Workflow</span>
             </button>
           </div>
         </div>
 
-        {/* Quick Highlights Grid */}
+        {/* Operational Highlights Grid - Generic & Realistic */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-12 pt-8 border-t border-[#21262D]">
           <div>
-            <p className="text-2xl font-bold font-mono text-white">5</p>
-            <p className="text-xs text-slate-400 mt-0.5">High-Risk Mountain Sectors</p>
+            <p className="text-xl font-bold font-mono text-white">Multi-Sensor</p>
+            <p className="text-xs text-slate-400 mt-0.5">Geotechnical Ingestion</p>
           </div>
           <div>
-            <p className="text-2xl font-bold font-mono text-white">&lt; 1s</p>
-            <p className="text-xs text-slate-400 mt-0.5">Live Telemetry Latency</p>
+            <p className="text-xl font-bold font-mono text-white">Continuous</p>
+            <p className="text-xs text-slate-400 mt-0.5">Dynamic Risk Scoring</p>
           </div>
           <div>
-            <p className="text-2xl font-bold font-mono text-white">24 / 7</p>
-            <p className="text-xs text-slate-400 mt-0.5">Continuous IMU Ingestion</p>
+            <p className="text-xl font-bold font-mono text-white">Automated</p>
+            <p className="text-xs text-slate-400 mt-0.5">Early Warning Protocols</p>
           </div>
           <div>
-            <p className="text-2xl font-bold font-mono text-white">CAP v1.2</p>
-            <p className="text-xs text-slate-400 mt-0.5">Standard Alert Protocol</p>
+            <p className="text-xl font-bold font-mono text-white">Role-Based</p>
+            <p className="text-xs text-slate-400 mt-0.5">Access Control & Audit</p>
           </div>
         </div>
       </section>
 
-      {/* 2. Live Monitored Mountain Sectors Section */}
-      <section id="sectors-overview" className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-[#21262D] pb-4">
-          <div>
-            <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
-              <Radio className="w-5 h-5 text-sky-400" />
-              <span>Monitored Mountain Sectors</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Active observation zones equipped with hardware sensor nodes along strategic mountain corridors.
-            </p>
-          </div>
-
-          <span className="text-xs font-mono text-slate-400">
-            {sectors.length} Operational Sectors
-          </span>
+      {/* 2. Operational Workflow & Architecture Section (Replaces Monitored Sectors Grid) */}
+      <section id="operational-workflow" className="space-y-6">
+        <div className="border-b border-[#21262D] pb-4">
+          <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
+            <Layers className="w-5 h-5 text-amber-400" />
+            <span>Operational Workflow & Architecture</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            An end-to-end pipeline linking physical slope sensors to actionable civil protection alerts.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sectors.map((sector) => (
-            <div 
-              key={sector.id} 
-              className="p-5 rounded-xl bg-[#161B22] border border-[#30363D] flex flex-col justify-between space-y-4 hover:border-slate-600 transition"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-xs font-mono text-slate-400">{sector.highway} • {sector.kmMarker}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    sector.currentRiskLevel === 'CRITICAL'
-                      ? 'bg-rose-600 text-white'
-                      : sector.currentRiskLevel === 'WARNING'
-                      ? 'bg-amber-600 text-white'
-                      : 'bg-emerald-600 text-white'
-                  }`}>
-                    {sector.currentRiskLevel}
-                  </span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Step 1 */}
+          <div className="p-6 rounded-xl bg-[#161B22] border border-[#30363D] space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D] text-amber-400">
+                  <Cpu className="w-5 h-5" />
                 </div>
-
-                <h3 className="text-base font-bold text-white font-sans">{sector.name}</h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Elevation: {sector.elevationM}m • Slope: {sector.slopeDegrees}° • Soil: {sector.soilType}
-                </p>
+                <span className="text-xs font-mono font-bold text-slate-500">STAGE 01</span>
               </div>
-
-              <div className="pt-3 border-t border-[#21262D] flex items-center justify-between text-xs font-mono text-slate-300">
-                <span>LSI Risk Index:</span>
-                <span className="font-bold text-white">{sector.lsiScore} / 100</span>
-              </div>
+              <h3 className="text-sm font-bold text-white font-sans">Edge Telemetry & Sensing</h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans mt-2">
+                Stationary hardware nodes measure slope tilt deviation, root-mean-square vibration, volumetric soil moisture, and local weather station precipitation rates.
+              </p>
             </div>
-          ))}
+            <div className="pt-3 border-t border-[#21262D] text-[11px] font-mono text-slate-400">
+              Bi-axial Inclinometry • Soil Saturation
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="p-6 rounded-xl bg-[#161B22] border border-[#30363D] space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D] text-sky-400">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-mono font-bold text-slate-500">STAGE 02</span>
+              </div>
+              <h3 className="text-sm font-bold text-white font-sans">Risk Assessment & Analytics</h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans mt-2">
+                The Core Gateway calculates the Landslide Susceptibility Index (LSI) by evaluating slope inclination, pore-water pressure saturation, and cumulative rainfall thresholds.
+              </p>
+            </div>
+            <div className="pt-3 border-t border-[#21262D] text-[11px] font-mono text-slate-400">
+              LSI Computation • Stability Matrix
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="p-6 rounded-xl bg-[#161B22] border border-[#30363D] space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-[#0D1117] border border-[#21262D] text-rose-400">
+                  <BellRing className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-mono font-bold text-slate-500">STAGE 03</span>
+              </div>
+              <h3 className="text-sm font-bold text-white font-sans">Early Warning & Response</h3>
+              <p className="text-xs text-slate-400 leading-relaxed font-sans mt-2">
+                When thresholds indicate hazard conditions, the system issues regional advisories, multilingual broadcasts in local dialects, and triggers siren interlock warnings.
+              </p>
+            </div>
+            <div className="pt-3 border-t border-[#21262D] text-[11px] font-mono text-slate-400">
+              Multilingual Bulletins • Siren Interlock
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 3. Core Platform Capabilities */}
+      {/* 3. Core Sensor Capabilities */}
       <section className="space-y-6">
         <div className="border-b border-[#21262D] pb-4">
           <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
-            <Activity className="w-5 h-5 text-amber-400" />
-            <span>Platform Capabilities</span>
+            <Radio className="w-5 h-5 text-amber-400" />
+            <span>Field Sensor Capabilities</span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             Engineered for high reliability, autonomous decision support, and immediate hazard response.
@@ -156,7 +174,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Compass className="w-6 h-6 text-sky-400" />
             <h3 className="text-sm font-bold text-white font-sans">Slope Tilt Inclinometry</h3>
             <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              Continuous bi-axial tilt tracking and root-mean-square acceleration capture minute geotechnical shear and creep prior to catastrophic slope failure.
+              Continuous bi-axial tilt tracking and acceleration capture minute geotechnical shear and creep prior to catastrophic slope failure.
             </p>
           </div>
 
@@ -172,7 +190,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <CloudRain className="w-6 h-6 text-sky-400" />
             <h3 className="text-sm font-bold text-white font-sans">Meteorological Sync</h3>
             <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              Real-time precipitation rates and 7-day cumulative rainfall indices are matched against geotechnical vulnerability models for proactive risk projection.
+              Precipitation rates and cumulative rainfall indices are matched against geotechnical vulnerability models for proactive risk projection.
             </p>
           </div>
         </div>
