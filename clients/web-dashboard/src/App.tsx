@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { Navbar } from './components/Navbar.tsx';
+import { LandingPage } from './pages/LandingPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { AlertsPage } from './pages/AlertsPage.tsx';
 import { AnalyticsPage } from './pages/AnalyticsPage.tsx';
@@ -14,7 +15,28 @@ import { MountainSector, NodeTelemetry, SectorWeatherData } from './types/index.
 
 const MainApp: React.FC = () => {
   const { user } = useAuth();
-  const [currentTab, setCurrentTab] = useState<'hud' | 'alerts' | 'analytics' | 'admin' | 'auth'>('hud');
+  const [currentTab, setCurrentTab] = useState<'landing' | 'hud' | 'alerts' | 'analytics' | 'admin' | 'auth'>('landing');
+
+  // Auto-redirect to dashboard when user logs in from auth/landing
+  useEffect(() => {
+    if (user && (currentTab === 'auth' || currentTab === 'landing')) {
+      setCurrentTab('hud');
+    }
+  }, [user]);
+
+  // Auth Guard: protect internal operational tabs
+  const handleSelectTab = (tab: string) => {
+    const protectedTabs = ['hud', 'alerts', 'analytics', 'admin'];
+    if (!user && protectedTabs.includes(tab)) {
+      setCurrentTab('auth');
+      return;
+    }
+    if (tab === 'admin' && user?.role !== 'ADMIN') {
+      setCurrentTab('hud');
+      return;
+    }
+    setCurrentTab(tab as any);
+  };
 
   // Live Gateway state
   const [sectors, setSectors] = useState<MountainSector[]>([]);
@@ -119,13 +141,22 @@ const MainApp: React.FC = () => {
       {/* Expansive, Spacious Navbar */}
       <Navbar
         currentTab={currentTab}
-        onSelectTab={(tab: any) => setCurrentTab(tab)}
+        onSelectTab={handleSelectTab}
         activeAlertCount={activeAlertCount}
       />
 
-      {/* Main Content Area: Wide responsive layout */}
+      {/* Main Content Area: Wide responsive layout with Auth Guard */}
       <main className="flex-1 w-full max-w-[1700px] mx-auto p-4 sm:p-8">
-        {currentTab === 'hud' && (
+        {currentTab === 'landing' && (
+          <LandingPage
+            sectors={sectors}
+            weather={weather}
+            isAuthenticated={!!user}
+            onNavigate={handleSelectTab}
+          />
+        )}
+
+        {currentTab === 'hud' && user && (
           <DashboardPage
             sectors={sectors}
             telemetry={telemetry}
@@ -135,20 +166,25 @@ const MainApp: React.FC = () => {
           />
         )}
 
-        {currentTab === 'alerts' && <AlertsPage />}
+        {currentTab === 'alerts' && user && <AlertsPage />}
 
-        {currentTab === 'analytics' && <AnalyticsPage />}
+        {currentTab === 'analytics' && user && <AnalyticsPage />}
 
         {currentTab === 'auth' && (
           <AuthPage onSuccess={() => setCurrentTab('hud')} />
         )}
 
         {currentTab === 'admin' && user?.role === 'ADMIN' && <AdminPage />}
+
+        {/* Fallback Auth Guard screen if unauthenticated user attempts direct deep link */}
+        {!user && ['hud', 'alerts', 'analytics', 'admin'].includes(currentTab) && (
+          <AuthPage onSuccess={() => setCurrentTab('hud')} />
+        )}
       </main>
 
       {/* Rich Multi-Column Enterprise Footer */}
       <Footer
-        onSelectTab={(tab) => setCurrentTab(tab)}
+        onSelectTab={handleSelectTab}
         onOpenLegal={(tab) => {
           setLegalTab(tab);
           setIsLegalOpen(true);

@@ -1,22 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Shield, Lock, Mail, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Lock, Mail, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface AuthPageProps {
   onSuccess: () => void;
+  initialMode?: 'login' | 'signup';
 }
 
-export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
-  const { login, signup, verifyOtp } = useAuth();
-  const [tab, setTab] = useState<'login' | 'signup'>('login');
+export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'login' }) => {
+  const { login, signup, googleLogin, verifyOtp } = useAuth();
+  const [tab, setTab] = useState<'login' | 'signup'>(initialMode);
 
   // Form states
+  const [fullName, setFullName] = useState('');
   const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'PUBLIC' | 'SCOUT' | 'OPERATOR'>('PUBLIC');
-  const [agency, setAgency] = useState('COMMUTER');
+  const [showPassword, setShowPassword] = useState(false);
 
   // OTP modal state
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -27,6 +29,47 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
   const [error, setError] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
 
+  // Google OAuth setup with Google Identity Services (GIS)
+  useEffect(() => {
+    const handleGoogleCredentialResponse = async (response: any) => {
+      if (response && response.credential) {
+        setLoading(true);
+        setError('');
+        try {
+          await googleLogin(response.credential);
+          onSuccess();
+        } catch (err: any) {
+          setError(err.response?.data?.message || 'Google authentication failed. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Initialize GIS if window.google is loaded
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
+      try {
+        (window as any).google.accounts.id.initialize({
+          client_id: '286184216559-q897knrrbm22j52cb08qmstdvt402cro.apps.googleusercontent.com',
+          callback: handleGoogleCredentialResponse,
+        });
+
+        const btnContainer = document.getElementById('googleAuthBtnContainer');
+        if (btnContainer) {
+          (window as any).google.accounts.id.renderButton(btnContainer, {
+            theme: 'filled_black',
+            size: 'large',
+            width: '100%',
+            text: tab === 'login' ? 'signin_with' : 'signup_with',
+            shape: 'rectangular'
+          });
+        }
+      } catch (e) {
+        console.warn('Google Identity Services init notice:', e);
+      }
+    }
+  }, [tab]);
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -36,7 +79,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
       await login(userName, password);
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please check credentials.');
+      setError(err.response?.data?.message || 'Invalid username or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -48,22 +91,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
       setError('Passwords do not match.');
       return;
     }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       await signup({
+        fullName,
         userName,
         email,
         password,
         confirmPassword,
         role,
-        agency: role === 'PUBLIC' ? 'COMMUTER' : agency || 'SDRF'
+        agency: role === 'PUBLIC' ? 'COMMUTER' : 'SDRF'
       });
       setShowOtpModal(true);
-      setInfoMsg(`Verification code dispatched to ${email}. Valid for 5 minutes.`);
+      setInfoMsg(`A 6-digit verification code has been sent to ${email}.`);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Signup failed.');
+      setError(err.response?.data?.message || 'Registration failed. Please verify your details.');
     } finally {
       setLoading(false);
     }
@@ -79,42 +128,46 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
       setShowOtpModal(false);
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid OTP code.');
+      setError(err.response?.data?.message || 'Invalid or expired verification code.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto my-8 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
+    <div className="max-w-md mx-auto my-10 p-7 rounded-2xl bg-[#161B22] border border-[#30363D] shadow-2xl">
       
-      {/* Header */}
+      {/* Brand Header */}
       <div className="text-center mb-6">
-        <div className="inline-flex p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mb-2">
-          <Shield className="w-6 h-6" />
-        </div>
-        <h2 className="text-xl font-bold text-white font-sans">
-          {tab === 'login' ? 'RescueNex Secure Access' : 'Register Official Account'}
+        <img 
+          src="/logo/rescuenex_emblem.jpg" 
+          alt="RescueNex Logo" 
+          className="w-12 h-12 rounded-xl border border-slate-700 object-cover mx-auto mb-3 shadow-md"
+        />
+        <h2 className="text-2xl font-extrabold text-white font-sans tracking-tight">
+          Rescue<span className="text-amber-400">Nex</span>
         </h2>
-        <p className="text-xs text-slate-400 mt-1">
-          Himalayan Early Warning & Disaster Management System
+        <p className="text-xs text-slate-400 mt-1 font-sans">
+          Real-Time Landslide Risk Analytics & Early Warning Platform
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex rounded-lg bg-slate-950 p-1 border border-slate-800 mb-5">
+      <div className="flex rounded-lg bg-[#0D1117] p-1 border border-[#21262D] mb-5">
         <button
+          type="button"
           onClick={() => { setTab('login'); setError(''); }}
-          className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition ${
-            tab === 'login' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
+          className={`flex-1 py-2 rounded-md text-xs font-semibold transition ${
+            tab === 'login' ? 'bg-[#21262D] text-white shadow' : 'text-slate-400 hover:text-white'
           }`}
         >
           Sign In
         </button>
         <button
+          type="button"
           onClick={() => { setTab('signup'); setError(''); }}
-          className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition ${
-            tab === 'signup' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'
+          className={`flex-1 py-2 rounded-md text-xs font-semibold transition ${
+            tab === 'signup' ? 'bg-[#21262D] text-white shadow' : 'text-slate-400 hover:text-white'
           }`}
         >
           Create Account
@@ -122,17 +175,29 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs mb-4 flex items-center gap-2">
+        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs mb-4 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Login Form */}
+      {/* Google OAuth Section */}
+      <div className="space-y-3 mb-5">
+        <div id="googleAuthBtnContainer" className="w-full flex justify-center"></div>
+
+        <div className="relative flex items-center justify-center my-4">
+          <div className="border-t border-[#30363D] w-full"></div>
+          <span className="bg-[#161B22] px-3 text-[11px] text-slate-500 font-medium uppercase tracking-wider relative">
+            Or with credentials
+          </span>
+        </div>
+      </div>
+
+      {/* Sign In Form */}
       {tab === 'login' ? (
         <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs font-sans">
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Username / Email</label>
+            <label className="block text-slate-300 font-medium mb-1.5">Username or Email</label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
               <input
@@ -140,53 +205,68 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                 required
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                placeholder="lead@rescuenex"
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
+                placeholder="Enter your username or email"
+                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Password</label>
+            <label className="block text-slate-300 font-medium mb-1.5">Password</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+                placeholder="Enter your password"
+                className="w-full pl-9 pr-10 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-lg shadow-amber-950/20"
+            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow mt-2"
           >
             {loading ? 'Authenticating...' : 'Sign In'}
           </button>
-
-          <p className="text-[11px] text-slate-500 text-center font-mono">
-            Main Admin Seed: <span className="text-slate-400">lead@rescuenex</span> • Rate limit: 5 attempts
-          </p>
         </form>
       ) : (
-        /* Signup Form */
+        /* Create Account Form */
         <form onSubmit={handleSignupSubmit} className="space-y-3.5 text-xs font-sans">
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Role Type</label>
+            <label className="block text-slate-300 font-medium mb-1">Account Role</label>
             <select
               value={role}
               onChange={(e: any) => setRole(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-amber-500"
+              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-slate-200 focus:outline-none focus:border-amber-400 text-xs"
             >
-              <option value="PUBLIC">Public Commuter (Auto-approved)</option>
-              <option value="SCOUT">SDRF Scout (Requires HQ Approval)</option>
-              <option value="OPERATOR">Field Operations Officer (Requires HQ Approval)</option>
+              <option value="PUBLIC">Public Commuter / Resident</option>
+              <option value="SCOUT">Emergency Field Scout</option>
+              <option value="OPERATOR">Operations Officer</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-slate-300 font-medium mb-1">Full Name</label>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="e.g. John Doe"
+              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
+            />
           </div>
 
           <div>
@@ -196,20 +276,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
               required
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
-              placeholder="ramban_scout"
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
+              placeholder="Choose a username"
+              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Email (OTP Delivery via Resend)</label>
+            <label className="block text-slate-300 font-medium mb-1">Email Address</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="scout@rescuenex.org"
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-amber-500"
+              placeholder="name@example.com"
+              className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
             />
           </div>
 
@@ -221,19 +301,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 8 chars"
-                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500"
+                placeholder="Min 8 characters"
+                className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-medium mb-1">Confirm</label>
+              <label className="block text-slate-300 font-medium mb-1">Confirm Password</label>
               <input
                 type="password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repeat password"
-                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500"
+                placeholder="Re-enter password"
+                className="w-full px-3 py-2 rounded-lg bg-[#0D1117] border border-[#30363D] text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 text-xs"
               />
             </div>
           </div>
@@ -243,7 +323,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
             disabled={loading}
             className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition mt-2 shadow"
           >
-            {loading ? 'Submitting...' : 'Register & Send OTP'}
+            {loading ? 'Processing...' : 'Register Account'}
           </button>
         </form>
       )}
@@ -251,7 +331,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
       {/* OTP Verification Modal */}
       {showOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl bg-slate-900 border border-slate-800 p-6 shadow-2xl">
+          <div className="w-full max-w-sm rounded-xl bg-[#161B22] border border-[#30363D] p-6 shadow-2xl">
             <div className="text-center mb-4">
               <Mail className="w-8 h-8 text-amber-400 mx-auto mb-2" />
               <h3 className="text-base font-bold text-white">Enter Email Verification Code</h3>
@@ -266,14 +346,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value)}
                 placeholder="6-digit code"
-                className="w-full text-center text-xl font-mono tracking-widest py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-amber-500"
+                className="w-full text-center text-xl font-mono tracking-widest py-2.5 rounded-lg bg-[#0D1117] border border-[#30363D] text-white focus:outline-none focus:border-amber-400"
               />
 
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowOtpModal(false)}
-                  className="flex-1 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold"
+                  className="flex-1 py-2 rounded-lg bg-[#21262D] text-slate-300 text-xs font-semibold"
                 >
                   Cancel
                 </button>

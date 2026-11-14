@@ -29,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Left: Brand Identity with prominent, clean logo */}
         <div 
           className="flex items-center gap-3 cursor-pointer select-none group" 
-          onClick={() => onSelectTab('hud')}
+          onClick={() => onSelectTab('landing')}
         >
           <img 
             src="/logo/rescuenex_emblem.jpg" 
@@ -46,6 +46,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Right: Simple, Relatable Navigation & Auth Buttons */}
         <div className="flex items-center gap-3">
           <nav className="flex items-center gap-1 bg-[#161B22] p-1 rounded-lg border border-[#30363D]">
+            <button
+              onClick={() => onSelectTab('landing')}
+              className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                currentTab === 'landing'
+                  ? 'bg-[#21262D] text-white border border-[#30363D]'
+                  : 'text-slate-400 hover:text-white hover:bg-[#21262D]/50'
+              }`}
+            >
+              <span>Overview</span>
+            </button>
+
             <button
               onClick={() => onSelectTab('hud')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
@@ -75,17 +86,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            <button
-              onClick={() => onSelectTab('analytics')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                currentTab === 'analytics'
-                  ? 'bg-[#21262D] text-white border border-[#30363D]'
-                  : 'text-slate-400 hover:text-white hover:bg-[#21262D]/50'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4 text-sky-400" />
-              <span>Analytics</span>
-            </button>
+            {user && (
+              <button
+                onClick={() => onSelectTab('analytics')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  currentTab === 'analytics'
+                    ? 'bg-[#21262D] text-white border border-[#30363D]'
+                    : 'text-slate-400 hover:text-white hover:bg-[#21262D]/50'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4 text-sky-400" />
+                <span>Analytics</span>
+              </button>
+            )}
 
             {user?.role === 'ADMIN' && (
               <button
