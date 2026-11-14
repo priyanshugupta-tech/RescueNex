@@ -20,12 +20,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   const getUserDisplayName = (u: any): string => {
     if (!u) return '';
     if (u.fullName && u.fullName.trim() !== '') return u.fullName;
-    
-    const raw = (u.userName || u.email || '').replace(/_oauth$/i, '');
-    if (raw.toLowerCase().includes('priyanshu')) {
+    if (u.name && u.name.trim() !== '') return u.name;
+
+    const email = (u.email || '').toLowerCase();
+    const raw = (u.userName || u.email || '').replace(/_oauth$/i, '').toLowerCase();
+
+    if (email.includes('priyanshu') || raw.includes('priyanshu') || raw.startsWith('pg729')) {
       return 'Priyanshu Gupta';
     }
-    return raw
+
+    const clean = raw.split('@')[0];
+    return clean
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .replace(/[._-]+/g, ' ')
       .replace(/\b\w/g, (c: string) => c.toUpperCase());

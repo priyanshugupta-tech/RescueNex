@@ -1,7 +1,13 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { MountainSector } from '../types/index.js';
 
+// Load from current directory, root, or service folder
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'services/core-gateway/.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 export const config = {
   port: parseInt(process.env.PORT || '5000', 10),
