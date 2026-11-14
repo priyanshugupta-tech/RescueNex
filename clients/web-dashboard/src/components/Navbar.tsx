@@ -21,19 +21,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (!u) return '';
     if (u.fullName && u.fullName.trim() !== '') return u.fullName;
     if (u.name && u.name.trim() !== '') return u.name;
-
-    const email = (u.email || '').toLowerCase();
-    const raw = (u.userName || u.email || '').replace(/_oauth$/i, '').toLowerCase();
-
-    if (email.includes('priyanshu') || raw.includes('priyanshu') || raw.startsWith('pg729')) {
-      return 'Priyanshu Gupta';
-    }
-
-    const clean = raw.split('@')[0];
-    return clean
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/[._-]+/g, ' ')
-      .replace(/\b\w/g, (c: string) => c.toUpperCase());
+    if (u.email) return u.email.split('@')[0];
+    return 'User';
   };
 
   const handleNavClick = (path: string, requiresAuth = false) => {

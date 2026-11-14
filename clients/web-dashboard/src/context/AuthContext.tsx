@@ -16,17 +16,33 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const cached = localStorage.getItem('rescuenex_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState<boolean>(!user);
+
+  const saveUser = (u: User | null) => {
+    setUser(u);
+    if (u) {
+      localStorage.setItem('rescuenex_user', JSON.stringify(u));
+    } else {
+      localStorage.removeItem('rescuenex_user');
+    }
+  };
 
   const refreshMe = async () => {
     try {
       const res = await api.get('/api/auth/me');
       if (res.data.success && res.data.user) {
-        setUser(res.data.user);
+        saveUser(res.data.user);
       }
     } catch {
-      setUser(null);
+      saveUser(null);
     } finally {
       setLoading(false);
     }
@@ -41,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.data.accessToken) {
       localStorage.setItem('rescuenex_token', res.data.accessToken);
       if (res.data.user) {
-        setUser(res.data.user);
+        saveUser(res.data.user);
       }
     }
   };
@@ -51,12 +67,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (res.data.accessToken) {
       localStorage.setItem('rescuenex_token', res.data.accessToken);
       if (res.data.user) {
-        setUser(res.data.user);
+        saveUser(res.data.user);
       }
     }
   };
 
   const signup = async (formData: any) => {
+    if (formData.fullName) {
+      localStorage.setItem('rescuenex_pending_name', formData.fullName);
+    }
     await api.post('/api/auth/signup', formData);
   };
 
@@ -64,9 +83,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await api.post('/api/auth/verify-otp', { email, otp });
     if (res.data.accessToken) {
       localStorage.setItem('rescuenex_token', res.data.accessToken);
-      if (res.data.user) {
-        setUser(res.data.user);
+      const pendingName = localStorage.getItem('rescuenex_pending_name');
+      const userData = res.data.user || {};
+      if (pendingName) {
+        if (!userData.fullName || userData.fullName === userData.email) {
+          userData.fullName = pendingName;
+        }
+        localStorage.removeItem('rescuenex_pending_name');
       }
+      saveUser(userData);
     }
   };
 
@@ -77,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // silent
     }
     localStorage.removeItem('rescuenex_token');
-    setUser(null);
+    saveUser(null);
   };
 
   return (

@@ -190,6 +190,7 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
         isApproved,
         verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000)
       };
+      stateService.users.set(newUser._id, newUser);
       stateService.users.set(cleanEmail, newUser);
       stateService.users.set(cleanUserName, newUser);
 
@@ -307,7 +308,7 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       });
     }
 
-    const finalFullName = user.fullName || user.name || (user.email?.toLowerCase().includes('priyanshu') || user.email?.toLowerCase().startsWith('pg729') ? 'Priyanshu Gupta' : user.userName);
+    const finalFullName = user.fullName || user.name || user.email?.split('@')[0];
 
     const accessToken = jwt.sign(
       {
@@ -448,7 +449,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       });
     }
 
-    const finalFullName = userDoc.fullName || (userDoc.email?.toLowerCase().includes('priyanshu') || userDoc.email?.toLowerCase().startsWith('pg729') ? 'Priyanshu Gupta' : userDoc.userName);
+    const finalFullName = userDoc.fullName || userDoc.name || userDoc.email?.split('@')[0];
 
     const accessToken = jwt.sign(
       {
@@ -855,14 +856,8 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
     }
 
     const finalUser = fullUser || req.user || {};
-    let finalFullName = finalUser.fullName || finalUser.name;
     const finalEmail = finalUser.email || (req.user as any)?.email || '';
-
-    if (!finalFullName) {
-      if (finalEmail.toLowerCase().includes('priyanshu') || finalEmail.toLowerCase().startsWith('pg729')) {
-        finalFullName = 'Priyanshu Gupta';
-      }
-    }
+    const finalFullName = finalUser.fullName || finalUser.name || (finalEmail ? finalEmail.split('@')[0] : 'User');
 
     res.json({
       success: true,
