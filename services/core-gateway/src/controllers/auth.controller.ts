@@ -13,41 +13,64 @@ import { UserModel } from '../models/user.model.js';
 import { OtpModel } from '../models/otp.model.js';
 import { SessionModel } from '../models/session.model.js';
 
-const MAIN_ADMIN_USERNAME = 'lead@rescuenex';
-const MAIN_ADMIN_PASSWORD = 'gupta18';
-const MAIN_ADMIN_NAME = 'Priyanshu Gupta';
+const MAIN_ADMIN_EMAIL = process.env.MAIN_ADMIN_EMAIL || 'lead@rescuenex.org';
+const MAIN_ADMIN_PASSWORD = process.env.MAIN_ADMIN_PASSWORD;
+const MAIN_ADMIN_NAME = process.env.MAIN_ADMIN_NAME || 'Priyanshu Gupta';
+const MAIN_ADMIN_AGENCY = 'RESCUENEX';
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
-// Seed default main admin directly in MongoDB Atlas
+// Seed default main admin directly in MongoDB Atlas with exclusive RESCUENEX agency
 export const seedDefaultUsers = async () => {
-  const defaultPasswordHash = await bcrypt.hash(MAIN_ADMIN_PASSWORD, 10);
-
   try {
+    // Drop legacy userName index if still present in Atlas
+    try {
+      await UserModel.collection.dropIndex('userName_1');
+    } catch {
+      // Index already absent or dropped
+    }
+
     const existing = await UserModel.findOne({
-      $or: [{ userName: MAIN_ADMIN_USERNAME }, { email: 'lead@rescuenex.org' }]
+      $or: [
+        { email: MAIN_ADMIN_EMAIL },
+        { email: 'lead@rescuenex.org' }
+      ]
     });
 
     if (!existing) {
+      if (!MAIN_ADMIN_PASSWORD) {
+        console.warn('[MongoDB] MAIN_ADMIN_PASSWORD not set in environment. Skipping initial admin seed.');
+        return;
+      }
+      const defaultPasswordHash = await bcrypt.hash(MAIN_ADMIN_PASSWORD, 10);
       await UserModel.create({
         fullName: MAIN_ADMIN_NAME,
-        userName: MAIN_ADMIN_USERNAME,
-        email: 'lead@rescuenex.org',
+        email: MAIN_ADMIN_EMAIL,
         password: defaultPasswordHash,
         role: 'ADMIN',
-        agency: 'SDMA',
+        agency: MAIN_ADMIN_AGENCY,
         isVerified: true,
         isApproved: true,
         authProvider: 'LOCAL'
       });
-      console.log(`[MongoDB] Seeded main admin (${MAIN_ADMIN_USERNAME}) in Atlas.`);
+      console.log(`[MongoDB] Seeded main admin (${MAIN_ADMIN_EMAIL}) with agency '${MAIN_ADMIN_AGENCY}' in Atlas.`);
     } else {
-      existing.fullName = MAIN_ADMIN_NAME;
-      existing.password = defaultPasswordHash;
-      existing.isVerified = true;
-      existing.isApproved = true;
-      await existing.save();
-      console.log(`[MongoDB] Verified and updated main admin (${MAIN_ADMIN_USERNAME}) profile.`);
+      await UserModel.collection.updateOne(
+        { _id: existing._id },
+        {
+          $set: {
+            fullName: MAIN_ADMIN_NAME,
+            email: MAIN_ADMIN_EMAIL,
+            role: 'ADMIN',
+            agency: MAIN_ADMIN_AGENCY,
+            isVerified: true,
+            isApproved: true,
+            authProvider: 'LOCAL'
+          },
+          $unset: { userName: 1 }
+        }
+      );
+      console.log(`[MongoDB] Verified and updated main admin (${MAIN_ADMIN_EMAIL}, agency: ${MAIN_ADMIN_AGENCY}) profile in Atlas.`);
     }
   } catch (e: any) {
     console.error('[MongoDB] User seed check error:', e.message);
@@ -56,7 +79,7 @@ export const seedDefaultUsers = async () => {
 
 // Signup handler: creates unverified user and sends OTP via Resend
 export const handleSignup = async (req: Request, res: Response): Promise<void> => {
-  const { fullName, email, password, confirmPassword, role = 'PUBLIC', agency = 'COMMUTER', userName } = req.body;
+  const { fullName, email, password, confirmPassword, role = 'PUBLIC', agency = 'COMMUTER' } = req.body;
 
   try {
     if (!email || !password || !confirmPassword) {
@@ -81,7 +104,6 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const cleanUserName = (userName || cleanEmail.split('@')[0] || `user_${Date.now()}`).toLowerCase().trim();
 
     // Check OTP send cooldown (60 seconds)
     const cooldownCheck = await rateLimitService.checkOtpSendCooldown(cleanEmail);
@@ -92,10 +114,8 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Check existing registration by email or userName in MongoDB Atlas
-    const existingUser = await UserModel.findOne({
-      $or: [{ email: cleanEmail }, { userName: cleanUserName }]
-    });
+    // Check existing registration by unique email in MongoDB Atlas
+    const existingUser = await UserModel.findOne({ email: cleanEmail });
 
     if (existingUser) {
       if (!existingUser.isVerified) {
@@ -128,16 +148,21 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const isApproved = role === 'PUBLIC' || cleanUserName === MAIN_ADMIN_USERNAME;
+    const isApproved = role === 'PUBLIC' || cleanEmail === MAIN_ADMIN_EMAIL;
     const finalFullName = fullName?.trim() || cleanEmail.split('@')[0];
+
+    // RESCUENEX agency is strictly reserved for the Company Lead
+    let userAgency: 'SDRF' | 'BRO' | 'COMMUTER' = role === 'PUBLIC' ? 'COMMUTER' : 'SDRF';
+    if (agency && ['SDRF', 'BRO', 'COMMUTER'].includes(agency)) {
+      userAgency = agency;
+    }
 
     const newUser = await UserModel.create({
       fullName: finalFullName,
-      userName: cleanUserName,
       email: cleanEmail,
       password: hash,
       role: role as UserRole,
-      agency,
+      agency: userAgency,
       isVerified: false,
       isApproved,
       verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000)
@@ -246,16 +271,16 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       deletedAt: null
     });
 
-    const finalFullName = user.fullName || user.userName || cleanEmail.split('@')[0];
+    const finalFullName = user.fullName || cleanEmail.split('@')[0];
 
     const accessToken = jwt.sign(
       {
         id: user._id,
         sid: session._id,
         role: user.role,
-        userName: user.userName,
         email: user.email,
-        fullName: finalFullName
+        fullName: finalFullName,
+        agency: user.agency
       },
       config.jwtSecret,
       { expiresIn: '15m' }
@@ -275,7 +300,6 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       user: {
         id: user._id,
         fullName: finalFullName,
-        userName: user.userName,
         email: user.email,
         role: user.role,
         agency: user.agency
@@ -289,19 +313,17 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
 
 // Login handler: verifies credentials and sets refresh token cookie (no OTP needed)
 export const handleLogin = async (req: Request, res: Response): Promise<void> => {
-  const { email, password, userName } = req.body;
+  const { email, password } = req.body;
 
   try {
-    const loginIdentifier = (email || userName || '').toLowerCase().trim();
-    if (!password || !loginIdentifier) {
+    const loginEmail = (email || '').toLowerCase().trim();
+    if (!password || !loginEmail) {
       res.status(400).json({ message: 'Email and password are required.' });
       return;
     }
 
-    const lookupKey = loginIdentifier;
-
     // Check 5-attempt / 2-minute lockout rule
-    const lockoutCheck = await rateLimitService.checkLoginLockout(lookupKey);
+    const lockoutCheck = await rateLimitService.checkLoginLockout(loginEmail);
     if (lockoutCheck.isLocked) {
       res.status(429).json({
         message: `Account temporarily locked due to 5 consecutive failed login attempts. Please try again after ${lockoutCheck.remainingMinutes} minutes.`
@@ -309,15 +331,10 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const userDoc = await UserModel.findOne({
-      $or: [
-        { email: loginIdentifier },
-        { userName: loginIdentifier }
-      ]
-    });
+    const userDoc = await UserModel.findOne({ email: loginEmail });
 
     if (!userDoc) {
-      const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
+      const failRecord = await rateLimitService.recordFailedLogin(loginEmail);
       if (failRecord.isLocked) {
         res.status(429).json({
           message: 'Maximum 5 unsuccessful login attempts exceeded within 2 minutes. Account is now locked for 5 minutes.'
@@ -350,7 +367,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
 
     const same = await bcrypt.compare(password, userDoc.password);
     if (!same) {
-      const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
+      const failRecord = await rateLimitService.recordFailedLogin(loginEmail);
       if (failRecord.isLocked) {
         res.status(429).json({
           message: 'Maximum 5 unsuccessful login attempts exceeded within 2 minutes. Account is now locked for 5 minutes.'
@@ -364,7 +381,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
     }
 
     // Clear failed attempts counter on success
-    await rateLimitService.clearLoginAttempts(lookupKey);
+    await rateLimitService.clearLoginAttempts(loginEmail);
 
     // Single JWT_SECRET used for both refresh and access tokens
     const refreshToken = jwt.sign({ id: userDoc._id }, config.jwtSecret, { expiresIn: '7d' });
@@ -379,16 +396,16 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       deletedAt: null
     });
 
-    const finalFullName = userDoc.fullName || userDoc.userName || userDoc.email.split('@')[0];
+    const finalFullName = userDoc.fullName || userDoc.email.split('@')[0];
 
     const accessToken = jwt.sign(
       {
         id: userDoc._id,
         sid: session._id,
         role: userDoc.role,
-        userName: userDoc.userName,
         email: userDoc.email,
-        fullName: finalFullName
+        fullName: finalFullName,
+        agency: userDoc.agency
       },
       config.jwtSecret,
       { expiresIn: '15m' }
@@ -408,7 +425,6 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       user: {
         id: userDoc._id,
         fullName: finalFullName,
-        userName: userDoc.userName,
         email: userDoc.email,
         role: userDoc.role,
         agency: userDoc.agency
@@ -447,7 +463,7 @@ export const handleTokengen = async (req: Request, res: Response): Promise<void>
     }
 
     const newRefreshToken = jwt.sign(
-      { id: user._id, userName: user.userName },
+      { id: user._id },
       config.jwtSecret,
       { expiresIn: '7d' }
     );
@@ -455,16 +471,16 @@ export const handleTokengen = async (req: Request, res: Response): Promise<void>
     session.refreshToken = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
     await session.save();
 
-    const finalFullName = user.fullName || user.userName || user.email.split('@')[0];
+    const finalFullName = user.fullName || user.email.split('@')[0];
 
     const newAccessToken = jwt.sign(
       {
         id: user._id,
-        userName: user.userName,
         sid: session._id,
         role: user.role,
         email: user.email,
-        fullName: finalFullName
+        fullName: finalFullName,
+        agency: user.agency
       },
       config.jwtSecret,
       { expiresIn: '15m' }
@@ -598,13 +614,11 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
 
     const email = payload.email.toLowerCase().trim();
     const name = payload.name || 'Google User';
-    const userName = email.split('@')[0] + '_oauth';
 
     let user = await UserModel.findOne({ email });
     if (!user) {
       user = await UserModel.create({
         fullName: name,
-        userName,
         email,
         password: 'OAUTH_GOOGLE_ACCOUNT',
         role: 'PUBLIC',
@@ -637,9 +651,9 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
         id: user._id, 
         sid: session._id, 
         role: user.role, 
-        userName: user.userName,
         email: user.email,
-        fullName: finalFullName
+        fullName: finalFullName,
+        agency: user.agency
       },
       config.jwtSecret,
       { expiresIn: '15m' }
@@ -659,7 +673,6 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
       user: { 
         id: user._id,
         fullName: finalFullName,
-        userName: user.userName, 
         email: user.email, 
         role: user.role,
         agency: user.agency
@@ -684,7 +697,7 @@ export const getPendingUsers = async (req: AuthenticatedRequest, res: Response):
 
 export const approveUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { id } = req.params;
-  const adminName = req.user?.fullName || req.user?.userName || MAIN_ADMIN_NAME;
+  const adminName = req.user?.fullName || MAIN_ADMIN_NAME;
 
   try {
     const user = await UserModel.findById(id);
@@ -700,7 +713,7 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response): Pro
 
     res.json({
       success: true,
-      message: `Official user '${user.fullName || user.userName}' approved successfully by ${adminName}. The account is now active.`
+      message: `Official user '${user.fullName || user.email}' approved successfully by ${adminName}. The account is now active.`
     });
   } catch (e: any) {
     console.error('[MongoDB] Error approving user in Atlas:', e.message);
@@ -723,14 +736,13 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const finalFullName = userDoc.fullName || userDoc.userName || userDoc.email.split('@')[0];
+    const finalFullName = userDoc.fullName || userDoc.email.split('@')[0];
 
     res.json({
       success: true,
       user: {
         id: userDoc._id,
         fullName: finalFullName,
-        userName: userDoc.userName,
         email: userDoc.email,
         role: userDoc.role,
         agency: userDoc.agency

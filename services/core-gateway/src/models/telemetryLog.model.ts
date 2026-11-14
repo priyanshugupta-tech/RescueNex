@@ -26,7 +26,7 @@ const TelemetryLogSchema = new Schema<ITelemetryLogDocument>(
   {
     nodeId: { type: String, required: true, index: true },
     sectorId: { type: String, required: true, index: true },
-    timestamp: { type: Date, default: Date.now, index: true },
+    timestamp: { type: Date, default: Date.now },
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
     altitudeM: { type: Number },

@@ -2,12 +2,11 @@ export type UserRole = 'ADMIN' | 'OPERATOR' | 'SCOUT' | 'PUBLIC';
 
 export interface User {
   id: string;
-  userName?: string;
   name?: string;
   fullName?: string;
   email: string;
   role: UserRole;
-  agency?: 'SDMA' | 'SDRF' | 'BRO' | 'COMMUTER';
+  agency?: 'RESCUENEX' | 'SDRF' | 'BRO' | 'COMMUTER';
   isVerified: boolean;
   isApproved: boolean;
   authProvider?: 'LOCAL' | 'GOOGLE';

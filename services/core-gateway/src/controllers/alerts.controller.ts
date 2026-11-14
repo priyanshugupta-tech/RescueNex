@@ -37,9 +37,9 @@ export const getAlerts = async (req: Request, res: Response): Promise<void> => {
 
 export const acknowledgeAlert = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { id } = req.params;
-  const userName = req.user?.userName || req.user?.name || 'Unknown Operator';
+  const operatorName = req.user?.fullName || req.user?.name || req.user?.email || 'Unknown Operator';
 
-  const updated = stateService.acknowledgeAlert(id, userName);
+  const updated = stateService.acknowledgeAlert(id, operatorName);
 
   if (isDatabaseConnected()) {
     try {
@@ -47,7 +47,7 @@ export const acknowledgeAlert = async (req: AuthenticatedRequest, res: Response)
         { alertId: id },
         {
           status: 'ACKNOWLEDGED',
-          acknowledgedBy: userName,
+          acknowledgedBy: operatorName,
           acknowledgedAt: new Date()
         }
       );
@@ -62,12 +62,12 @@ export const acknowledgeAlert = async (req: AuthenticatedRequest, res: Response)
   }
 
   if (alertSocketEmitter) {
-    alertSocketEmitter('ALERT_ACKNOWLEDGED', { alertId: id, acknowledgedBy: userName });
+    alertSocketEmitter('ALERT_ACKNOWLEDGED', { alertId: id, acknowledgedBy: operatorName });
   }
 
   res.json({
     success: true,
-    message: `Alert '${id}' acknowledged by ${userName}.`
+    message: `Alert '${id}' acknowledged by ${operatorName}.`
   });
 };
 
@@ -85,7 +85,7 @@ export const toggleSiren = (req: AuthenticatedRequest, res: Response): void => {
   }
 
   if (alertSocketEmitter) {
-    alertSocketEmitter('SIREN_STATE_CHANGED', { sectorId, active, operator: req.user?.userName || req.user?.name });
+    alertSocketEmitter('SIREN_STATE_CHANGED', { sectorId, active, operator: req.user?.fullName || req.user?.email || 'Lead Admin' });
   }
 
   res.json({

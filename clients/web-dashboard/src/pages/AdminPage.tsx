@@ -89,7 +89,7 @@ export const AdminPage: React.FC = () => {
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white font-sans">{u.userName}</span>
+                      <span className="text-sm font-bold text-white font-sans">{u.fullName || u.email}</span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-400">
                         {u.role}
                       </span>
@@ -104,7 +104,7 @@ export const AdminPage: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleApprove(userId, u.userName)}
+                      onClick={() => handleApprove(userId, u.fullName || u.email)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow"
                     >
                       <Check className="w-4 h-4" />

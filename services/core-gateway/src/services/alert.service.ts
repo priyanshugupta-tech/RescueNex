@@ -126,7 +126,7 @@ export class AlertService {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
   <identifier>${alert.id}</identifier>
-  <sender>rescuenex-gateway@sdma.jk.gov.in</sender>
+  <sender>gateway@rescuenex.org</sender>
   <sent>${new Date(alert.timestamp).toISOString()}</sent>
   <status>Actual</status>
   <msgType>Alert</msgType>
