@@ -16,13 +16,13 @@ export const Footer: React.FC<FooterProps> = ({
 
   return (
     <footer className="border-t border-[#21262D] bg-[#0D1117] text-slate-400 font-sans mt-auto">
-      <div className="w-full max-w-[1700px] mx-auto px-6 sm:px-10 pt-10 pb-8">
+      <div className="w-full max-w-[1700px] mx-auto px-6 sm:px-10 pt-10 pb-6">
         
-        {/* Main 4-Column Footer Grid - Zero Icon Clutter */}
+        {/* Main Footer Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-8 border-b border-[#21262D]">
           
-          {/* Col 1 & 2: Brand Identity, Logo, Tagline & Overview */}
-          <div className="lg:col-span-2 space-y-3 pr-0 lg:pr-6">
+          {/* Col 1 & 2: Brand Identity, Logo & Tagline */}
+          <div className="lg:col-span-2 space-y-2 pr-0 lg:pr-6">
             <div 
               className="flex items-center gap-3 cursor-pointer select-none group"
               onClick={() => onSelectTab('hud')}
@@ -40,20 +40,9 @@ export const Footer: React.FC<FooterProps> = ({
             <p className="text-sm font-semibold text-slate-200">
               Real-Time Landslide Risk Analytics & Early Warning Platform
             </p>
-
-            <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              Autonomous geotechnical monitoring, predictive slope stability intelligence, and emergency early warning across critical mountainous highway transit corridors.
-            </p>
-
-            <div className="pt-1">
-              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#161B22] border border-[#30363D] text-[11px] font-mono text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                <span>Core Gateway: Active</span>
-              </span>
-            </div>
           </div>
 
-          {/* Col 3: Navigation Modules - Simple & Relatable */}
+          {/* Col 3: Navigation */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 font-mono">
               Navigation
@@ -140,11 +129,6 @@ export const Footer: React.FC<FooterProps> = ({
                   Disaster Advisory & SOP
                 </button>
               </li>
-              <li>
-                <span className="text-slate-500 font-mono text-[11px] block mt-1">
-                  Common Alerting Protocol (CAP v1.2)
-                </span>
-              </li>
             </ul>
           </div>
 
@@ -163,23 +147,14 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <span>Live Rainfall Tracking</span>
               </li>
-              <li className="text-slate-500 font-mono text-[11px]">
-                <span>Corridor: NH-44 Highway</span>
-              </li>
             </ul>
           </div>
 
         </div>
 
         {/* Bottom Sub-Footer Bar */}
-        <div className="pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-sans">
-          <div>
-            <span>© 2026 RescueNex. All rights reserved.</span>
-          </div>
-
-          <div className="font-mono text-[11px] text-slate-400">
-            <span>Real-Time Landslide Risk Analytics & Early Warning Platform</span>
-          </div>
+        <div className="pt-4 flex items-center justify-between text-xs text-slate-500 font-sans">
+          <span>© 2026 RescueNex. All rights reserved.</span>
         </div>
 
       </div>
