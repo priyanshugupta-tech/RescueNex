@@ -21,10 +21,10 @@ const MainApp: React.FC = () => {
   const [activeAlertCount, setActiveAlertCount] = useState<number>(0);
   const [aiOnline, setAiOnline] = useState<boolean>(false);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
-  const [liveGps, setLiveGps] = useState<{ lat: number; lon: number; fix: boolean }>({
-    lat: 33.2505,
-    lon: 75.2501,
-    fix: true
+  const [liveGps, setLiveGps] = useState<{ lat: number | null; lon: number | null; fix: boolean }>({
+    lat: null,
+    lon: null,
+    fix: false
   });
 
   const loadInitialData = async () => {

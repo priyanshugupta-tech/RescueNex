@@ -10,7 +10,7 @@ interface DashboardPageProps {
   sectors: MountainSector[];
   telemetry: NodeTelemetry | null;
   weather: SectorWeatherData | null;
-  liveGps: { lat: number; lon: number; fix: boolean };
+  liveGps: { lat: number | null; lon: number | null; fix: boolean };
   onRefreshData: () => void;
 }
 
@@ -118,10 +118,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
               <Radio className="w-4 h-4 text-sky-400" />
-              <span>NH-44 Himalayan Mountain Corridor GIS View</span>
+              <span>Spatial Corridor GIS Map</span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
-              Patnitop • Ramban • Banihal
+              {sectors.length > 0 ? `${sectors.length} Monitored Sectors` : 'Connecting Sectors...'}
             </span>
           </div>
 

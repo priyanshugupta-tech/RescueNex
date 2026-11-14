@@ -29,7 +29,7 @@ const createNodeIcon = (isWarning: boolean) => L.divIcon({
 interface GisMapProps {
   sectors: MountainSector[];
   telemetry: NodeTelemetry | null;
-  liveGps: { lat: number; lon: number; fix: boolean };
+  liveGps: { lat: number | null; lon: number | null; fix: boolean };
 }
 
 export const GisMap: React.FC<GisMapProps> = ({ sectors, telemetry, liveGps }) => {
@@ -52,11 +52,13 @@ export const GisMap: React.FC<GisMapProps> = ({ sectors, telemetry, liveGps }) =
   };
 
   const isCritical = telemetry && telemetry.tiltMagnitude > 4.0;
+  const mapCenterLat = (liveGps.lat !== null) ? liveGps.lat : 33.35;
+  const mapCenterLon = (liveGps.lon !== null) ? liveGps.lon : 75.20;
 
   return (
     <div className="relative w-full h-[520px] rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
       <MapContainer
-        center={[liveGps.lat || 33.35, liveGps.lon || 75.20]}
+        center={[mapCenterLat, mapCenterLon]}
         zoom={11}
         scrollWheelZoom={true}
         className="w-full h-full z-0"
@@ -102,7 +104,7 @@ export const GisMap: React.FC<GisMapProps> = ({ sectors, telemetry, liveGps }) =
         ))}
 
         {/* Physical Node Real GPS Marker */}
-        {liveGps.fix && (
+        {liveGps.fix && liveGps.lat !== null && liveGps.lon !== null && (
           <Marker
             position={[liveGps.lat, liveGps.lon]}
             icon={createNodeIcon(isCritical || false)}
