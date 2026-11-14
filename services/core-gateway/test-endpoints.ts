@@ -66,8 +66,8 @@ const runTests = async () => {
   let refreshCookie = '';
   await test('POST /api/auth/login (Main Admin: lead@rescuenex)', async () => {
     const res = await axios.post(`${BASE_URL}/api/auth/login`, {
-      userName: 'lead@rescuenex',
-      password: 'gupta18'
+      email: process.env.MAIN_ADMIN_EMAIL || 'lead@rescuenex.org',
+      password: process.env.MAIN_ADMIN_PASSWORD || ''
     });
     if (!res.data.accessToken || res.data.user.role !== 'ADMIN') throw new Error('Admin login failed');
     adminToken = res.data.accessToken;

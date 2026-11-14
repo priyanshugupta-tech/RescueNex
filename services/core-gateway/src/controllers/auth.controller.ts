@@ -39,7 +39,7 @@ export const seedDefaultUsers = async () => {
 
     if (!existing) {
       if (!MAIN_ADMIN_PASSWORD) {
-        console.warn('[MongoDB] MAIN_ADMIN_PASSWORD not set in environment. Skipping initial admin seed.');
+        console.warn('[MongoDB] MAIN_ADMIN_PASSWORD not set in environment. Skipping admin seed creation.');
         return;
       }
       const defaultPasswordHash = await bcrypt.hash(MAIN_ADMIN_PASSWORD, 10);
@@ -70,7 +70,7 @@ export const seedDefaultUsers = async () => {
           $unset: { userName: 1 }
         }
       );
-      console.log(`[MongoDB] Verified and updated main admin (${MAIN_ADMIN_EMAIL}, agency: ${MAIN_ADMIN_AGENCY}) profile in Atlas.`);
+      console.log(`[MongoDB] Verified main admin (${MAIN_ADMIN_EMAIL}, agency: ${MAIN_ADMIN_AGENCY}) profile in Atlas.`);
     }
   } catch (e: any) {
     console.error('[MongoDB] User seed check error:', e.message);

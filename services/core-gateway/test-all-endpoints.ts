@@ -89,8 +89,8 @@ const runAllTests = async () => {
   // 4. Authentication - Admin Login
   await test('POST /api/auth/login (Main Admin)', async () => {
     const res = await axios.post(`${BASE_URL}/api/auth/login`, {
-      userName: 'lead@rescuenex',
-      password: 'gupta18'
+      email: process.env.MAIN_ADMIN_EMAIL || 'lead@rescuenex.org',
+      password: process.env.MAIN_ADMIN_PASSWORD || ''
     });
     if (!res.data.accessToken) throw new Error('Admin login failed: no accessToken returned');
     adminAccessToken = res.data.accessToken;
