@@ -151,28 +151,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">English</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed">
-                  "NH-44 Corridor Alert: Slope movement observed near Ramban. Maintain safe speed and avoid rockfall prone zones."
+                  {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
+                    ? `"${activeSector?.name || 'NH-44 Corridor'} Alert: Elevated slope displacement detected (${activeSector?.currentRiskLevel}). Exercise extreme caution and avoid rockfall prone zones."`
+                    : `"${activeSector?.name || 'NH-44 Corridor'}: Geotechnical sensors and weather parameters are currently stable. Transit corridor open."`}
                 </p>
               </div>
 
               <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">हिंदी</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
-                  "राष्ट्रीय राजमार्ग 44 चेतावनी: रामबन के पास भूस्खलन का खतरा। कृपया सुरक्षित गति में वाहन चलाएं।"
+                  {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
+                    ? `"${activeSector?.name || 'राष्ट्रीय राजमार्ग 44'} चेतावनी: ढलान विस्थापन दर्ज किया गया (${activeSector?.currentRiskLevel})। कृपया सतर्क रहें और सुरक्षित स्थान पर रहें।"`
+                    : `"${activeSector?.name || 'राष्ट्रीय राजमार्ग 44'}: सभी भू-तकनीकी सेंसर सामान्य स्थिति में हैं। मार्ग आवागमन हेतु सुरक्षित है।"`}
                 </p>
               </div>
 
               <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">ڈوگری / Dogri</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
-                  "रामबन दे कोल मट्टी खिसकने दा खतरा ऐ। होशियार रवो ते सुरक्षित ठार चलो।"
+                  {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
+                    ? `"${activeSector?.name || 'रामबन'} दे कोल मट्टी खिसकने दा खतरा ऐ। होशियार रवो ते सुरक्षित ठार चलो।"`
+                    : `"${activeSector?.name || 'रामबन'} दे सारे सेंसर ठीक कम करदे न। रास्ता सुरक्षित ऐ।"`}
                 </p>
               </div>
 
               <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">कॉशुर / Kashmiri</span>
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
-                  "हाईवे 44 प्यठ रामबन नज़दीक पथर प्यनुक खतरा। मेहरबानी करित होशियारी सां पकिव।"
+                  {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
+                    ? `"${activeSector?.name || 'हाईवे 44'} प्यठ पथर प्यनुक खतरा। मेहरबानी करित होशियारी सां पकिव।"`
+                    : `"${activeSector?.name || 'हाईवे 44'}: तमाम सेंसर ठीक छु काम करान। सफर खातिर महफ़ूज़।"`}
                 </p>
               </div>
             </div>

@@ -66,7 +66,9 @@ const MainApp: React.FC = () => {
   };
 
   useEffect(() => {
+    // Initial load + periodic polling every 5s for live API synchronization
     loadInitialData();
+    const pollTimer = setInterval(loadInitialData, 5000);
 
     // WebSocket real-time event listeners
     const socket = socketService.connect();
@@ -101,6 +103,7 @@ const MainApp: React.FC = () => {
     });
 
     return () => {
+      clearInterval(pollTimer);
       socket.off('TELEMETRY_STREAM');
       socket.off('WEATHER_UPDATED');
       socket.off('EMERGENCY_ALERT');
@@ -109,18 +112,15 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-slate-100">
-      {/* Navbar */}
+      {/* Expansive, Spacious Navbar */}
       <Navbar
         currentTab={currentTab}
         onSelectTab={(tab: any) => setCurrentTab(tab)}
         activeAlertCount={activeAlertCount}
-        liveGps={liveGps}
-        aiOnline={aiOnline}
-        wsConnected={wsConnected}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+      {/* Main Content Area: Wide responsive layout */}
+      <main className="flex-1 w-full max-w-[1700px] mx-auto p-4 sm:p-8">
         {currentTab === 'hud' && (
           <DashboardPage
             sectors={sectors}
