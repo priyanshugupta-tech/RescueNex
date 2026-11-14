@@ -1,16 +1,6 @@
 import { RateLimitModel } from '../models/rateLimit.model.js';
-import { isDatabaseConnected } from '../config/database.js';
-
-interface MemoryRateLimitRecord {
-  attempts: number;
-  firstAttemptAt: number;
-  lockUntil: number | null;
-}
-
-const memoryRateLimit = new Map<string, MemoryRateLimitRecord>();
 
 export class RateLimitService {
-  // Configurable thresholds matching user specification
   private readonly LOGIN_WINDOW_MS = 2 * 60 * 1000;         // 2 minutes window
   private readonly LOGIN_MAX_ATTEMPTS = 5;                  // 5 attempts allowed in 2 min
   private readonly LOGIN_LOCKOUT_MS = 5 * 60 * 1000;        // 5 minutes cooldown
@@ -21,7 +11,7 @@ export class RateLimitService {
   private readonly OTP_MIN_INTERVAL_MS = 60 * 1000;         // 60s cooldown between OTP requests
 
   // ========================================================
-  // 1. LOGIN ATTEMPT RATE LIMITER
+  // 1. LOGIN ATTEMPT RATE LIMITER (STRICT MONGODB ATLAS)
   // ========================================================
 
   /**
@@ -31,92 +21,59 @@ export class RateLimitService {
     const key = `login:${identifier.toLowerCase().trim()}`;
     const now = Date.now();
 
-    // Check Atlas
-    if (isDatabaseConnected()) {
-      const record = await RateLimitModel.findOne({ key });
-      if (record && record.lockUntil && record.lockUntil.getTime() > now) {
-        const remainingMinutes = Math.ceil((record.lockUntil.getTime() - now) / 60000);
-        return { isLocked: true, remainingMinutes };
-      }
-      return { isLocked: false };
-    }
-
-    // In-memory fallback
-    const mem = memoryRateLimit.get(key);
-    if (mem && mem.lockUntil && mem.lockUntil > now) {
-      const remainingMinutes = Math.ceil((mem.lockUntil - now) / 60000);
+    const record = await RateLimitModel.findOne({ key });
+    if (record && record.lockUntil && record.lockUntil.getTime() > now) {
+      const remainingMinutes = Math.ceil((record.lockUntil.getTime() - now) / 60000);
       return { isLocked: true, remainingMinutes };
     }
-
     return { isLocked: false };
   }
 
   /**
-   * Records an unsuccessful login attempt
-   * If 5 attempts within 2 minutes: sets 30 min cooldown
-   * If under 5 and 2 minutes pass: resets back to 0
+   * Records an unsuccessful login attempt in MongoDB Atlas
    */
   public async recordFailedLogin(identifier: string): Promise<{ attempts: number; isLocked: boolean; remainingMinutes?: number }> {
     const key = `login:${identifier.toLowerCase().trim()}`;
     const now = Date.now();
 
-    if (isDatabaseConnected()) {
-      let record = await RateLimitModel.findOne({ key });
+    let record = await RateLimitModel.findOne({ key });
 
-      if (!record) {
-        record = await RateLimitModel.create({
-          key,
-          attempts: 1,
-          firstAttemptAt: new Date(now),
-          lockUntil: null
-        });
-        return { attempts: 1, isLocked: false };
-      }
-
-      // Check if the 2-minute rolling window has passed
-      const windowExpired = (now - record.firstAttemptAt.getTime()) > this.LOGIN_WINDOW_MS;
-
-      if (windowExpired) {
-        // Reset window and counter
-        record.attempts = 1;
-        record.firstAttemptAt = new Date(now);
-        record.lockUntil = null;
-        await record.save();
-        return { attempts: 1, isLocked: false };
-      }
-
-      record.attempts += 1;
-
-      // Check if threshold reached: 5 attempts within 2 min
-      if (record.attempts >= this.LOGIN_MAX_ATTEMPTS) {
-        record.lockUntil = new Date(now + this.LOGIN_LOCKOUT_MS);
-        await record.save();
-        return {
-          attempts: record.attempts,
-          isLocked: true,
-          remainingMinutes: 5
-        };
-      }
-
-      await record.save();
-      return { attempts: record.attempts, isLocked: false };
-    }
-
-    // In-memory fallback
-    let mem = memoryRateLimit.get(key);
-    if (!mem || (now - mem.firstAttemptAt > this.LOGIN_WINDOW_MS)) {
-      mem = { attempts: 1, firstAttemptAt: now, lockUntil: null };
-      memoryRateLimit.set(key, mem);
+    if (!record) {
+      record = await RateLimitModel.create({
+        key,
+        attempts: 1,
+        firstAttemptAt: new Date(now),
+        lockUntil: null
+      });
       return { attempts: 1, isLocked: false };
     }
 
-    mem.attempts += 1;
-    if (mem.attempts >= this.LOGIN_MAX_ATTEMPTS) {
-      mem.lockUntil = now + this.LOGIN_LOCKOUT_MS;
-      return { attempts: mem.attempts, isLocked: true, remainingMinutes: 5 };
+    // Check if the 2-minute rolling window has passed
+    const windowExpired = (now - record.firstAttemptAt.getTime()) > this.LOGIN_WINDOW_MS;
+
+    if (windowExpired) {
+      record.attempts = 1;
+      record.firstAttemptAt = new Date(now);
+      record.lockUntil = null;
+      await record.save();
+      return { attempts: 1, isLocked: false };
     }
 
-    return { attempts: mem.attempts, isLocked: false };
+    record.attempts += 1;
+
+    // Check if threshold reached: 5 attempts within 2 min
+    if (record.attempts >= this.LOGIN_MAX_ATTEMPTS) {
+      record.lockUntil = new Date(now + this.LOGIN_LOCKOUT_MS);
+      await record.save();
+      return {
+        attempts: record.attempts,
+        isLocked: true,
+        remainingMinutes: 5
+      };
+    }
+
+    await record.save();
+    return { attempts: record.attempts, isLocked: false };
   }
 
   /**
@@ -124,14 +81,11 @@ export class RateLimitService {
    */
   public async clearLoginAttempts(identifier: string): Promise<void> {
     const key = `login:${identifier.toLowerCase().trim()}`;
-    if (isDatabaseConnected()) {
-      await RateLimitModel.deleteOne({ key });
-    }
-    memoryRateLimit.delete(key);
+    await RateLimitModel.deleteOne({ key });
   }
 
   // ========================================================
-  // 2. OTP RATE LIMITER (Spam & Brute-Force Prevention)
+  // 2. OTP RATE LIMITER (STRICT MONGODB ATLAS)
   // ========================================================
 
   /**
@@ -141,33 +95,20 @@ export class RateLimitService {
     const key = `otp_send:${email.toLowerCase().trim()}`;
     const now = Date.now();
 
-    if (isDatabaseConnected()) {
-      const record = await RateLimitModel.findOne({ key });
-      if (record) {
-        const timeSinceLast = now - record.updatedAt.getTime();
-        if (timeSinceLast < this.OTP_MIN_INTERVAL_MS) {
-          const waitSeconds = Math.ceil((this.OTP_MIN_INTERVAL_MS - timeSinceLast) / 1000);
-          return { allowed: false, waitSeconds };
-        }
-      }
-      await RateLimitModel.findOneAndUpdate(
-        { key },
-        { attempts: 1, updatedAt: new Date() },
-        { upsert: true }
-      );
-      return { allowed: true };
-    }
-
-    const mem = memoryRateLimit.get(key);
-    if (mem) {
-      const timeSinceLast = now - mem.firstAttemptAt;
+    const record = await RateLimitModel.findOne({ key });
+    if (record) {
+      const timeSinceLast = now - record.updatedAt.getTime();
       if (timeSinceLast < this.OTP_MIN_INTERVAL_MS) {
         const waitSeconds = Math.ceil((this.OTP_MIN_INTERVAL_MS - timeSinceLast) / 1000);
         return { allowed: false, waitSeconds };
       }
     }
 
-    memoryRateLimit.set(key, { attempts: 1, firstAttemptAt: now, lockUntil: null });
+    await RateLimitModel.findOneAndUpdate(
+      { key },
+      { attempts: 1, updatedAt: new Date() },
+      { upsert: true }
+    );
     return { allowed: true };
   }
 
@@ -178,21 +119,11 @@ export class RateLimitService {
     const key = `otp_verify:${email.toLowerCase().trim()}`;
     const now = Date.now();
 
-    if (isDatabaseConnected()) {
-      const record = await RateLimitModel.findOne({ key });
-      if (record && record.lockUntil && record.lockUntil.getTime() > now) {
-        const remainingMinutes = Math.ceil((record.lockUntil.getTime() - now) / 60000);
-        return { isLocked: true, remainingMinutes };
-      }
-      return { isLocked: false };
-    }
-
-    const mem = memoryRateLimit.get(key);
-    if (mem && mem.lockUntil && mem.lockUntil > now) {
-      const remainingMinutes = Math.ceil((mem.lockUntil - now) / 60000);
+    const record = await RateLimitModel.findOne({ key });
+    if (record && record.lockUntil && record.lockUntil.getTime() > now) {
+      const remainingMinutes = Math.ceil((record.lockUntil.getTime() - now) / 60000);
       return { isLocked: true, remainingMinutes };
     }
-
     return { isLocked: false };
   }
 
@@ -203,43 +134,26 @@ export class RateLimitService {
     const key = `otp_verify:${email.toLowerCase().trim()}`;
     const now = Date.now();
 
-    if (isDatabaseConnected()) {
-      let record = await RateLimitModel.findOne({ key });
+    let record = await RateLimitModel.findOne({ key });
 
-      if (!record || (now - record.firstAttemptAt.getTime() > this.OTP_WINDOW_MS)) {
-        record = await RateLimitModel.findOneAndUpdate(
-          { key },
-          { attempts: 1, firstAttemptAt: new Date(now), lockUntil: null },
-          { upsert: true, new: true }
-        );
-        return { attempts: 1, isLocked: false };
-      }
-
-      record.attempts += 1;
-      if (record.attempts >= this.OTP_MAX_ATTEMPTS) {
-        record.lockUntil = new Date(now + this.OTP_LOCKOUT_MS);
-        await record.save();
-        return { attempts: record.attempts, isLocked: true, remainingMinutes: 5 };
-      }
-
-      await record.save();
-      return { attempts: record.attempts, isLocked: false };
-    }
-
-    let mem = memoryRateLimit.get(key);
-    if (!mem || (now - mem.firstAttemptAt > this.OTP_WINDOW_MS)) {
-      mem = { attempts: 1, firstAttemptAt: now, lockUntil: null };
-      memoryRateLimit.set(key, mem);
+    if (!record || (now - record.firstAttemptAt.getTime() > this.OTP_WINDOW_MS)) {
+      record = await RateLimitModel.findOneAndUpdate(
+        { key },
+        { attempts: 1, firstAttemptAt: new Date(now), lockUntil: null },
+        { upsert: true, new: true }
+      );
       return { attempts: 1, isLocked: false };
     }
 
-    mem.attempts += 1;
-    if (mem.attempts >= this.OTP_MAX_ATTEMPTS) {
-      mem.lockUntil = now + this.OTP_LOCKOUT_MS;
-      return { attempts: mem.attempts, isLocked: true, remainingMinutes: 5 };
+    record.attempts += 1;
+    if (record.attempts >= this.OTP_MAX_ATTEMPTS) {
+      record.lockUntil = new Date(now + this.OTP_LOCKOUT_MS);
+      await record.save();
+      return { attempts: record.attempts, isLocked: true, remainingMinutes: 5 };
     }
 
-    return { attempts: mem.attempts, isLocked: false };
+    await record.save();
+    return { attempts: record.attempts, isLocked: false };
   }
 
   /**
@@ -247,10 +161,7 @@ export class RateLimitService {
    */
   public async clearOtpAttempts(email: string): Promise<void> {
     const key = `otp_verify:${email.toLowerCase().trim()}`;
-    if (isDatabaseConnected()) {
-      await RateLimitModel.deleteOne({ key });
-    }
-    memoryRateLimit.delete(key);
+    await RateLimitModel.deleteOne({ key });
   }
 }
 

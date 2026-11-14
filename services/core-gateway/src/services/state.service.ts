@@ -3,8 +3,7 @@ import {
   EmergencyAlert,
   MountainSector,
   NodeTelemetry,
-  SectorWeatherData,
-  User
+  SectorWeatherData
 } from '../types/index.js';
 
 class StateService {
@@ -13,7 +12,6 @@ class StateService {
   private sectorWeather: Map<string, SectorWeatherData> = new Map();
   private activeAlerts: Map<string, EmergencyAlert> = new Map();
   private alertHistory: EmergencyAlert[] = [];
-  public users: Map<string, User & { passwordHash: string }> = new Map();
 
   constructor() {
     STRATEGIC_SECTORS.forEach((sec) => {

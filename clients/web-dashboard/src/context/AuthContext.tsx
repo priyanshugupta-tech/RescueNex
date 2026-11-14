@@ -73,9 +73,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signup = async (formData: any) => {
-    if (formData.fullName) {
-      localStorage.setItem('rescuenex_pending_name', formData.fullName);
-    }
     await api.post('/api/auth/signup', formData);
   };
 
@@ -83,15 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await api.post('/api/auth/verify-otp', { email, otp });
     if (res.data.accessToken) {
       localStorage.setItem('rescuenex_token', res.data.accessToken);
-      const pendingName = localStorage.getItem('rescuenex_pending_name');
-      const userData = res.data.user || {};
-      if (pendingName) {
-        if (!userData.fullName || userData.fullName === userData.email) {
-          userData.fullName = pendingName;
-        }
-        localStorage.removeItem('rescuenex_pending_name');
+      if (res.data.user) {
+        saveUser(res.data.user);
       }
-      saveUser(userData);
     }
   };
 

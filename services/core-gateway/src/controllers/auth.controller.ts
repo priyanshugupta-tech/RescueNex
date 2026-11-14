@@ -2,19 +2,16 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/index.js';
-import { stateService } from '../services/state.service.js';
 import { emailService } from '../services/email.service.js';
 import { rateLimitService } from '../services/rateLimit.service.js';
 import { generateOtps } from '../utils/generateOtp.js';
-import { User, UserRole } from '../types/index.js';
+import { UserRole } from '../types/index.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { UserModel } from '../models/user.model.js';
 import { OtpModel } from '../models/otp.model.js';
 import { SessionModel } from '../models/session.model.js';
-import { isDatabaseConnected } from '../config/database.js';
 
 const MAIN_ADMIN_USERNAME = 'lead@rescuenex';
 const MAIN_ADMIN_PASSWORD = 'gupta18';
@@ -22,46 +19,38 @@ const MAIN_ADMIN_NAME = 'Priyanshu Gupta';
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
-// Seed default main admin
+// Seed default main admin directly in MongoDB Atlas
 export const seedDefaultUsers = async () => {
   const defaultPasswordHash = await bcrypt.hash(MAIN_ADMIN_PASSWORD, 10);
 
-  stateService.users.set(MAIN_ADMIN_USERNAME, {
-    id: 'USR_LEAD_01',
-    userName: MAIN_ADMIN_USERNAME,
-    email: 'lead@rescuenex.org',
-    role: 'ADMIN',
-    agency: 'SDMA',
-    isVerified: true,
-    isApproved: true,
-    authProvider: 'LOCAL',
-    passwordHash: defaultPasswordHash
-  } as any);
+  try {
+    const existing = await UserModel.findOne({
+      $or: [{ userName: MAIN_ADMIN_USERNAME }, { email: 'lead@rescuenex.org' }]
+    });
 
-  if (isDatabaseConnected()) {
-    try {
-      const existing = await UserModel.findOne({ userName: MAIN_ADMIN_USERNAME });
-      if (!existing) {
-        await UserModel.create({
-          userName: MAIN_ADMIN_USERNAME,
-          email: 'lead@rescuenex.org',
-          password: defaultPasswordHash,
-          role: 'ADMIN',
-          agency: 'SDMA',
-          isVerified: true,
-          isApproved: true,
-          authProvider: 'LOCAL'
-        });
-        console.log(`[MongoDB] Seeded main admin (${MAIN_ADMIN_USERNAME})`);
-      } else {
-        existing.password = defaultPasswordHash;
-        existing.isVerified = true;
-        existing.isApproved = true;
-        await existing.save();
-      }
-    } catch (e: any) {
-      console.warn('[MongoDB] User seed check skipped:', e.message);
+    if (!existing) {
+      await UserModel.create({
+        fullName: MAIN_ADMIN_NAME,
+        userName: MAIN_ADMIN_USERNAME,
+        email: 'lead@rescuenex.org',
+        password: defaultPasswordHash,
+        role: 'ADMIN',
+        agency: 'SDMA',
+        isVerified: true,
+        isApproved: true,
+        authProvider: 'LOCAL'
+      });
+      console.log(`[MongoDB] Seeded main admin (${MAIN_ADMIN_USERNAME}) in Atlas.`);
+    } else {
+      existing.fullName = MAIN_ADMIN_NAME;
+      existing.password = defaultPasswordHash;
+      existing.isVerified = true;
+      existing.isApproved = true;
+      await existing.save();
+      console.log(`[MongoDB] Verified and updated main admin (${MAIN_ADMIN_USERNAME}) profile.`);
     }
+  } catch (e: any) {
+    console.error('[MongoDB] User seed check error:', e.message);
   }
 };
 
@@ -103,38 +92,27 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Check existing registration by email
-    let existingUser: any = null;
-    if (isDatabaseConnected()) {
-      existingUser = await UserModel.findOne({
-        $or: [{ email: cleanEmail }, { userName: cleanUserName }]
-      });
-    } else {
-      for (const [, u] of stateService.users) {
-        if (u.email === cleanEmail || u.userName === cleanUserName) {
-          existingUser = u;
-          break;
-        }
-      }
-    }
+    // Check existing registration by email or userName in MongoDB Atlas
+    const existingUser = await UserModel.findOne({
+      $or: [{ email: cleanEmail }, { userName: cleanUserName }]
+    });
 
     if (existingUser) {
       if (!existingUser.isVerified) {
         const otp = generateOtps();
         const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
 
-        if (isDatabaseConnected()) {
-          await OtpModel.deleteMany({ email: cleanEmail });
-          await OtpModel.create({
-            email: cleanEmail,
-            user: existingUser._id,
-            otpHash
-          });
-          await UserModel.updateOne(
-            { _id: existingUser._id },
-            { $set: { verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000) } }
-          );
-        }
+        await OtpModel.deleteMany({ email: cleanEmail });
+        await OtpModel.create({
+          email: cleanEmail,
+          user: existingUser._id,
+          otpHash
+        });
+
+        await UserModel.updateOne(
+          { _id: existingUser._id },
+          { $set: { verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000) } }
+        );
 
         await emailService.sendOTP(cleanEmail, otp);
         res.status(201).json({
@@ -151,57 +129,36 @@ export const handleSignup = async (req: Request, res: Response): Promise<void> =
 
     const hash = await bcrypt.hash(password, 10);
     const isApproved = role === 'PUBLIC' || cleanUserName === MAIN_ADMIN_USERNAME;
-
-    let newUser: any = null;
     const finalFullName = fullName?.trim() || cleanEmail.split('@')[0];
-    if (isDatabaseConnected()) {
-      newUser = await UserModel.create({
-        fullName: finalFullName,
-        userName: cleanUserName,
-        email: cleanEmail,
-        password: hash,
-        role: role as UserRole,
-        agency,
-        isVerified: false,
-        isApproved,
-        verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000)
-      });
 
-      const otp = generateOtps();
-      const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    const newUser = await UserModel.create({
+      fullName: finalFullName,
+      userName: cleanUserName,
+      email: cleanEmail,
+      password: hash,
+      role: role as UserRole,
+      agency,
+      isVerified: false,
+      isApproved,
+      verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000)
+    });
 
-      await OtpModel.create({
-        email: cleanEmail,
-        user: newUser._id,
-        otpHash
-      });
+    const otp = generateOtps();
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
 
-      await emailService.sendOTP(cleanEmail, otp);
-    } else {
-      newUser = {
-        _id: `USR_${Date.now()}`,
-        fullName: finalFullName,
-        userName: cleanUserName,
-        email: cleanEmail,
-        password: hash,
-        role: role as UserRole,
-        agency,
-        isVerified: false,
-        isApproved,
-        verificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000)
-      };
-      stateService.users.set(newUser._id, newUser);
-      stateService.users.set(cleanEmail, newUser);
-      stateService.users.set(cleanUserName, newUser);
+    await OtpModel.create({
+      email: cleanEmail,
+      user: newUser._id,
+      otpHash
+    });
 
-      const otp = generateOtps();
-      await emailService.sendOTP(cleanEmail, otp);
-    }
+    await emailService.sendOTP(cleanEmail, otp);
 
     res.status(201).json({
       message: 'signup successful! Please verify the OTP sent to your email.'
     });
   } catch (err: any) {
+    console.error('[MongoDB] Signup error:', err.message);
     res.status(500).json({ message: 'some internal server error occurred!' });
   }
 };
@@ -228,57 +185,41 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
     }
 
     const otpHash = crypto.createHash('sha256').update(String(otp)).digest('hex');
-    let user: any = null;
 
-    if (isDatabaseConnected()) {
-      const otpRecord = await OtpModel.findOneAndDelete({
-        otpHash,
-        email: cleanEmail,
-        createdAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) }
-      });
+    const otpRecord = await OtpModel.findOneAndDelete({
+      otpHash,
+      email: cleanEmail,
+      createdAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) }
+    });
 
-      if (!otpRecord) {
-        const failedRecord = await rateLimitService.recordFailedOtpAttempt(cleanEmail);
-        if (failedRecord.isLocked) {
-          res.status(429).json({
-            message: 'Maximum 5 OTP attempts exceeded. Verification locked for 5 minutes.'
-          });
-          return;
-        }
-        res.status(401).json({
-          message: `invalid, expired, or already used OTP! (Attempt ${failedRecord.attempts} of 5)`
+    if (!otpRecord) {
+      const failedRecord = await rateLimitService.recordFailedOtpAttempt(cleanEmail);
+      if (failedRecord.isLocked) {
+        res.status(429).json({
+          message: 'Maximum 5 OTP attempts exceeded. Verification locked for 5 minutes.'
         });
         return;
       }
-
-      user = await UserModel.findOne({ _id: otpRecord.user, email: cleanEmail });
-
-      if (!user) {
-        res.status(404).json({ message: 'user not found!' });
-        return;
-      }
-
-      if (user.isVerified) {
-        res.status(409).json({ message: 'account is already verified; please log in with your password.' });
-        return;
-      }
-
-      user.isVerified = true;
-      await user.save();
-    } else {
-      for (const [, u] of stateService.users) {
-        if (u.email === cleanEmail) {
-          user = u;
-          user.isVerified = true;
-          break;
-        }
-      }
+      res.status(401).json({
+        message: `invalid, expired, or already used OTP! (Attempt ${failedRecord.attempts} of 5)`
+      });
+      return;
     }
+
+    const user = await UserModel.findOne({ _id: otpRecord.user, email: cleanEmail });
 
     if (!user) {
       res.status(404).json({ message: 'user not found!' });
       return;
     }
+
+    if (user.isVerified) {
+      res.status(409).json({ message: 'account is already verified; please log in with your password.' });
+      return;
+    }
+
+    user.isVerified = true;
+    await user.save();
 
     // Clear failed attempts counter on valid OTP
     await rateLimitService.clearOtpAttempts(cleanEmail);
@@ -293,27 +234,24 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Single JWT_SECRET used for both refresh and access tokens
-    const refreshToken = jwt.sign({ id: user._id || user.id }, config.jwtSecret, { expiresIn: '7d' });
+    const refreshToken = jwt.sign({ id: user._id }, config.jwtSecret, { expiresIn: '7d' });
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    let session: any = null;
-    if (isDatabaseConnected()) {
-      session = await SessionModel.create({
-        user: user._id,
-        ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
-        userAgent: req.headers['user-agent'] || 'Unknown',
-        refreshToken: hashedRefreshToken,
-        revoked: false,
-        deletedAt: null
-      });
-    }
+    const session = await SessionModel.create({
+      user: user._id,
+      ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || 'Unknown',
+      refreshToken: hashedRefreshToken,
+      revoked: false,
+      deletedAt: null
+    });
 
-    const finalFullName = user.fullName || user.name || user.email?.split('@')[0];
+    const finalFullName = user.fullName || user.userName || cleanEmail.split('@')[0];
 
     const accessToken = jwt.sign(
       {
-        id: user._id || user.id,
-        sid: session ? session._id : 'mem_sid',
+        id: user._id,
+        sid: session._id,
         role: user.role,
         userName: user.userName,
         email: user.email,
@@ -335,14 +273,16 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
       accessToken,
       message: 'verification successful!',
       user: {
-        id: user._id || user.id,
+        id: user._id,
         fullName: finalFullName,
         userName: user.userName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        agency: user.agency
       }
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[MongoDB] OTP verification error:', error.message);
     res.status(500).json({ message: 'some internal server error occurred!' });
   }
 };
@@ -369,26 +309,12 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    let userDoc: any = null;
-
-    if (isDatabaseConnected()) {
-      userDoc = await UserModel.findOne({
-        $or: [
-          { email: loginIdentifier },
-          { userName: loginIdentifier }
-        ]
-      });
-    } else {
-      for (const [, u] of stateService.users) {
-        if (
-          (u.email && u.email.toLowerCase() === loginIdentifier) ||
-          (u.userName && u.userName.toLowerCase() === loginIdentifier)
-        ) {
-          userDoc = u;
-          break;
-        }
-      }
-    }
+    const userDoc = await UserModel.findOne({
+      $or: [
+        { email: loginIdentifier },
+        { userName: loginIdentifier }
+      ]
+    });
 
     if (!userDoc) {
       const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
@@ -415,7 +341,14 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const same = await bcrypt.compare(password, userDoc.password || (userDoc as any).passwordHash);
+    if (!userDoc.password) {
+      res.status(401).json({
+        message: 'This account uses Google Sign-In. Please sign in with Google.'
+      });
+      return;
+    }
+
+    const same = await bcrypt.compare(password, userDoc.password);
     if (!same) {
       const failRecord = await rateLimitService.recordFailedLogin(lookupKey);
       if (failRecord.isLocked) {
@@ -434,27 +367,24 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
     await rateLimitService.clearLoginAttempts(lookupKey);
 
     // Single JWT_SECRET used for both refresh and access tokens
-    const refreshToken = jwt.sign({ id: userDoc._id || userDoc.id }, config.jwtSecret, { expiresIn: '7d' });
+    const refreshToken = jwt.sign({ id: userDoc._id }, config.jwtSecret, { expiresIn: '7d' });
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    let session: any = null;
-    if (isDatabaseConnected()) {
-      session = await SessionModel.create({
-        user: userDoc._id,
-        ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
-        refreshToken: hashedRefreshToken,
-        userAgent: req.headers['user-agent'] || 'Unknown',
-        revoked: false,
-        deletedAt: null
-      });
-    }
+    const session = await SessionModel.create({
+      user: userDoc._id,
+      ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
+      refreshToken: hashedRefreshToken,
+      userAgent: req.headers['user-agent'] || 'Unknown',
+      revoked: false,
+      deletedAt: null
+    });
 
-    const finalFullName = userDoc.fullName || userDoc.name || userDoc.email?.split('@')[0];
+    const finalFullName = userDoc.fullName || userDoc.userName || userDoc.email.split('@')[0];
 
     const accessToken = jwt.sign(
       {
-        id: userDoc._id || userDoc.id,
-        sid: session ? session._id : 'mem_sid',
+        id: userDoc._id,
+        sid: session._id,
         role: userDoc.role,
         userName: userDoc.userName,
         email: userDoc.email,
@@ -476,14 +406,16 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       message: 'login successful',
       accessToken,
       user: {
-        id: userDoc._id || userDoc.id,
-        fullName: userDoc.fullName,
+        id: userDoc._id,
+        fullName: finalFullName,
         userName: userDoc.userName,
         email: userDoc.email,
-        role: userDoc.role
+        role: userDoc.role,
+        agency: userDoc.agency
       }
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[MongoDB] Login error:', error.message);
     res.status(500).json({ message: 'some internal server error occurred!' });
   }
 };
@@ -500,57 +432,51 @@ export const handleTokengen = async (req: Request, res: Response): Promise<void>
 
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    if (isDatabaseConnected()) {
-      const session = await SessionModel.findOne({ refreshToken: hashedRefreshToken });
-      if (!session || session.revoked) {
-        res.status(403).json({ message: 'refreshToken is invalid or revoked!' });
-        return;
-      }
-
-      const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
-      const user = await UserModel.findById(decoded.id);
-
-      if (!user) {
-        res.status(404).json({ message: 'user not found!' });
-        return;
-      }
-
-      const newRefreshToken = jwt.sign(
-        { id: user._id, userName: user.userName },
-        config.jwtSecret,
-        { expiresIn: '7d' }
-      );
-
-      session.refreshToken = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
-      await session.save();
-
-      const newAccessToken = jwt.sign(
-        { id: user._id, userName: user.userName, sid: session._id, role: user.role },
-        config.jwtSecret,
-        { expiresIn: '15m' }
-      );
-
-      res.cookie('refreshToken', newRefreshToken, {
-        httpOnly: true,
-        secure: config.nodeEnv === 'production',
-        sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/api/auth'
-      });
-
-      res.status(201).json({
-        message: 'tokens successfully restored!',
-        accessToken: newAccessToken
-      });
+    const session = await SessionModel.findOne({ refreshToken: hashedRefreshToken });
+    if (!session || session.revoked) {
+      res.status(403).json({ message: 'refreshToken is invalid or revoked!' });
       return;
     }
 
     const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
+    const user = await UserModel.findById(decoded.id);
+
+    if (!user) {
+      res.status(404).json({ message: 'user not found!' });
+      return;
+    }
+
+    const newRefreshToken = jwt.sign(
+      { id: user._id, userName: user.userName },
+      config.jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    session.refreshToken = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+    await session.save();
+
+    const finalFullName = user.fullName || user.userName || user.email.split('@')[0];
+
     const newAccessToken = jwt.sign(
-      { id: decoded.id, userName: decoded.userName },
+      {
+        id: user._id,
+        userName: user.userName,
+        sid: session._id,
+        role: user.role,
+        email: user.email,
+        fullName: finalFullName
+      },
       config.jwtSecret,
       { expiresIn: '15m' }
     );
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: config.nodeEnv === 'production',
+      sameSite: config.nodeEnv === 'production' ? 'none' : 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/auth'
+    });
 
     res.status(201).json({
       message: 'tokens successfully restored!',
@@ -577,13 +503,11 @@ export const logoutHandler = async (req: Request, res: Response): Promise<void> 
 
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    if (isDatabaseConnected()) {
-      const session = await SessionModel.findOne({ refreshToken: hashedRefreshToken });
-      if (session && !session.revoked) {
-        session.revoked = true;
-        session.deletedAt = new Date();
-        await session.save();
-      }
+    const session = await SessionModel.findOne({ refreshToken: hashedRefreshToken });
+    if (session && !session.revoked) {
+      session.revoked = true;
+      session.deletedAt = new Date();
+      await session.save();
     }
 
     res.clearCookie('refreshToken', {
@@ -594,7 +518,8 @@ export const logoutHandler = async (req: Request, res: Response): Promise<void> 
     });
 
     res.status(204).end();
-  } catch (err) {
+  } catch (err: any) {
+    console.error('[MongoDB] Logout error:', err.message);
     res.status(500).json({ message: 'internal server error!' });
   }
 };
@@ -612,23 +537,21 @@ export const logoutAllHandler = async (req: Request, res: Response): Promise<voi
     const decoded = jwt.verify(refreshToken, config.jwtSecret) as any;
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    if (isDatabaseConnected()) {
-      const session = await SessionModel.findOne({
-        user: decoded.id,
-        refreshToken: hashedRefreshToken,
-        revoked: false
-      });
+    const session = await SessionModel.findOne({
+      user: decoded.id,
+      refreshToken: hashedRefreshToken,
+      revoked: false
+    });
 
-      if (!session) {
-        res.status(401).json({ message: 'you are not authenticated to logout!' });
-        return;
-      }
-
-      await SessionModel.updateMany(
-        { user: decoded.id, revoked: false },
-        { $set: { revoked: true, deletedAt: new Date() } }
-      );
+    if (!session) {
+      res.status(401).json({ message: 'you are not authenticated to logout!' });
+      return;
     }
+
+    await SessionModel.updateMany(
+      { user: decoded.id, revoked: false },
+      { $set: { revoked: true, deletedAt: new Date() } }
+    );
 
     res.clearCookie('refreshToken', {
       httpOnly: true,
@@ -677,63 +600,46 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
     const name = payload.name || 'Google User';
     const userName = email.split('@')[0] + '_oauth';
 
-    let user: any = null;
-
-    if (isDatabaseConnected()) {
-      user = await UserModel.findOne({ email });
-      if (!user) {
-        user = await UserModel.create({
-          fullName: name,
-          userName,
-          email,
-          password: 'OAUTH_GOOGLE_ACCOUNT',
-          role: 'PUBLIC',
-          agency: 'COMMUTER',
-          isVerified: true,
-          isApproved: true,
-          authProvider: 'GOOGLE'
-        });
-      } else if (!user.fullName) {
-        user.fullName = name;
-        await user.save();
-      }
-    } else {
-      user = {
-        _id: `USR_GOOGLE_${Date.now()}`,
+    let user = await UserModel.findOne({ email });
+    if (!user) {
+      user = await UserModel.create({
         fullName: name,
         userName,
         email,
+        password: 'OAUTH_GOOGLE_ACCOUNT',
         role: 'PUBLIC',
         agency: 'COMMUTER',
         isVerified: true,
         isApproved: true,
         authProvider: 'GOOGLE'
-      };
-      stateService.users.set(userName, user);
+      });
+    } else if (name && (!user.fullName || user.fullName !== name)) {
+      user.fullName = name;
+      await user.save();
     }
 
-    const refreshToken = jwt.sign({ id: user._id || user.id }, config.jwtSecret, { expiresIn: '7d' });
+    const refreshToken = jwt.sign({ id: user._id }, config.jwtSecret, { expiresIn: '7d' });
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-    let session: any = null;
-    if (isDatabaseConnected()) {
-      session = await SessionModel.create({
-        user: user._id,
-        ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
-        refreshToken: hashedRefreshToken,
-        userAgent: req.headers['user-agent'] || 'Unknown',
-        revoked: false,
-        deletedAt: null
-      });
-    }
+    const session = await SessionModel.create({
+      user: user._id,
+      ip: req.ip || req.socket.remoteAddress || '127.0.0.1',
+      refreshToken: hashedRefreshToken,
+      userAgent: req.headers['user-agent'] || 'Unknown',
+      revoked: false,
+      deletedAt: null
+    });
+
+    const finalFullName = user.fullName || name;
 
     const accessToken = jwt.sign(
       { 
-        id: user._id || user.id, 
-        sid: session ? session._id : 'mem_sid', 
+        id: user._id, 
+        sid: session._id, 
         role: user.role, 
         userName: user.userName,
-        fullName: user.fullName || name
+        email: user.email,
+        fullName: finalFullName
       },
       config.jwtSecret,
       { expiresIn: '15m' }
@@ -751,8 +657,8 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
       message: 'Google OAuth login successful.',
       accessToken,
       user: { 
-        id: user._id || user.id,
-        fullName: user.fullName || name,
+        id: user._id,
+        fullName: finalFullName,
         userName: user.userName, 
         email: user.email, 
         role: user.role,
@@ -767,111 +673,71 @@ export const googleOAuthLogin = async (req: Request, res: Response): Promise<voi
 
 // Main admin approval management
 export const getPendingUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  if (isDatabaseConnected()) {
-    try {
-      const pendingDb = await UserModel.find({ isApproved: false, role: { $ne: 'PUBLIC' } }).select('-password');
-      res.json({ success: true, pendingUsers: pendingDb });
-      return;
-    } catch (e: any) {
-      console.warn('[MongoDB] Error fetching pending users:', e.message);
-    }
+  try {
+    const pendingDb = await UserModel.find({ isApproved: false, role: { $ne: 'PUBLIC' } }).select('-password');
+    res.json({ success: true, pendingUsers: pendingDb });
+  } catch (e: any) {
+    console.error('[MongoDB] Error fetching pending users:', e.message);
+    res.status(500).json({ success: false, message: 'Failed to retrieve pending users.' });
   }
-
-  const pendingMem = Array.from(stateService.users.values())
-    .filter((u: any) => !u.isApproved && u.role !== 'PUBLIC')
-    .map(({ password, passwordHash, ...user }: any) => user);
-
-  res.json({
-    success: true,
-    pendingUsers: pendingMem
-  });
 };
 
 export const approveUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { id } = req.params;
-  const adminName = req.user?.userName || MAIN_ADMIN_NAME;
+  const adminName = req.user?.fullName || req.user?.userName || MAIN_ADMIN_NAME;
 
-  let approved = false;
-
-  if (isDatabaseConnected()) {
-    try {
-      const user = await UserModel.findById(id);
-      if (user) {
-        user.isApproved = true;
-        user.approvedBy = adminName;
-        user.approvedAt = new Date();
-        await user.save();
-        approved = true;
-
-        if (user.userName) {
-          const mem: any = stateService.users.get(user.userName);
-          if (mem) mem.isApproved = true;
-        }
-        if (user.email) {
-          const memEmail: any = stateService.users.get(user.email);
-          if (memEmail) memEmail.isApproved = true;
-        }
-      }
-    } catch (e: any) {
-      console.warn('[MongoDB] Error approving user in Atlas:', e.message);
+  try {
+    const user = await UserModel.findById(id);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found.' });
+      return;
     }
-  }
 
-  if (!approved) {
-    for (const [, user] of stateService.users) {
-      if ((user as any)._id === id || (user as any).id === id || user.userName === id) {
-        user.isApproved = true;
-        approved = true;
-        break;
-      }
-    }
-  }
+    user.isApproved = true;
+    user.approvedBy = adminName;
+    user.approvedAt = new Date();
+    await user.save();
 
-  if (!approved) {
-    res.status(404).json({ success: false, message: 'User not found.' });
-    return;
+    res.json({
+      success: true,
+      message: `Official user '${user.fullName || user.userName}' approved successfully by ${adminName}. The account is now active.`
+    });
+  } catch (e: any) {
+    console.error('[MongoDB] Error approving user in Atlas:', e.message);
+    res.status(500).json({ success: false, message: 'Failed to approve user.' });
   }
-
-  res.json({
-    success: true,
-    message: `Official user '${id}' approved successfully by ${adminName}. The account is now active.`
-  });
 };
 
+// Get current authenticated user profile directly from Atlas
 export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    let fullUser: any = null;
     const userId = req.user?.id || (req.user as any)?._id;
-    if (isDatabaseConnected() && userId) {
-      try {
-        fullUser = await UserModel.findById(userId).select('-password');
-      } catch (err) {
-        // ignore
-      }
-    }
-    if (!fullUser && userId) {
-      fullUser = stateService.users.get(userId) ||
-                 stateService.users.get(req.user?.email || '') ||
-                 stateService.users.get(req.user?.userName || '');
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Not authenticated' });
+      return;
     }
 
-    const finalUser = fullUser || req.user || {};
-    const finalEmail = finalUser.email || (req.user as any)?.email || '';
-    const finalFullName = finalUser.fullName || finalUser.name || (finalEmail ? finalEmail.split('@')[0] : 'User');
+    const userDoc = await UserModel.findById(userId).select('-password');
+    if (!userDoc) {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+
+    const finalFullName = userDoc.fullName || userDoc.userName || userDoc.email.split('@')[0];
 
     res.json({
       success: true,
       user: {
-        id: finalUser._id || finalUser.id || userId,
+        id: userDoc._id,
         fullName: finalFullName,
-        email: finalEmail,
-        role: finalUser.role || req.user?.role || 'PUBLIC'
+        userName: userDoc.userName,
+        email: userDoc.email,
+        role: userDoc.role,
+        agency: userDoc.agency
       }
     });
-  } catch (e) {
-    res.json({
-      success: true,
-      user: req.user
-    });
+  } catch (e: any) {
+    console.error('[MongoDB] getCurrentUser error:', e.message);
+    res.status(500).json({ success: false, message: e.message });
   }
 };

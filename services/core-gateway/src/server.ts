@@ -68,10 +68,10 @@ app.get('/api/health', async (req, res) => {
   }
 
   res.json({
-    status: 'HEALTHY',
+    status: isDatabaseConnected() ? 'HEALTHY' : 'DEGRADED',
     service: 'RescueNex Core Gateway',
     timestamp: new Date().toISOString(),
-    database: isDatabaseConnected() ? 'MONGODB_ATLAS_CONNECTED' : 'IN_MEMORY_FALLBACK',
+    database: isDatabaseConnected() ? 'MONGODB_ATLAS_CONNECTED' : 'DISCONNECTED',
     aiEngineStatus: aiStatus
   });
 });
@@ -87,9 +87,14 @@ io.on('connection', (socket) => {
 
 // Initialize Server Operations
 const startServer = async () => {
-  // 1. Connect to MongoDB Atlas (if MONGODB_URI is provided)
-  await connectDatabase();
-  await seedDefaultUsers();
+  try {
+    // 1. Mandatory connection to MongoDB Atlas
+    await connectDatabase();
+    await seedDefaultUsers();
+  } catch (err: any) {
+    console.error(`💥 [Fatal Startup Aborted] ${err.message}`);
+    process.exit(1);
+  }
 
   server.listen(config.port, () => {
     console.log(`=======================================================`);

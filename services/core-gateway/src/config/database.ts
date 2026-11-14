@@ -15,8 +15,9 @@ export const connectDatabase = async (): Promise<boolean> => {
   const uri = process.env.MONGODB_URI;
 
   if (!uri) {
-    console.warn('⚠️ [MongoDB] MONGODB_URI not found in .env. Running in in-memory fallback mode.');
-    return false;
+    const err = '❌ [MongoDB Fatal] MONGODB_URI is not set in environment. MongoDB Atlas connection is strictly required.';
+    console.error(err);
+    throw new Error(err);
   }
 
   try {
@@ -27,8 +28,9 @@ export const connectDatabase = async (): Promise<boolean> => {
     console.log(`✅ [MongoDB] Connected successfully to MongoDB Atlas database (${mongoose.connection.name}).`);
     return true;
   } catch (error: any) {
-    console.warn(`⚠️ [MongoDB] Could not connect to Atlas (${error.message}). Continuing in resilient in-memory mode.`);
-    return false;
+    const err = `❌ [MongoDB Fatal] Could not connect to MongoDB Atlas (${error.message}). Server startup aborted.`;
+    console.error(err);
+    throw new Error(err);
   }
 };
 
