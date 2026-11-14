@@ -101,8 +101,10 @@ export const AlertsPage: React.FC = () => {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                      alert.level === 'CRITICAL' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold shadow-sm ${
+                      alert.level === 'CRITICAL'
+                        ? 'bg-gradient-to-b from-rose-600 to-rose-700 text-white border-t border-rose-300/60 border-b border-rose-950 ring-1 ring-rose-400/40'
+                        : 'bg-gradient-to-b from-amber-600 to-amber-700 text-white border-t border-amber-300/60 border-b border-amber-950 ring-1 ring-amber-400/40'
                     }`}>
                       {alert.level}
                     </span>

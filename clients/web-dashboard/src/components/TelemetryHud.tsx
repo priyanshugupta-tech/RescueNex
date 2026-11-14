@@ -43,20 +43,20 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
     switch (riskLevel) {
       case 'CRITICAL':
         return {
-          bg: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
-          dot: 'bg-rose-500',
+          bg: 'bg-gradient-to-b from-rose-600 via-rose-600 to-rose-700 text-white font-bold border-t border-rose-300/80 border-b border-rose-950 shadow-md ring-1 ring-rose-400/50',
+          dot: 'bg-white',
           label: 'CRITICAL FAILURE RISK'
         };
       case 'WARNING':
         return {
-          bg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-          dot: 'bg-amber-500',
+          bg: 'bg-gradient-to-b from-amber-600 via-amber-600 to-amber-700 text-white font-bold border-t border-amber-300/80 border-b border-amber-950 shadow-md ring-1 ring-amber-400/50',
+          dot: 'bg-white',
           label: 'ACTIVE WARNING'
         };
       default:
         return {
-          bg: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-          dot: 'bg-emerald-500',
+          bg: 'bg-gradient-to-b from-emerald-600 via-emerald-600 to-emerald-700 text-white font-bold border-t border-emerald-300/80 border-b border-emerald-950 shadow-md ring-1 ring-emerald-400/50',
+          dot: 'bg-white',
           label: 'STABLE CORRIDOR'
         };
     }
@@ -212,13 +212,13 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
           </p>
         </div>
 
-        {/* Emergency Siren Trigger Button */}
+        {/* Emergency Siren Trigger Button - Opaque Lustrous Finish with Crisp White Text */}
         <button
           onClick={onOpenSirenModal}
-          className="mt-2 w-full py-1.5 px-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center gap-2 text-xs font-semibold transition"
+          className="mt-2 w-full py-2 px-3 rounded-lg bg-gradient-to-b from-rose-600 via-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-650 text-white font-bold border-t border-rose-300/80 border-b border-rose-950 flex items-center justify-center gap-2 text-xs shadow-lg shadow-black/40 ring-1 ring-rose-400/50 transition-all active:scale-[0.98]"
         >
-          <Volume2 className="w-3.5 h-3.5" />
-          <span>Siren Emergency Interlock</span>
+          <Volume2 className="w-3.5 h-3.5 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" />
+          <span className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] tracking-wide">Siren Emergency Interlock</span>
         </button>
       </div>
 

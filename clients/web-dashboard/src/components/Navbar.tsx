@@ -45,31 +45,31 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right: Functional Navigation & Auth Buttons */}
         <div className="flex items-center gap-3">
-          <nav className="flex items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800/80 shadow-inner">
+          <nav className="flex items-center gap-1.5 bg-slate-900/95 p-1.5 rounded-xl border border-slate-800 shadow-lg shadow-black/40">
             <button
               onClick={() => onSelectTab('hud')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all ${
                 currentTab === 'hud'
-                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm font-semibold'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-gradient-to-b from-amber-500 via-amber-600 to-amber-700 text-white font-bold border-t border-amber-300/80 border-x border-amber-600 border-b border-amber-950 shadow-lg shadow-black/50 ring-1 ring-amber-400/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80 font-medium'
               }`}
             >
-              <Activity className="w-4 h-4" />
-              <span>Mission HUD</span>
+              <Activity className={`w-4 h-4 ${currentTab === 'hud' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-slate-400'}`} />
+              <span className={currentTab === 'hud' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tracking-wide' : ''}>Mission HUD</span>
             </button>
 
             <button
               onClick={() => onSelectTab('alerts')}
-              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all ${
                 currentTab === 'alerts'
-                  ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 shadow-sm font-semibold'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-gradient-to-b from-rose-500 via-rose-600 to-rose-700 text-white font-bold border-t border-rose-300/80 border-x border-rose-600 border-b border-rose-950 shadow-lg shadow-black/50 ring-1 ring-rose-400/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80 font-medium'
               }`}
             >
-              <AlertTriangle className="w-4 h-4" />
-              <span>Alerts</span>
+              <AlertTriangle className={`w-4 h-4 ${currentTab === 'alerts' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-slate-400'}`} />
+              <span className={currentTab === 'alerts' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tracking-wide' : ''}>Alerts</span>
               {activeAlertCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white shadow">
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white text-rose-700 shadow-md">
                   {activeAlertCount}
                 </span>
               )}
@@ -77,27 +77,27 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => onSelectTab('analytics')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all ${
                 currentTab === 'analytics'
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30 shadow-sm font-semibold'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  ? 'bg-gradient-to-b from-sky-500 via-sky-600 to-sky-700 text-white font-bold border-t border-sky-300/80 border-x border-sky-600 border-b border-sky-950 shadow-lg shadow-black/50 ring-1 ring-sky-400/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80 font-medium'
               }`}
             >
-              <TrendingUp className="w-4 h-4" />
-              <span>Analytics</span>
+              <TrendingUp className={`w-4 h-4 ${currentTab === 'analytics' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-slate-400'}`} />
+              <span className={currentTab === 'analytics' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tracking-wide' : ''}>Analytics</span>
             </button>
 
             {user?.role === 'ADMIN' && (
               <button
                 onClick={() => onSelectTab('admin')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition-all ${
                   currentTab === 'admin'
-                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm font-semibold'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-gradient-to-b from-amber-500 via-amber-600 to-amber-700 text-white font-bold border-t border-amber-300/80 border-x border-amber-600 border-b border-amber-950 shadow-lg shadow-black/50 ring-1 ring-amber-400/50'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80 font-medium'
                 }`}
               >
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span>HQ Command</span>
+                <ShieldCheck className={`w-4 h-4 ${currentTab === 'admin' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-amber-400'}`} />
+                <span className={currentTab === 'admin' ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tracking-wide' : ''}>HQ Command</span>
               </button>
             )}
           </nav>
