@@ -36,9 +36,6 @@ export const Footer: React.FC<FooterProps> = ({ activeAlertCount }) => {
             <p className="text-sm font-semibold text-slate-200">
               Real-Time Landslide Risk Analytics & Early Warning Platform
             </p>
-            <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-              Autonomous geotechnical monitoring, predictive slope stability intelligence, and emergency early warning protocols for mountain transit corridors.
-            </p>
           </div>
 
           {/* Col 3: Navigation */}
@@ -84,7 +81,7 @@ export const Footer: React.FC<FooterProps> = ({ activeAlertCount }) => {
                   Analytics
                 </button>
               </li>
-              {user?.role === 'ADMIN' ? (
+              {user?.role === 'ADMIN' && (
                 <li>
                   <button
                     onClick={() => navigate('/admin')}
@@ -93,7 +90,8 @@ export const Footer: React.FC<FooterProps> = ({ activeAlertCount }) => {
                     Admin
                   </button>
                 </li>
-              ) : (
+              )}
+              {!user && (
                 <li>
                   <button
                     onClick={() => navigate('/auth')}
@@ -165,9 +163,6 @@ export const Footer: React.FC<FooterProps> = ({ activeAlertCount }) => {
         {/* Bottom Sub-Footer Bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-sans gap-2">
           <span>© 2026 RescueNex Platform. All rights reserved.</span>
-          <span className="font-mono text-[11px] text-slate-400">
-            Real-Time Geotechnical & Early Warning Network
-          </span>
         </div>
 
       </div>

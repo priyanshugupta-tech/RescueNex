@@ -173,7 +173,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <p className="text-slate-300 mt-0.5 leading-relaxed">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
                     ? `"${activeSector?.name || 'Mountain Sector'} Alert: Elevated slope displacement detected (${activeSector?.currentRiskLevel}). Exercise extreme caution and avoid rockfall prone zones."`
-                    : `"${activeSector?.name || 'Mountain Sector'}: Geotechnical sensors and weather parameters are currently stable. Transit corridor open."`}
+                    : `"${activeSector?.name || 'Mountain Sector'}: Field sensors and weather parameters are currently stable. Transit corridor open."`}
                 </p>
               </div>
 
@@ -182,7 +182,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <p className="text-slate-300 mt-0.5 leading-relaxed font-sans">
                   {activeSector?.currentRiskLevel === 'CRITICAL' || activeSector?.currentRiskLevel === 'WARNING'
                     ? `"${activeSector?.name || 'पर्वतीय क्षेत्र'} चेतावनी: ढलान विस्थापन दर्ज किया गया (${activeSector?.currentRiskLevel})। कृपया सतर्क रहें और सुरक्षित स्थान पर रहें।"`
-                    : `"${activeSector?.name || 'पर्वतीय क्षेत्र'}: सभी भू-तकनीकी सेंसर सामान्य स्थिति में हैं। मार्ग आवागमन हेतु सुरक्षित है।"`}
+                    : `"${activeSector?.name || 'पर्वतीय क्षेत्र'}: सभी सेंसर सामान्य स्थिति में हैं। मार्ग आवागमन हेतु सुरक्षित है।"`}
                 </p>
               </div>
 

@@ -171,7 +171,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-sans max-w-2xl">
-            Geotechnical monitoring, predictive slope stability intelligence, and early warning analytics for critical mountain transit corridors.
+            Autonomous sensor monitoring, predictive slope stability intelligence, and early warning analytics for critical mountain transit corridors.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -199,7 +199,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-6 mt-14 pt-8 border-t border-[#21262D]">
           <div className="space-y-1">
             <p className="text-xl sm:text-2xl font-bold font-mono text-white">Multi-Sensor</p>
-            <p className="text-xs text-slate-400">Geotechnical Ingestion</p>
+            <p className="text-xs text-slate-400">Telemetry Ingestion</p>
           </div>
           <div className="space-y-1">
             <p className="text-xl sm:text-2xl font-bold font-mono text-white">Continuous</p>
@@ -305,7 +305,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Compass className="w-6 h-6 text-sky-400" />
             <h3 className="text-sm font-bold text-white font-sans">Slope Tilt Inclinometry</h3>
             <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              Continuous bi-axial tilt tracking and acceleration capture minute geotechnical shear and creep prior to catastrophic slope failure.
+              Continuous bi-axial tilt tracking and acceleration capture minute terrain shear and creep prior to catastrophic slope failure.
             </p>
           </div>
 
@@ -321,7 +321,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <CloudRain className="w-6 h-6 text-sky-400" />
             <h3 className="text-sm font-bold text-white font-sans">Meteorological Sync</h3>
             <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              Precipitation rates and cumulative rainfall indices are matched against geotechnical vulnerability models for proactive risk projection.
+              Precipitation rates and cumulative rainfall indices are matched against slope vulnerability models for proactive risk projection.
             </p>
           </div>
         </div>

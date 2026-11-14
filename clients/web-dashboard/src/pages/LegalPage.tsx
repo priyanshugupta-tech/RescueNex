@@ -100,7 +100,7 @@ export const LegalPage: React.FC = () => {
                 Operational Scope & Mission Objectives
               </h3>
               <p>
-                RescueNex provides autonomous geotechnical monitoring, slope inclinometry tracking, and early warning analytics for critical mountain transit corridors. The system ingests telemetry from stationary field hardware nodes and synchronizes with regional meteorological data to deliver automated hazard predictions to disaster management authorities, emergency response teams, and public commuters.
+                RescueNex provides autonomous sensor monitoring, slope inclinometry tracking, and early warning analytics for critical mountain transit corridors. The system ingests telemetry from stationary field hardware nodes and synchronizes with regional meteorological data to deliver automated hazard predictions to disaster management authorities, emergency response teams, and public commuters.
               </p>
             </div>
 
@@ -141,7 +141,7 @@ export const LegalPage: React.FC = () => {
                 <span className="uppercase tracking-wider">Data Ingestion 01</span>
               </div>
               <h3 className="text-base font-bold text-white font-sans mb-2">
-                Stationary Geotechnical Telemetry
+                Stationary Sensor & Inclinometer Telemetry
               </h3>
               <p>
                 Hardware sensor nodes deployed along mountain corridors collect environmental telemetry: bi-axial slope inclination angles (degrees), root-mean-square acceleration, volumetric soil moisture content, and ambient weather parameters. All collected telemetry is purely physical, non-personal, and environmental.

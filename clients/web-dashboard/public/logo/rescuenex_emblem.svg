@@ -1,22 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <!-- RescueNex Authentic Geotechnical Brand Mark -->
-  <!-- Left Mountain Slope (Warm Amber) -->
-  <polygon points="50,12 16,80 50,68 50,40" fill="#F59E0B" />
+  <!-- RescueNex Precision Engineering Brand Mark -->
+  <!-- Outer Mountain Crest: Left Ridge (Warm Safety Amber) -->
+  <path d="M48.5 14L16 76H27.5L48.5 35.5V14Z" fill="#F59E0B" />
   
-  <!-- Right Mountain Slope (Deep Amber) -->
-  <polygon points="50,12 50,40 50,68 84,80" fill="#D97706" />
-  
-  <!-- Inner Facet Left (High-Contrast Gold) -->
-  <polygon points="50,24 30,76 50,65" fill="#FBBF24" opacity="0.95" />
-  
-  <!-- Inner Facet Right (Rich Bronze) -->
-  <polygon points="50,24 50,65 70,76" fill="#B45309" opacity="0.9" />
-  
-  <!-- Central Telemetry Nexus Core (Tactical Cyan/Sky Pulse) -->
-  <polygon points="50,42 59,54 50,66 41,54" fill="#38BDF8" />
-  <polygon points="50,45 56,54 50,63 44,54" fill="#0284C7" />
-  <circle cx="50" cy="54" r="2.5" fill="#FFFFFF" />
-  
-  <!-- Base Ground Inclinometry Anchor Beam -->
-  <polygon points="24,84 76,84 72,88 28,88" fill="#F59E0B" opacity="0.7" />
+  <!-- Outer Mountain Crest: Right Ridge (Deep Contrast Amber) -->
+  <path d="M51.5 14V35.5L72.5 76H84L51.5 14Z" fill="#D97706" />
+
+  <!-- Inner Telemetry Chevron: Left Ridge (High-Visibility Gold) -->
+  <path d="M48.5 43L31.5 78H39L48.5 60.5V43Z" fill="#FBBF24" />
+
+  <!-- Inner Telemetry Chevron: Right Ridge (Amber Core) -->
+  <path d="M51.5 43V60.5L61 78H68.5L51.5 43Z" fill="#F59E0B" />
+
+  <!-- Nexus Warning Telemetry Beacon (Upward Dynamic Arrow) -->
+  <path d="M50 66L44 77.5H47.8L50 73.2L52.2 77.5H56L50 66Z" fill="#FFFFFF" />
 </svg>

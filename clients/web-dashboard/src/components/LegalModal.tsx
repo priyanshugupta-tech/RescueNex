@@ -131,7 +131,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">1. Operational Scope & Purpose</h4>
                 <p>
-                  RescueNex is an autonomous, sensor-driven early warning and landslide risk monitoring platform engineered for high-altitude mountain corridors and critical connecting transit sectors. The system is designed to provide real-time geotechnical telemetry to regional disaster response cells, emergency command hubs, and field operations teams.
+                  RescueNex is an autonomous, sensor-driven early warning and landslide risk monitoring platform engineered for high-altitude mountain corridors and critical connecting transit sectors. The system is designed to provide real-time sensor telemetry to regional disaster response cells, emergency command hubs, and field operations teams.
                 </p>
               </div>
 
@@ -161,7 +161,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           {activeTab === 'privacy' && (
             <div className="space-y-4">
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">1. Geotechnical & Environmental Telemetry</h4>
+                <h4 className="text-sm font-bold text-white mb-1">1. Sensor & Environmental Telemetry</h4>
                 <p>
                   RescueNex continuously ingests bi-axial tilt angles, acceleration RMS, volumetric soil moisture percentages, ambient temperature, and rainfall rates from stationary field nodes. These metrics are strictly environmental and non-personal.
                 </p>

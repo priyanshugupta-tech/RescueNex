@@ -32,10 +32,10 @@ export const AnalyticsPage: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-sky-400" />
-            <span>Geotechnical Telemetry & Sensor History</span>
+            <span>Sensor Telemetry & Inclinometer History</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real hardware readings ingested from deployed ESP32 GPS nodes.
+            Real hardware readings ingested from deployed field nodes.
           </p>
         </div>
 
@@ -62,7 +62,7 @@ export const AnalyticsPage: React.FC = () => {
         {loading ? (
           <div className="p-10 flex flex-col items-center justify-center space-y-2 text-center">
             <Loader2 className="w-6 h-6 animate-spin text-sky-400" />
-            <p className="text-xs font-mono text-slate-400">Fetching live geotechnical readings...</p>
+            <p className="text-xs font-mono text-slate-400">Fetching live sensor readings...</p>
           </div>
         ) : history.length === 0 ? (
           <p className="p-8 text-center text-xs text-slate-400">No historical records available yet.</p>
