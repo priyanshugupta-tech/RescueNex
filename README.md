@@ -1,7 +1,7 @@
 <a id="readme-top"></a>
 
 <div align="center">
-  <img src="clients/web-dashboard/public/logo/rescuenex_emblem.svg" alt="RescueNex Logo" width="128">
+  <img src="clients/web-dashboard/public/assets/logo/rescuenex_emblem.svg" alt="RescueNex Logo" width="128">
 
   <h1>RescueNex</h1>
 
@@ -182,7 +182,7 @@ The backend Core Gateway runs on port `5000` by default.
 
 ## Project assets
 
-- **Official Brand Emblem:** [`clients/web-dashboard/public/logo/rescuenex_emblem.svg`](clients/web-dashboard/public/logo/rescuenex_emblem.svg)
+- **Official Brand Emblem:** [`clients/web-dashboard/public/assets/logo/rescuenex_emblem.svg`](clients/web-dashboard/public/assets/logo/rescuenex_emblem.svg)
 - **Favicon & Web App Icon:** [`clients/web-dashboard/index.html`](clients/web-dashboard/index.html)
 
 ---

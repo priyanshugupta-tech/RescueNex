@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => navigate('/')}
         >
           <img 
-            src="/logo/rescuenex_emblem.svg" 
+            src="/assets/logo/rescuenex_emblem.svg" 
             alt="RescueNex" 
             className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-md"
           />

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- RescueNex Authentic Himalayan Alpine Mountain & Early Warning Mark -->
+  <defs>
+    <linearGradient id="main-sunlit" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+    <linearGradient id="main-shadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#92400E" />
+    </linearGradient>
+    <linearGradient id="west-sunlit" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+  </defs>
+
+  <!-- Far Eastern Shoulder Ridge (Shadow Rockface) -->
+  <polygon points="72,66 54,86 92,86 82,56" fill="#78350F" />
+
+  <!-- Western Sub-Peak: Right Saddle Slope -->
+  <polygon points="26,46 29,64 24,86 46,86 38,60" fill="#B45309" />
+
+  <!-- Western Sub-Peak: Left Sunlit Face -->
+  <polygon points="26,46 8,86 24,86 29,64" fill="url(#west-sunlit)" />
+
+  <!-- Main Towering Peak: Right Shadow Rockface -->
+  <polygon points="56,22 53,42 51,64 54,86 72,66" fill="url(#main-shadow)" />
+
+  <!-- Main Towering Peak: Left Sunlit Mountain Face -->
+  <polygon points="56,22 38,60 46,86 54,86 51,64 53,42" fill="url(#main-sunlit)" />
+
+  <!-- Authentic Alpine Snow Caps (Summit Rock Highlights) -->
+  <!-- Western Peak Snow Cap -->
+  <polygon points="26,46 16,60 22,57 26,62 30,55 33,58" fill="#FFFFFF" opacity="0.95" />
+  
+  <!-- Main High Summit Snow Cap -->
+  <polygon points="56,22 45,40 50,37 54,43 59,36 63,39" fill="#FFFFFF" />
+
+  <!-- Early Warning Telemetry Signal (Radiating from the High Summit) -->
+  <path d="M49 14L56 7L63 14" stroke="#FBBF24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M43 8L56 1L69 8" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
+  <circle cx="56" cy="18" r="1.8" fill="#FFFFFF" />
+</svg>

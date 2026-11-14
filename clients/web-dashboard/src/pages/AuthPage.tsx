@@ -146,7 +146,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess, initialMode = 'lo
       {/* Brand Header */}
       <div className="text-center mb-6">
         <img 
-          src="/logo/rescuenex_emblem.svg" 
+          src="/assets/logo/rescuenex_emblem.svg" 
           alt="RescueNex" 
           className="w-14 h-14 sm:w-16 sm:h-16 object-contain mx-auto mb-3 drop-shadow-lg"
         />

@@ -24,7 +24,7 @@ export const Footer: React.FC<FooterProps> = ({ activeAlertCount }) => {
               onClick={() => navigate('/')}
             >
               <img 
-                src="/logo/rescuenex_emblem.svg" 
+                src="/assets/logo/rescuenex_emblem.svg" 
                 alt="RescueNex" 
                 className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md transition-transform group-hover:scale-105"
               />
