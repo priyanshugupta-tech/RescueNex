@@ -10,29 +10,50 @@ export const setAlertSocketEmitter = (emitter: any) => {
   alertSocketEmitter = emitter;
 };
 
+const formatAlert = (a: any) => {
+  const doc = a.toObject ? a.toObject() : a;
+  const alertId = doc.alertId || doc.id || (doc._id ? String(doc._id) : `ALERT_${Date.now()}`);
+  const descriptions = doc.descriptions || doc.multilingual || {
+    en: doc.headline || 'Active landslide warning.',
+    hi: 'सक्रिय भूस्खलन चेतावनी।',
+    dogri: 'ज़मीन खिसकने दी चेतावनी।',
+    kashmiri: 'لٔند سلایٔڈ وارننگ'
+  };
+  return {
+    ...doc,
+    id: alertId,
+    alertId,
+    level: doc.riskLevel || doc.level || 'WARNING',
+    riskLevel: doc.riskLevel || doc.level || 'WARNING',
+    descriptions,
+    multilingual: descriptions,
+    kmMarker: doc.kmMarker || 'KM 142.5',
+    triggerCause: doc.triggerCause || doc.headline || 'Sensor Threshold Exceeded',
+    status: doc.status || 'ACTIVE'
+  };
+};
+
 export const getAlerts = async (req: Request, res: Response): Promise<void> => {
-  // If database is connected, return persistent alert audit history
-  if (isDatabaseConnected()) {
-    try {
-      const activeFromDb = await AlertModel.find({ status: 'ACTIVE' }).sort({ timestamp: -1 }).limit(20);
-      const historyFromDb = await AlertModel.find().sort({ timestamp: -1 }).limit(100);
+  try {
+    const activeFromDb = await AlertModel.find({ status: 'ACTIVE' }).sort({ timestamp: -1 }).limit(20);
+    const historyFromDb = await AlertModel.find().sort({ timestamp: -1 }).limit(100);
 
-      res.json({
-        success: true,
-        activeAlerts: activeFromDb.length > 0 ? activeFromDb : stateService.getActiveAlerts(),
-        history: historyFromDb.length > 0 ? historyFromDb : stateService.getAlertHistory()
-      });
-      return;
-    } catch (e: any) {
-      console.warn('⚠️ [MongoDB] Error fetching alerts, falling back to memory:', e.message);
-    }
+    const activeList = activeFromDb.length > 0 ? activeFromDb : stateService.getActiveAlerts();
+    const historyList = historyFromDb.length > 0 ? historyFromDb : stateService.getAlertHistory();
+
+    res.json({
+      success: true,
+      activeAlerts: activeList.map(formatAlert),
+      history: historyList.map(formatAlert)
+    });
+  } catch (e: any) {
+    console.error('⚠️ [MongoDB] Error fetching alerts:', e.message);
+    res.json({
+      success: true,
+      activeAlerts: stateService.getActiveAlerts().map(formatAlert),
+      history: stateService.getAlertHistory().map(formatAlert)
+    });
   }
-
-  res.json({
-    success: true,
-    activeAlerts: stateService.getActiveAlerts(),
-    history: stateService.getAlertHistory()
-  });
 };
 
 export const acknowledgeAlert = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
