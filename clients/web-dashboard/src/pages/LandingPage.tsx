@@ -5,7 +5,7 @@ import {
   Compass, 
   Droplets, 
   CloudRain, 
-  Lock, 
+  Shield, 
   ArrowRight,
   Cpu,
   Layers,
@@ -210,8 +210,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <p className="text-xs text-slate-400">Early Warning Protocols</p>
           </div>
           <div className="space-y-1">
-            <p className="text-xl sm:text-2xl font-bold font-mono text-white">Role-Based</p>
-            <p className="text-xs text-slate-400">Access Control & Audit</p>
+            <p className="text-xl sm:text-2xl font-bold font-mono text-white">24 / 7</p>
+            <p className="text-xs text-slate-400">Active Corridor Monitoring</p>
           </div>
         </div>
       </section>
@@ -333,14 +333,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       >
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs font-semibold text-amber-400">
-            <Lock className="w-4 h-4" />
-            <span>Role-Based Access Control</span>
+            <Shield className="w-4 h-4" />
+            <span>Emergency Operations Portal</span>
           </div>
           <h3 className="text-xl font-bold text-white font-sans">
             Protected Command & Early Warning Operations
           </h3>
           <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
-            Live telemetry controls, acoustic siren interlock override, and official alert issuance require authenticated operator or administrator credentials.
+            Live telemetry monitoring, acoustic siren actuation, and official emergency bulletins for field responders and disaster management cells.
           </p>
         </div>
 
