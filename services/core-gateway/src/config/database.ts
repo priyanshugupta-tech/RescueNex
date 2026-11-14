@@ -1,5 +1,13 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+// Fix Node.js Windows SRV lookup issue (querySrv ECONNREFUSED) by using reliable DNS servers
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {
+  // silent
+}
 
 dotenv.config();
 
@@ -14,9 +22,9 @@ export const connectDatabase = async (): Promise<boolean> => {
   try {
     mongoose.set('strictQuery', false);
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 8000
     });
-    console.log('✅ [MongoDB] Connected successfully to MongoDB Atlas database.');
+    console.log(`✅ [MongoDB] Connected successfully to MongoDB Atlas database (${mongoose.connection.name}).`);
     return true;
   } catch (error: any) {
     console.warn(`⚠️ [MongoDB] Could not connect to Atlas (${error.message}). Continuing in resilient in-memory mode.`);
