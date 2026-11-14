@@ -163,7 +163,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <span>Multilingual Public Broadcast</span>
               </div>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
-                SDMA Advisory
+                Corridor Advisory
               </span>
             </div>
 

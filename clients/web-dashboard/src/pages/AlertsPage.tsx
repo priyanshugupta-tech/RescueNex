@@ -63,7 +63,7 @@ export const AlertsPage: React.FC = () => {
             <span>Emergency Alerts & Public Warning Bulletins</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real-time hazard notifications formatted in compliance with NDMA CAP v1.2 Protocol.
+            Real-time hazard notifications formatted in compliance with Common Alerting Protocol (CAP v1.2).
           </p>
         </div>
 
@@ -121,7 +121,7 @@ export const AlertsPage: React.FC = () => {
                     <button
                       onClick={() => handleDownloadCAP(alert.id)}
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono border border-slate-700 transition"
-                      title="Download NDMA CAP v1.2 XML Document"
+                      title="Download Common Alerting Protocol (CAP v1.2) XML Document"
                     >
                       <FileCode className="w-3.5 h-3.5 text-amber-400" />
                       <span>CAP XML</span>

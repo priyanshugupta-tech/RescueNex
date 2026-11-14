@@ -6,6 +6,7 @@ import { AlertsPage } from './pages/AlertsPage.tsx';
 import { AnalyticsPage } from './pages/AnalyticsPage.tsx';
 import { AuthPage } from './pages/AuthPage.tsx';
 import { AdminPage } from './pages/AdminPage.tsx';
+import { Footer } from './components/Footer.tsx';
 import { LegalModal } from './components/LegalModal.tsx';
 import { api } from './services/api.ts';
 import { socketService } from './services/socket.ts';
@@ -145,53 +146,15 @@ const MainApp: React.FC = () => {
         {currentTab === 'admin' && user?.role === 'ADMIN' && <AdminPage />}
       </main>
 
-      {/* Spacious, Authoritative Footer with Genuine Legal & Compliance Links */}
-      <footer className="border-t border-slate-800/80 bg-slate-950/90 px-6 sm:px-10 py-4 text-xs text-slate-400 font-sans shadow-inner">
-        <div className="w-full max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm text-white">
-              Rescue<span className="text-amber-400">Nex</span>
-            </span>
-            <span className="text-slate-600">•</span>
-            <span className="text-slate-400 text-[11px] font-mono">
-              Autonomous Landslide Monitoring System • Innovathon 2.0 (SDMA / BRO J&K)
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] font-medium">
-            <button
-              onClick={() => {
-                setLegalTab('terms');
-                setIsLegalOpen(true);
-              }}
-              className="text-slate-400 hover:text-white transition underline underline-offset-4 decoration-slate-700 hover:decoration-amber-400"
-            >
-              Terms of Service
-            </button>
-            <button
-              onClick={() => {
-                setLegalTab('privacy');
-                setIsLegalOpen(true);
-              }}
-              className="text-slate-400 hover:text-white transition underline underline-offset-4 decoration-slate-700 hover:decoration-amber-400"
-            >
-              Privacy Policy
-            </button>
-            <button
-              onClick={() => {
-                setLegalTab('sop');
-                setIsLegalOpen(true);
-              }}
-              className="text-slate-400 hover:text-white transition underline underline-offset-4 decoration-slate-700 hover:decoration-amber-400"
-            >
-              Disaster Advisory & SOP
-            </button>
-            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 text-[10px] font-mono">
-              NDMA CAP v1.2 Compliant
-            </span>
-          </div>
-        </div>
-      </footer>
+      {/* Rich Multi-Column Enterprise Footer */}
+      <Footer
+        onSelectTab={(tab) => setCurrentTab(tab)}
+        onOpenLegal={(tab) => {
+          setLegalTab(tab);
+          setIsLegalOpen(true);
+        }}
+        activeAlertCount={activeAlertCount}
+      />
 
       {/* Legal & Operations Dialog */}
       <LegalModal

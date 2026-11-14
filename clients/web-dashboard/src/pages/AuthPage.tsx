@@ -185,7 +185,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
             >
               <option value="PUBLIC">Public Commuter (Auto-approved)</option>
               <option value="SCOUT">SDRF Scout (Requires HQ Approval)</option>
-              <option value="OPERATOR">BRO Road Operator (Requires HQ Approval)</option>
+              <option value="OPERATOR">Field Operations Officer (Requires HQ Approval)</option>
             </select>
           </div>
 

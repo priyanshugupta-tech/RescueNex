@@ -70,7 +70,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                 RescueNex Legal & Operations Framework
               </h3>
               <p className="text-xs text-slate-400 font-mono">
-                Innovathon 2.0 • SDMA & BRO J&K Operational Guidelines
+                Real-Time Landslide Risk Analytics & Early Warning Platform
               </p>
             </div>
           </div>
@@ -131,28 +131,28 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">1. Operational Scope & Purpose</h4>
                 <p>
-                  RescueNex is an autonomous, sensor-driven early warning and landslide risk monitoring system engineered for high-altitude transit corridors, specifically National Highway 44 (NH-44 Jammu–Srinagar) and critical connecting mountain sectors in Jammu & Kashmir. The system is designed to provide real-time geotechnical telemetry to disaster authorities, Border Roads Organisation (BRO), and State Disaster Management Authorities (SDMA).
+                  RescueNex is an autonomous, sensor-driven early warning and landslide risk monitoring platform engineered for high-altitude transit corridors, specifically National Highway 44 (NH-44 Jammu–Srinagar) and critical connecting mountain sectors in Jammu & Kashmir. The system is designed to provide real-time geotechnical telemetry to regional disaster response cells, emergency command hubs, and field operations teams.
                 </p>
               </div>
 
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">2. Advisory Nature of Predictive Indices</h4>
                 <p>
-                  The Landslide Susceptibility Index (LSI), slope tilt magnitude, and soil moisture calculations represent automated statistical and machine learning projections derived from deployed hardware sensor nodes (MPU-6050 accelerometer/gyroscope, capacitive soil probes, and Open-Meteo precipitation feeds). While calibrated for high sensitivity, these predictions serve as decision-support alerts. Official vehicular traffic closure, evacuation notices, and emergency orders remain subject to field verification by on-site BRO Project BEACON units and Jammu & Kashmir Traffic Police.
+                  The Landslide Susceptibility Index (LSI), slope tilt magnitude, and soil moisture calculations represent automated statistical and machine learning projections derived from deployed hardware sensor nodes (MPU-6050 accelerometer/gyroscope, capacitive soil probes, and Open-Meteo precipitation feeds). While calibrated for high sensitivity, these predictions serve as decision-support alerts. Official vehicular traffic closure, evacuation notices, and emergency orders remain subject to field verification by on-site corridor maintenance teams and traffic safety authorities.
                 </p>
               </div>
 
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">3. Common Alerting Protocol (CAP v1.2) Compliance</h4>
                 <p>
-                  All hazard advisories and XML exports published by RescueNex comply with the National Disaster Management Authority (NDMA) Common Alerting Protocol (CAP) v1.2 specifications. Automated bulletins are signed with operational timestamps and sector geocodes for cross-agency dispatch.
+                  All hazard advisories and XML exports published by RescueNex comply with the standard Common Alerting Protocol (CAP) v1.2 specifications. Automated bulletins are signed with operational timestamps and sector geocodes for cross-agency dispatch.
                 </p>
               </div>
 
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">4. Emergency Siren & Acoustic Override Protocol</h4>
                 <p>
-                  Acoustic siren activation transmits real-time actuation signals to physical sector horns. Manual activation requires strict two-man integrity confirmation (<code className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-amber-300">CONFIRM_DISASTER_OVERRIDE</code>). Unauthorised or malicious siren activation constitutes a violation of state disaster management codes.
+                  Acoustic siren activation transmits real-time actuation signals to physical sector horns. Manual activation requires strict two-man integrity confirmation (<code className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-amber-300">CONFIRM_DISASTER_OVERRIDE</code>). Unauthorised or malicious siren activation constitutes a violation of operational safety codes.
                 </p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">3. Authorized Operator Account Data</h4>
                 <p>
-                  Designated incident commanders, scouts, and BRO operators provide credentials (official email, agency affiliation, and contact details) for role-based access control. Passwords are cryptographically hashed using standard Bcrypt routines with salted rounds, and access tokens are signed using high-entropy JWT keys. Operator activity (including siren triggers and alert acknowledgements) is retained in an immutable audit log for inter-agency accountability.
+                  Designated incident commanders, scouts, and field response operators provide credentials (official email, agency affiliation, and contact details) for role-based access control. Passwords are cryptographically hashed using standard Bcrypt routines with salted rounds, and access tokens are signed using high-entropy JWT keys. Operator activity (including siren triggers and alert acknowledgements) is retained in an immutable audit log for operational accountability.
                 </p>
               </div>
 
@@ -216,7 +216,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                     <span>LEVEL 2: ADVISORY</span>
                   </div>
                   <p className="text-slate-400 font-sans text-xs">
-                    LSI 40–74 or heavy rain &gt; 15mm/h. Vernacular public broadcast triggered. BRO patrol notified.
+                    LSI 40–74 or heavy rain &gt; 15mm/h. Vernacular public broadcast triggered. Patrol units notified.
                   </p>
                 </div>
 
@@ -232,11 +232,11 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">Emergency Agency Coordination Contacts</h4>
+                <h4 className="text-sm font-bold text-white mb-1">Emergency Operations Coordination Contacts</h4>
                 <ul className="list-disc pl-5 space-y-1 text-slate-350">
-                  <li><strong>SDMA State Emergency Operations Centre (SEOC):</strong> Srinagar / Jammu Helpline: 1070 / 1077</li>
-                  <li><strong>Border Roads Organisation (BRO Project BEACON):</strong> Ramban–Banihal Control Cell</li>
-                  <li><strong>Innovathon 2.0 Technical Mission Lead:</strong> lead@rescuenex.org</li>
+                  <li><strong>Regional Emergency Operations Centre (EOC):</strong> Highway Emergency Helpline: 1070 / 1077</li>
+                  <li><strong>Mountain Highway Operations Cell:</strong> Ramban–Banihal Dispatch Control</li>
+                  <li><strong>Technical Mission Operations:</strong> lead@rescuenex.org</li>
                 </ul>
               </div>
             </div>

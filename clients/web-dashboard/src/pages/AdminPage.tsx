@@ -47,7 +47,7 @@ export const AdminPage: React.FC = () => {
             <span>HQ Command & Personnel Authorization</span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Main Admin verification queue for SDRF Scouts and BRO Road Operators.
+            Main verification queue for Incident Commanders and Field Response Operators.
           </p>
         </div>
 
