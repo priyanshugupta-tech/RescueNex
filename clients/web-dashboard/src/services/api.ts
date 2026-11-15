@@ -19,22 +19,37 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Automatically handle token refresh on 401
+// Automatically handle token refresh on 401 / 403 expired token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/api/auth/')) {
-      originalRequest._retry = true;
-      try {
-        const refreshRes = await axios.get('/api/auth/tokengen', { withCredentials: true });
-        if (refreshRes.data.accessToken) {
-          localStorage.setItem('rescuenex_token', refreshRes.data.accessToken);
-          originalRequest.headers.Authorization = `Bearer ${refreshRes.data.accessToken}`;
-          return api(originalRequest);
+    if (
+      (error.response?.status === 401 || error.response?.status === 403) &&
+      !originalRequest._retry
+    ) {
+      const url = originalRequest.url || '';
+      // Skip refreshing on login, signup, OTP, logout, or tokengen itself
+      if (
+        !url.includes('/api/auth/login') &&
+        !url.includes('/api/auth/signup') &&
+        !url.includes('/api/auth/verify-otp') &&
+        !url.includes('/api/auth/otp') &&
+        !url.includes('/api/auth/tokengen') &&
+        !url.includes('/api/auth/logout')
+      ) {
+        originalRequest._retry = true;
+        try {
+          const refreshRes = await axios.get('/api/auth/tokengen', { withCredentials: true });
+          if (refreshRes.data.accessToken) {
+            localStorage.setItem('rescuenex_token', refreshRes.data.accessToken);
+            originalRequest.headers.Authorization = `Bearer ${refreshRes.data.accessToken}`;
+            return api(originalRequest);
+          }
+        } catch (refreshErr) {
+          localStorage.removeItem('rescuenex_token');
+          localStorage.removeItem('rescuenex_user');
         }
-      } catch (refreshErr) {
-        localStorage.removeItem('rescuenex_token');
       }
     }
     return Promise.reject(error);

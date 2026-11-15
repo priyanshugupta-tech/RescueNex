@@ -1,9 +1,10 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { MountainSector, NodeTelemetry } from '../types/index.ts';
+import { GeoLocation } from '../utils/geoUtils.ts';
 
-// Fix Leaflet's default marker icons in React
+// Fix Leaflet default marker icons in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -11,137 +12,266 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Custom Node Icon for the live physical ESP32 GPS
-const createNodeIcon = (isWarning: boolean) => L.divIcon({
-  className: 'custom-node-pin',
-  html: `
-    <div class="relative flex items-center justify-center">
-      <div class="w-4 h-4 rounded-full ${isWarning ? 'bg-rose-500' : 'bg-sky-500'} border-2 border-white shadow"></div>
-      <div class="absolute -top-6 px-1.5 py-0.5 rounded bg-[#161B22] text-[10px] font-mono text-white font-bold border border-[#30363D] whitespace-nowrap">
-        ESP32-GPS
+// Custom IoT Node Pin with dynamic risk color
+const createNodeIcon = (risk: 'SAFE' | 'WARNING' | 'CRITICAL', nodeId: string) => {
+  const dotColor = risk === 'CRITICAL' ? 'bg-rose-500 animate-ping' : risk === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500';
+  const badgeColor = risk === 'CRITICAL' ? 'text-rose-400' : risk === 'WARNING' ? 'text-amber-400' : 'text-emerald-400';
+  return L.divIcon({
+    className: 'custom-node-pin',
+    html: `
+      <div class="relative flex items-center justify-center">
+        <div class="w-4 h-4 rounded-full ${dotColor} border-2 border-white shadow"></div>
+        <div class="absolute -top-6 px-1.5 py-0.5 rounded bg-[#161B22] text-[9px] font-mono ${badgeColor} font-bold border border-[#30363D] whitespace-nowrap shadow-md">
+          📡 ${nodeId.replace('NODE_', '')}
+        </div>
       </div>
-    </div>
-  `,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+};
+
+// Custom User Location Pin with dynamic color matching 10 km threat status
+const createUserPinIcon = (isGPS: boolean, threatColor: string = '#10B981') =>
+  L.divIcon({
+    className: 'custom-user-pin',
+    html: `
+      <div class="relative flex items-center justify-center">
+        <div class="w-5 h-5 rounded-full border-2 border-white shadow-xl flex items-center justify-center" style="background-color: ${threatColor};">
+          <div class="w-2 h-2 rounded-full bg-slate-950"></div>
+        </div>
+        <div class="absolute -top-7 px-2 py-0.5 rounded text-slate-950 text-[10px] font-mono font-extrabold uppercase border shadow whitespace-nowrap font-sans font-bold" style="background-color: ${threatColor}; border-color: ${threatColor};">
+          📍 ${isGPS ? 'YOU (GPS)' : 'YOU'}
+        </div>
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+
+interface MapRecenterProps {
+  center: [number, number];
+}
+
+const MapRecenter: React.FC<MapRecenterProps> = ({ center }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo(center, 12, { duration: 1.2 });
+  }, [center, map]);
+  return null;
+};
 
 interface GisMapProps {
   sectors: MountainSector[];
   telemetry: NodeTelemetry | null;
-  liveGps: { lat: number | null; lon: number | null; fix: boolean };
+  nodes?: NodeTelemetry[];
+  userLocation: GeoLocation | null;
+  radiusKm?: number;
+  threatColor?: string;
+  threatLevel?: string;
 }
 
-export const GisMap: React.FC<GisMapProps> = ({ sectors, telemetry, liveGps }) => {
-  // Strategic Mountain Transit Corridor Anchor Points
+export const GisMap: React.FC<GisMapProps> = ({
+  sectors,
+  telemetry,
+  nodes = [],
+  userLocation,
+  radiusKm = 10,
+  threatColor = '#10B981',
+  threatLevel = 'SAFE'
+}) => {
+  // Strategic Mountain Transit Corridor Line (Himalayan Stretch)
   const transitCorridor: [number, number][] = [
-    [33.1500, 75.3000], // South Tunnel Entry
-    [33.2450, 75.2400], // Central Valley Stretch
-    [33.3600, 75.2000], // Mid Elevation Zone
-    [33.5100, 75.1800], // High Pass Tunnel
-    [33.6000, 75.1500]  // North Entrance
+    [32.9250, 75.1400], // Udhampur Portal
+    [33.0911, 75.3283], // Patnitop / Nashri
+    [33.1600, 75.3200], // Batote
+    [33.2422, 75.2443], // Ramban / Chanderkote
+    [33.4975, 75.2014], // Banihal Tunnel
+    [34.0837, 74.7973]  // Srinagar Terminal
   ];
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'CRITICAL': return '#EF4444'; // Muted Crimson
-      case 'WARNING': return '#F59E0B';  // Warm Amber
-      case 'LOW': return '#38BDF8';      // Soft Sky
-      default: return '#10B981';         // Emerald
+      case 'CRITICAL': return '#EF4444';
+      case 'WARNING': return '#F59E0B';
+      case 'LOW': return '#38BDF8';
+      default: return '#10B981';
     }
   };
 
-  const isCritical = telemetry && telemetry.tiltMagnitude > 4.0;
-  const mapCenterLat = (liveGps.lat !== null) ? liveGps.lat : 33.35;
-  const mapCenterLon = (liveGps.lon !== null) ? liveGps.lon : 75.20;
+  // Center on user location if set, else on primary Ramban corridor
+  const centerLat = userLocation?.latitude || 33.2422;
+  const centerLon = userLocation?.longitude || 75.2443;
+
+  // Active nodes list: either passed array or single telemetry
+  const displayNodes = nodes.length > 0 ? nodes : (telemetry ? [telemetry] : []);
 
   return (
-    <div className="relative w-full h-[520px] rounded-none overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+    <div className="relative w-full h-[540px] rounded-none overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl">
       <MapContainer
-        center={[mapCenterLat, mapCenterLon]}
+        center={[centerLat, centerLon]}
         zoom={11}
         scrollWheelZoom={true}
         className="w-full h-full z-0"
       >
-        {/* Dark Tactical CartoDB TileLayer */}
+        <MapRecenter center={[centerLat, centerLon]} />
+
+        {/* 100% Free OpenStreetMap Basemap Layer (No API Key Required) */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
         />
 
-        {/* Mountain Transit Corridor */}
+        {/* Mountain Highway Transit Corridor Line */}
         <Polyline
           positions={transitCorridor}
-          pathOptions={{ color: '#F59E0B', weight: 3, opacity: 0.6, dashArray: '6, 8' }}
+          pathOptions={{ color: '#F59E0B', weight: 3.5, opacity: 0.7, dashArray: '6, 8' }}
         />
+
+        {/* 10 KM User Geofence Radar Circle with Dynamic Threat Color */}
+        {userLocation && typeof userLocation.latitude === 'number' && typeof userLocation.longitude === 'number' && !isNaN(userLocation.latitude) && !isNaN(userLocation.longitude) && (
+          <>
+            <Circle
+              center={[userLocation.latitude, userLocation.longitude]}
+              radius={radiusKm * 1000} // in meters
+              pathOptions={{
+                color: threatColor,
+                fillColor: threatColor,
+                fillOpacity: 0.10,
+                weight: 2,
+                dashArray: '5, 5'
+              }}
+            >
+              <Popup>
+                <div className="p-1 font-sans text-xs">
+                  <p className="font-bold" style={{ color: threatColor }}>
+                    Your 10 km Area ({threatLevel})
+                  </p>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Live dynamic risk radar. Green = Normal, Yellow = Warning, Red = Critical Hazard.
+                  </p>
+                </div>
+              </Popup>
+            </Circle>
+
+            <Marker
+              position={[userLocation.latitude, userLocation.longitude]}
+              icon={createUserPinIcon(userLocation.source === 'GPS', threatColor)}
+            >
+              <Popup>
+                <div className="p-1.5 font-sans text-xs">
+                  <p className="font-bold text-slate-900">
+                    {userLocation.cityName || 'Selected Transit Location'}
+                  </p>
+                  <p className="text-[11px] text-slate-600 font-mono">
+                    {userLocation.latitude.toFixed(4)}° N, {userLocation.longitude.toFixed(4)}° E
+                  </p>
+                  <p className="text-[10px] font-bold mt-1" style={{ color: threatColor }}>
+                    Status: {threatLevel} (10 km Radius Active)
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          </>
+        )}
 
         {/* Mountain Sector Radii */}
         {sectors.map((sec) => (
           <Circle
             key={sec.id}
             center={[sec.latitude, sec.longitude]}
-            radius={2200}
+            radius={2500}
             pathOptions={{
               color: getRiskColor(sec.currentRiskLevel),
               fillColor: getRiskColor(sec.currentRiskLevel),
-              fillOpacity: 0.15,
+              fillOpacity: 0.18,
               weight: 1.5
             }}
           >
-            <Popup className="tactical-popup">
+            <Popup>
               <div className="p-1 font-sans text-xs">
                 <p className="font-bold text-slate-900">{sec.name}</p>
-                <p className="text-[11px] text-slate-600 font-mono">{sec.kmMarker || 'Active Observation Zone'}</p>
-                <div className="mt-1 flex items-center justify-between border-t pt-1">
-                  <span className="font-semibold text-slate-800">Risk Level:</span>
+                <p className="text-[11px] text-slate-600 font-mono">
+                  {sec.highway} • {sec.kmMarker}
+                </p>
+                <div className="mt-1 flex items-center justify-between font-mono text-[11px]">
+                  <span>LSI Risk:</span>
                   <span className="font-bold" style={{ color: getRiskColor(sec.currentRiskLevel) }}>
-                    {sec.currentRiskLevel} ({sec.lsiScore}/100)
+                    {sec.currentRiskLevel} ({sec.lsiScore})
                   </span>
                 </div>
+                {sec.sirenActive && (
+                  <p className="text-[10px] text-rose-600 font-bold mt-1 animate-pulse">
+                    🚨 Evacuation Siren Triggered
+                  </p>
+                )}
               </div>
             </Popup>
           </Circle>
         ))}
 
-        {/* Physical Node Real GPS Marker */}
-        {liveGps.fix && liveGps.lat !== null && liveGps.lon !== null && (
-          <Marker
-            position={[liveGps.lat, liveGps.lon]}
-            icon={createNodeIcon(isCritical || false)}
-          >
-            <Popup>
-              <div className="p-1.5 font-sans text-xs">
-                <p className="font-bold text-slate-900 flex items-center gap-1">
-                  <span>ESP32 Physical Node</span>
-                  <span className="text-[10px] px-1 py-0.2 bg-sky-100 text-sky-800 rounded font-mono">LIVE GPS</span>
-                </p>
-                <div className="mt-1 space-y-0.5 text-[11px] text-slate-700 font-mono">
-                  <p>Lat/Lon: {liveGps.lat.toFixed(4)}°, {liveGps.lon.toFixed(4)}°</p>
-                  <p>Tilt Angle: {telemetry ? `${telemetry.tiltMagnitude}°` : '2.1°'}</p>
-                  <p>Soil Moisture: {telemetry ? `${telemetry.soilMoisturePct}%` : '65%'}</p>
-                  <p>Battery: {telemetry ? `${telemetry.batteryPct}%` : '92%'}</p>
+        {/* Live IoT Sensor Nodes with Dynamic Risk Colors */}
+        {displayNodes.map((n) => {
+          if (!n || typeof n.latitude !== 'number' || typeof n.longitude !== 'number' || isNaN(n.latitude) || isNaN(n.longitude)) {
+            return null;
+          }
+          const tilt = n.tiltMagnitude || 0;
+          const nodeRisk: 'SAFE' | 'WARNING' | 'CRITICAL' =
+            tilt >= 4.0 ? 'CRITICAL' : tilt >= 2.0 ? 'WARNING' : 'SAFE';
+
+          return (
+            <Marker
+              key={n.nodeId}
+              position={[n.latitude, n.longitude]}
+              icon={createNodeIcon(nodeRisk, n.nodeId)}
+            >
+              <Popup>
+                <div className="p-1.5 font-sans text-xs">
+                  <p className="font-bold text-slate-900 flex items-center gap-1">
+                    <span>Slope Sensor: {n.nodeId}</span>
+                    <span
+                      className="text-[9px] px-1 py-0.5 rounded font-mono font-bold text-white"
+                      style={{ backgroundColor: nodeRisk === 'CRITICAL' ? '#EF4444' : nodeRisk === 'WARNING' ? '#F59E0B' : '#10B981' }}
+                    >
+                      {nodeRisk}
+                    </span>
+                  </p>
+                  <div className="mt-1 space-y-0.5 text-[11px] text-slate-700 font-mono">
+                    <p>Coordinates: {n.latitude.toFixed(4)}° N, {n.longitude.toFixed(4)}° E</p>
+                    <p>Tilt: {tilt}° | Moisture: {n.soilMoisturePct ?? 0}%</p>
+                    <p>Vibration: {n.vibrationDetected ? 'DETECTED' : 'NORMAL'}</p>
+                  </div>
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        )}
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
 
       {/* Map Legend Overlay */}
-      <div className="absolute bottom-3 left-3 z-[1000] p-2.5 rounded-lg bg-slate-900/90 backdrop-blur border border-slate-800 text-[11px] font-mono space-y-1 shadow-lg">
-        <p className="font-bold text-slate-300 font-sans uppercase text-[10px] tracking-wider mb-1">Sector Threat Matrix</p>
+      <div className="absolute bottom-3 left-3 z-[1000] p-2.5 rounded-none bg-slate-950/90 backdrop-blur border border-slate-800 text-[11px] font-mono space-y-1 shadow-2xl">
+        <p className="font-bold text-slate-300 font-sans uppercase text-[10px] tracking-wider mb-1">
+          Live Status Matrix
+        </p>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span className="text-slate-300">Stable / Low Risk (&lt;40)</span>
+          <span className="text-slate-300">Green: Normal / Stable</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-          <span className="text-slate-300">Moderate Threat (40-74)</span>
+          <span className="text-slate-300">Yellow: Active Warning</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-          <span className="text-slate-300">Critical Displacement (&ge;75)</span>
+          <span className="text-slate-300">Red: Critical Hazard</span>
         </div>
+        {userLocation && (
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
+            <span className="w-2.5 h-2.5 border border-dashed" style={{ borderColor: threatColor, backgroundColor: `${threatColor}33` }}></span>
+            <span className="font-bold" style={{ color: threatColor }}>Your 10 km Circle ({threatLevel})</span>
+          </div>
+        )}
       </div>
     </div>
   );

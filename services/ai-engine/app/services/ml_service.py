@@ -124,7 +124,7 @@ class MLService:
 
         # 5. Recommended Operational Actions
         if risk_level == 'CRITICAL':
-            rec_action = "CRITICAL THREAT: Trigger physical siren immediately. Evacuate downhill corridor, halt NH-44 traffic, and deploy SDRF rescue teams."
+            rec_action = "CRITICAL THREAT: Trigger physical siren immediately. Evacuate downhill corridor, halt mountain corridor traffic, and deploy SDRF rescue teams."
         elif risk_level == 'WARNING':
             rec_action = "WARNING ELEVATED: Divert heavy civilian vehicles, place BRO earthmovers on immediate standby, and issue emergency radio advisories."
         elif risk_level == 'ADVISORY':

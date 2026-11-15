@@ -1,52 +1,94 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
-import { EmergencyAlert } from '../types/index.ts';
+import { offlineCache } from '../services/offlineCache.ts';
+import { offlineSync } from '../services/offlineSync.ts';
+import { EmergencyAlert, MountainSector, FieldReport } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { 
-  AlertTriangle, 
-  Download, 
-  CheckCircle, 
-  MapPin, 
-  Clock, 
-  FileCode,
-  ShieldCheck,
-  Loader2
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
+import { Loader2, ShieldAlert, PlusCircle } from 'lucide-react';
 
-export const AlertsPage: React.FC = () => {
+interface AlertsPageProps {
+  userLocation: GeoLocation | null;
+  sectors?: MountainSector[];
+  onOpenLocationModal?: () => void;
+  onOpenReportModal?: () => void;
+}
+
+export const AlertsPage: React.FC<AlertsPageProps> = ({
+  userLocation,
+  sectors = [],
+  onOpenLocationModal,
+  onOpenReportModal
+}) => {
   const { user } = useAuth();
   const [activeAlerts, setActiveAlerts] = useState<EmergencyAlert[]>([]);
-  const [historyAlerts, setHistoryAlerts] = useState<EmergencyAlert[]>([]);
+  const [fieldReports, setFieldReports] = useState<FieldReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionSuccess, setActionSuccess] = useState('');
 
-  const fetchAlerts = async () => {
+  const userLat = Number(userLocation?.latitude) || 33.2422;
+  const userLon = Number(userLocation?.longitude) || 75.2443;
+  const isAuthorizedFieldPersonnel = ['SCOUT', 'OPERATOR', 'ADMIN'].includes(user?.role || '');
+
+  const fetchAlertsAndReports = async () => {
     try {
-      const res = await api.get('/api/alerts');
-      if (res.data.success) {
-        setActiveAlerts(res.data.activeAlerts || []);
-        setHistoryAlerts(res.data.history || []);
+      // 1. Fetch Alerts
+      const alertsRes = await api.get('/api/alerts');
+      if (alertsRes.data.success) {
+        const loadedAlerts = alertsRes.data.activeAlerts || [];
+        setActiveAlerts(loadedAlerts);
+        offlineCache.save('alerts', loadedAlerts);
+      }
+
+      // 2. Fetch Field Scout Reports within 10 km
+      const reportsRes = await api.get(
+        `/api/scout/reports?lat=${userLat}&lon=${userLon}&radiusKm=10`
+      );
+      if (reportsRes.data.success) {
+        const loadedReports = reportsRes.data.reports || [];
+        setFieldReports(loadedReports);
+        offlineCache.save('field_reports', loadedReports);
       }
     } catch (e) {
-      console.error('Failed to load alerts', e);
+      console.warn('Network unreachable, falling back to offline cache:', e);
+      const cachedAlerts = offlineCache.get<EmergencyAlert[]>('alerts', []);
+      setActiveAlerts(cachedAlerts);
+      const cachedReports = offlineCache.get<FieldReport[]>('field_reports', []);
+      setFieldReports(cachedReports);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAlerts();
-  }, []);
+    fetchAlertsAndReports();
+    const interval = setInterval(fetchAlertsAndReports, 5000);
+    return () => clearInterval(interval);
+  }, [userLat, userLon]);
 
   const handleAcknowledge = async (alertId: string) => {
-    try {
-      await api.post(`/api/alerts/${alertId}/acknowledge`);
-      setActionSuccess(`Alert ${alertId} acknowledged.`);
-      setTimeout(() => setActionSuccess(''), 3000);
-      fetchAlerts();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to acknowledge alert.');
+    const isOnline = offlineSync.getOnlineStatus();
+    if (isOnline) {
+      try {
+        await api.post(`/api/alerts/${alertId}/acknowledge`);
+        setActionSuccess(`Alert ${alertId} acknowledged.`);
+        setTimeout(() => setActionSuccess(''), 3000);
+        fetchAlertsAndReports();
+      } catch (e: any) {
+        offlineSync.enqueueAction('ALERT_ACK', {
+          alertId,
+          acknowledgedBy: user?.fullName || 'Operator'
+        });
+        setActionSuccess(`[Offline] Acknowledgment queued. Will auto-sync when online.`);
+        setTimeout(() => setActionSuccess(''), 3500);
+      }
+    } else {
+      offlineSync.enqueueAction('ALERT_ACK', {
+        alertId,
+        acknowledgedBy: user?.fullName || 'Operator'
+      });
+      setActionSuccess(`[Offline] Acknowledgment saved in local outbox.`);
+      setTimeout(() => setActionSuccess(''), 3500);
     }
   };
 
@@ -54,63 +96,152 @@ export const AlertsPage: React.FC = () => {
     window.open(`/api/alerts/${alertId}/cap-xml`, '_blank');
   };
 
+  // Associate each alert with geographical distance to user location
+  const computeAlertDistance = (alert: EmergencyAlert) => {
+    const sec = sectors.find((s) => s.id === alert.sectorId);
+    if (sec && typeof sec.latitude === 'number' && typeof sec.longitude === 'number') {
+      return calculateDistanceKm(userLat, userLon, sec.latitude, sec.longitude);
+    }
+    return 999;
+  };
+
+  const alertsWithDistance = activeAlerts.map((a) => {
+    const dist = computeAlertDistance(a);
+    return {
+      ...a,
+      distanceKm: dist,
+      isWithin10Km: dist <= 10.0
+    };
+  }).sort((a, b) => a.distanceKm - b.distanceKm);
+
+  // Strictly filter to 10 km geofence
+  const displayedAlerts = alertsWithDistance.filter((a) => a.isWithin10Km);
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div>
-          <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-rose-400" />
-            <span>Emergency Alerts & Public Warning Bulletins</span>
+          <h2 className="text-lg font-bold text-white uppercase tracking-wider font-mono">
+            Emergency Alerts & Public Warning Bulletins
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Real-time hazard notifications formatted in compliance with Common Alerting Protocol (CAP v1.2).
+          <p className="text-xs text-slate-400 mt-0.5 font-sans">
+            Hazard advisories and evacuation notices for your active 10 km transit perimeter.
           </p>
         </div>
 
-        {actionSuccess && (
-          <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
-            ✓ {actionSuccess}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {actionSuccess && (
+            <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-none border border-emerald-500/30">
+              {actionSuccess}
+            </span>
+          )}
+
+          {onOpenReportModal && isAuthorizedFieldPersonnel && (
+            <button
+              onClick={onOpenReportModal}
+              className="px-3 py-1.5 rounded-none bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold flex items-center gap-1.5 transition shadow-sm"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Report Hazard</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* User Location Context Banner */}
+      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <div className="space-y-1 font-mono text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-300 uppercase tracking-wide">
+              Active Transit Corridor:
+            </span>
+            <span className="font-bold text-amber-400 bg-[#0D1117] px-2 py-0.5 border border-[#30363D]">
+              {userLocation?.cityName || 'Ramban Central'}
+            </span>
+            <span className="text-slate-400 text-[11px]">
+              ({userLat.toFixed(2)}°N, {userLon.toFixed(2)}°E)
+            </span>
+          </div>
+
+          <p className="text-xs font-sans mt-0.5">
+            {displayedAlerts.length > 0 ? (
+              <span className="text-rose-400 font-bold font-mono">
+                [!] {displayedAlerts.length} hazard bulletin(s) active inside your 10 km zone.
+              </span>
+            ) : (
+              <span className="text-emerald-400 font-sans">
+                Status: Normal. No active slope failure detected within 10 km.
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onOpenReportModal && isAuthorizedFieldPersonnel && (
+            <button
+              onClick={onOpenReportModal}
+              className="px-3 py-1.5 rounded-none bg-[#21262D] hover:bg-[#30363D] text-amber-400 border border-amber-500/30 text-xs font-mono font-medium transition"
+            >
+              + Field Report
+            </button>
+          )}
+          {onOpenLocationModal && (
+            <button
+              onClick={onOpenLocationModal}
+              className="px-3 py-1.5 rounded-none bg-[#21262D] hover:bg-[#30363D] text-slate-300 border border-[#30363D] text-xs font-mono font-medium transition"
+            >
+              Edit Location
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Active Alerts List */}
       <div className="space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
-          Active Disaster Bulletins ({activeAlerts.length})
-        </h3>
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
+            Advisories Within 10 km ({displayedAlerts.length})
+          </h3>
+        </div>
 
         {loading ? (
           <div className="py-12 flex flex-col items-center justify-center text-center space-y-2">
-            <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
-            <p className="text-xs text-slate-400 font-mono">Loading active disaster bulletins...</p>
+            <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
+            <p className="text-xs text-slate-400 font-mono">Checking regional hazard feeds...</p>
           </div>
-        ) : activeAlerts.length === 0 ? (
-          <div className="p-8 rounded-none bg-slate-900/60 border border-slate-800 text-center space-y-2">
-            <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto" />
-            <p className="text-sm font-semibold text-slate-200">No Critical Landslide Threats Active</p>
-            <p className="text-xs text-slate-500">All monitored mountain corridors are reporting stable slope conditions.</p>
+        ) : displayedAlerts.length === 0 ? (
+          <div className="p-6 rounded-none bg-[#161B22] border border-[#30363D] text-center space-y-1">
+            <p className="text-xs font-bold text-emerald-400 font-mono uppercase tracking-wider">
+              [ STATUS: NORMAL ]
+            </p>
+            <p className="text-xs text-slate-300 font-sans mt-1">
+              10 km transit perimeter around {userLocation?.cityName || 'current location'} is stable.
+            </p>
+            <p className="text-[11px] text-slate-500 font-mono">
+              Highway traffic running normally. Drive safely and observe corridor markers.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {activeAlerts.map((alert) => {
+            {displayedAlerts.map((alert) => {
               const alertId = alert.id || (alert as any).alertId || 'ALERT';
               const level = (alert as any).level || (alert as any).riskLevel || 'WARNING';
               const enMsg = (alert as any).descriptions?.en || alert.multilingual?.en || (alert as any).headline || 'Emergency bulletin active.';
               const hiMsg = (alert as any).descriptions?.hi || alert.multilingual?.hi || 'भूस्खलन चेतावनी सक्रिय।';
               const cause = alert.triggerCause || (alert as any).headline || 'Slope Deformation Threshold Exceeded';
-              const km = alert.kmMarker || 'NH-44 Corridor';
+              const km = alert.kmMarker || 'Transit Corridor';
+              const dist = alert.distanceKm;
 
               return (
                 <div 
                   key={alertId}
-                  className="p-4 rounded-none border border-[#30363D] bg-[#161B22]"
+                  className="p-4 rounded-none border border-rose-600 bg-[#161B22] shadow transition"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2.5 py-0.5 rounded-none text-[10px] font-mono font-bold ${
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded-none text-[10px] font-mono font-bold ${
                         level === 'CRITICAL'
                           ? 'bg-rose-600 text-white'
                           : 'bg-amber-600 text-white'
@@ -123,49 +254,48 @@ export const AlertsPage: React.FC = () => {
                       <span className="text-xs font-mono text-slate-400">
                         {km}
                       </span>
+                      {dist !== undefined && dist < 999 && (
+                        <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                          {dist} km from you
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* CAP XML Download Button */}
                       <button
                         onClick={() => handleDownloadCAP(alertId)}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono border border-slate-700 transition"
-                        title="Download Common Alerting Protocol (CAP v1.2) XML Document"
+                        className="px-2.5 py-1 rounded-none bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono border border-slate-700 transition"
+                        title="Download XML Document"
                       >
-                        <FileCode className="w-3.5 h-3.5 text-amber-400" />
-                        <span>CAP XML</span>
+                        CAP XML
                       </button>
 
-                      {/* Operator Acknowledge Button */}
                       {['ADMIN', 'OPERATOR'].includes(user?.role || '') && alert.status === 'ACTIVE' && (
                         <button
                           onClick={() => handleAcknowledge(alertId)}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition"
+                          className="px-3 py-1 rounded-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition"
                         >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          <span>Acknowledge</span>
+                          Acknowledge
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Multilingual Messages */}
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                    <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
-                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">English</span>
-                      <p className="text-slate-300 mt-0.5">{enMsg}</p>
+                    <div className="p-3 rounded-none bg-[#0D1117] border border-[#21262D]">
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">English Advisory</span>
+                      <p className="text-slate-200 mt-1 font-sans leading-relaxed">{enMsg}</p>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
-                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">हिंदी</span>
-                      <p className="text-slate-300 mt-0.5 font-sans">{hiMsg}</p>
+                    <div className="p-3 rounded-none bg-[#0D1117] border border-[#21262D]">
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">हिंदी चेतावनी</span>
+                      <p className="text-slate-200 mt-1 font-sans leading-relaxed">{hiMsg}</p>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 font-mono border-t border-slate-800/60 pt-2">
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 font-mono border-t border-[#21262D] pt-2">
                     <span>Trigger Cause: {cause}</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'Just now'}
+                    <span>
+                      Recorded: {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'Just now'}
                     </span>
                   </div>
                 </div>
@@ -175,30 +305,81 @@ export const AlertsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Historical Audit Trail */}
-      {historyAlerts.length > 0 && (
-        <div className="space-y-3 pt-4 border-t border-slate-800">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
-            Past Incident Audit History
-          </h3>
-          <div className="rounded-none border border-slate-800 overflow-hidden bg-slate-900/60 text-xs">
-            <div className="divide-y divide-slate-800/80">
-              {historyAlerts.slice(0, 5).map((h) => (
-                <div key={h.id || (h as any).alertId || Math.random()} className="p-3 flex items-center justify-between gap-3">
-                  <div>
-                    <span className="font-semibold text-slate-200">{h.sectorName}</span>
-                    <span className="text-slate-400 font-mono text-[11px] ml-2">({h.triggerCause || (h as any).headline || 'Historical alert'})</span>
+      {/* Ground Scout & Commuter Field Observations (Strictly 10 km Geofenced) */}
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-amber-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
+              Ground Scout Field Reports Within 10 km ({fieldReports.length})
+            </h3>
+          </div>
+          {onOpenReportModal && isAuthorizedFieldPersonnel && (
+            <button
+              onClick={onOpenReportModal}
+              className="text-xs font-mono text-amber-400 hover:text-amber-300 underline"
+            >
+              + Submit Observation
+            </button>
+          )}
+        </div>
+
+        {fieldReports.length === 0 ? (
+          <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] text-slate-400 text-xs font-mono">
+            No ground hazard observations registered within 10 km of this corridor.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {fieldReports.map((report) => {
+              const sevBadge =
+                report.severity === 'CRITICAL'
+                  ? 'bg-rose-600 text-white'
+                  : report.severity === 'HIGH'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-blue-600 text-white';
+
+              return (
+                <div
+                  key={report.id}
+                  className="p-3 bg-[#161B22] border border-[#30363D] rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-1.5 py-0.5 text-[10px] font-bold ${sevBadge}`}>
+                        {report.severity}
+                      </span>
+                      <span className="text-white font-sans font-semibold">
+                        {report.hazardType.replace('_', ' ')}
+                      </span>
+                      <span className="text-slate-400 text-[11px]">
+                        at {report.cityName || 'Corridor Point'}
+                      </span>
+                      {report.distanceKm !== undefined && (
+                        <span className="text-amber-400 font-bold text-[11px]">
+                          ({report.distanceKm} km away)
+                        </span>
+                      )}
+                      {report.source === 'OFFLINE_SYNC' && (
+                        <span className="px-1 text-[9px] bg-slate-800 text-slate-300 border border-slate-700">
+                          [OFFLINE SYNCED]
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-300 font-sans text-xs">
+                      {report.description}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
-                    <span>{h.timestamp ? new Date(h.timestamp).toLocaleDateString() : 'Recent'}</span>
-                    <span className="text-emerald-400">{h.status || 'RESOLVED'}</span>
+
+                  <div className="text-right text-[11px] text-slate-400 shrink-0">
+                    <p className="text-slate-300">{report.userName}</p>
+                    <p>{new Date(report.reportedAt).toLocaleTimeString()}</p>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
     </div>
   );

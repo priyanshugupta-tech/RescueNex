@@ -3,6 +3,7 @@ import { stateService } from './state.service.js';
 import { EmergencyAlert, LSIResult, MountainSector } from '../types/index.js';
 import { AlertModel } from '../models/alert.model.js';
 import { isDatabaseConnected } from '../config/database.js';
+import { broadcastService } from './broadcast.service.js';
 
 export class AlertService {
   private io?: Server;
@@ -17,9 +18,9 @@ export class AlertService {
   public generateMultilingualContent(sector: MountainSector, lsi: LSIResult) {
     if (lsi.riskLevel === 'CRITICAL') {
       return {
-        en: `CRITICAL LANDSLIDE RED ALERT: Imminent slope collapse at ${sector.name} (${sector.highway}). Halt all vehicular movement and evacuate immediate valley floor!`,
-        hi: `अत्यंत गंभीर भूस्खलन चेतावनी: ${sector.name} (${sector.highway}) पर तत्काल भूस्खलन का खतरा। सभी वाहन तुरंत रोकें और सुरक्षित स्थान पर जाएं!`,
-        dogri: `भारी ज़मीन खिसकने दी चेताउनी: ${sector.name} (${sector.highway}) पर ढलान खिसकने दा खतरा। गड्डियां रोको ते सुरक्षित जगह पर जाह्ओ!`,
+        en: `CRITICAL LANDSLIDE RED ALERT: Imminent slope collapse at ${sector.name}. Halt all vehicular movement and evacuate immediate valley floor!`,
+        hi: `अत्यंत गंभीर भूस्खलन चेतावनी: ${sector.name} पर तत्काल भूस्खलन का खतरा। सभी वाहन तुरंत रोकें और सुरक्षित स्थान पर जाएं!`,
+        dogri: `भारी ज़मीन खिसकने दी चेताउनी: ${sector.name} पर ढलान खिसकने दा खतरा। गड्डियां रोको ते सुरक्षित जगह पर जाह्ओ!`,
         kashmiri: `خطرناک لٔند سلایٔڈ چتاونی: ${sector.name} پیٹھ سلایٔڈ یُنک شدید خطرہ۔ گاڈیہ روکو تہ محفوظ جائے کُن تلو!`
       };
     } else if (lsi.riskLevel === 'WARNING') {
@@ -114,6 +115,20 @@ export class AlertService {
         currentLsiScore: lsi.lsiScore,
         sirenActive: lsi.triggerSiren
       });
+    }
+
+    // 4. Targeted Evacuation Broadcast: SMS & WhatsApp strictly to commuters within 10 km
+    if (lsi.riskLevel === 'CRITICAL' || lsi.riskLevel === 'WARNING') {
+      broadcastService
+        .dispatchCorridorEvacuationAlert(alert, sector)
+        .then((res) => {
+          if (this.io) {
+            this.io.emit('BROADCAST_DISPATCHED', res);
+          }
+        })
+        .catch((err) => {
+          console.warn('⚠️ [Broadcast] Evacuation broadcast failed:', err.message);
+        });
     }
 
     return alert;

@@ -302,7 +302,11 @@ export const handleOtp = async (req: Request, res: Response): Promise<void> => {
         fullName: finalFullName,
         email: user.email,
         role: user.role,
-        agency: user.agency
+        agency: user.agency,
+        phoneNumber: user.phoneNumber,
+        isPhoneVerified: Boolean(user.isPhoneVerified),
+        isPhonePromptDismissed: Boolean(user.isPhonePromptDismissed),
+        smsAlertsEnabled: user.smsAlertsEnabled !== false
       }
     });
   } catch (error: any) {
@@ -322,6 +326,10 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    const emailAliases = [loginEmail];
+    if (loginEmail === 'lead@rescuenex') emailAliases.push('lead@rescuenex.org');
+    if (loginEmail === 'lead@rescuenex.org') emailAliases.push('lead@rescuenex');
+
     // Check 5-attempt / 2-minute lockout rule
     const lockoutCheck = await rateLimitService.checkLoginLockout(loginEmail);
     if (lockoutCheck.isLocked) {
@@ -331,7 +339,7 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const userDoc = await UserModel.findOne({ email: loginEmail });
+    const userDoc = await UserModel.findOne({ email: { $in: emailAliases } });
 
     if (!userDoc) {
       const failRecord = await rateLimitService.recordFailedLogin(loginEmail);
@@ -427,7 +435,11 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
         fullName: finalFullName,
         email: userDoc.email,
         role: userDoc.role,
-        agency: userDoc.agency
+        agency: userDoc.agency,
+        phoneNumber: userDoc.phoneNumber,
+        isPhoneVerified: Boolean(userDoc.isPhoneVerified),
+        isPhonePromptDismissed: Boolean(userDoc.isPhonePromptDismissed),
+        smsAlertsEnabled: userDoc.smsAlertsEnabled !== false
       }
     });
   } catch (error: any) {
@@ -745,7 +757,11 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         fullName: finalFullName,
         email: userDoc.email,
         role: userDoc.role,
-        agency: userDoc.agency
+        agency: userDoc.agency,
+        phoneNumber: userDoc.phoneNumber,
+        isPhoneVerified: Boolean(userDoc.isPhoneVerified),
+        isPhonePromptDismissed: Boolean(userDoc.isPhonePromptDismissed),
+        smsAlertsEnabled: userDoc.smsAlertsEnabled !== false
       }
     });
   } catch (e: any) {

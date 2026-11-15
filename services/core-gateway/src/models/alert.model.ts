@@ -59,4 +59,8 @@ const AlertSchema = new Schema<IAlertDocument>(
   }
 );
 
+// TTL Index: Resolved alerts are automatically deleted from MongoDB Atlas 48 hours (172800s) after resolution.
+// When resolvedAt is undefined/null (ACTIVE alerts), MongoDB TTL will NOT expire them.
+AlertSchema.index({ resolvedAt: 1 }, { expireAfterSeconds: 172800 });
+
 export const AlertModel = model<IAlertDocument>('Alert', AlertSchema);

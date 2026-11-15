@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 
 interface FooterProps {
-  activeAlertCount: number;
+  activeAlertCount?: number;
 }
 
-export const Footer: React.FC<FooterProps> = ({ activeAlertCount }) => {
+export const Footer: React.FC<FooterProps> = ({ activeAlertCount = 0 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 

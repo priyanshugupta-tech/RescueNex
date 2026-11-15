@@ -10,9 +10,14 @@ export interface ITelemetryLogDocument extends Document {
   altitudeM?: number;
   gpsFix: boolean;
   soilMoisturePct: number;
+  temperatureC?: number;
+  humidityPct?: number;
+  tiltX?: number;
+  tiltY?: number;
   tiltMagnitude: number;
   tiltDelta: number;
   accelRms: number;
+  vibrationDetected?: boolean;
   rain1hIntensityMm: number;
   rain24hCumulativeMm: number;
   lsiScore: number;
@@ -32,9 +37,14 @@ const TelemetryLogSchema = new Schema<ITelemetryLogDocument>(
     altitudeM: { type: Number },
     gpsFix: { type: Boolean, default: true },
     soilMoisturePct: { type: Number, required: true },
+    temperatureC: { type: Number, default: 15.0 },
+    humidityPct: { type: Number, default: 70.0 },
+    tiltX: { type: Number, default: 0 },
+    tiltY: { type: Number, default: 0 },
     tiltMagnitude: { type: Number, required: true },
     tiltDelta: { type: Number, required: true },
     accelRms: { type: Number, default: 1.0 },
+    vibrationDetected: { type: Boolean, default: false },
     rain1hIntensityMm: { type: Number, default: 0 },
     rain24hCumulativeMm: { type: Number, default: 0 },
     lsiScore: { type: Number, required: true },

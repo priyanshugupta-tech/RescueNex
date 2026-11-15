@@ -6,6 +6,10 @@ export interface User {
   email: string;
   role: UserRole;
   agency?: string;
+  phoneNumber?: string;
+  isPhoneVerified?: boolean;
+  isPhonePromptDismissed?: boolean;
+  smsAlertsEnabled?: boolean;
   isVerified: boolean;
   isApproved: boolean;
   authProvider: 'LOCAL' | 'GOOGLE';
@@ -98,3 +102,32 @@ export interface SystemHealth {
   database: string;
   aiEngineStatus: 'HEALTHY' | 'OFFLINE';
 }
+
+export type HazardType = 'ROCKFALL' | 'CRACK' | 'WATER_LOGGING' | 'DEBRIS_FLOW' | 'ROAD_BLOCK';
+export type ReportSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface FieldReport {
+  id: string;
+  userId?: string;
+  userName?: string;
+  userRole?: UserRole;
+  hazardType: HazardType;
+  severity: ReportSeverity;
+  latitude: number;
+  longitude: number;
+  cityName?: string;
+  description: string;
+  reportedAt: number;
+  syncedAt: number;
+  status: 'SUBMITTED' | 'VERIFIED' | 'DISMISSED';
+  source: 'ONLINE' | 'OFFLINE_SYNC';
+  distanceKm?: number;
+}
+
+export interface SyncQueueItem {
+  id: string;
+  actionType: 'FIELD_REPORT' | 'ALERT_ACK' | 'ALERT_RESOLVE' | 'LOCATION_UPDATE';
+  payload: any;
+  queuedAt: number;
+}
+

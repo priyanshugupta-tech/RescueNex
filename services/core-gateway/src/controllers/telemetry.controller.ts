@@ -6,15 +6,15 @@ import { alertService } from '../services/alert.service.js';
 import { weatherService } from '../services/weather.service.js';
 import { NodeTelemetry, LSIResult, MountainSector } from '../types/index.js';
 import { TelemetryLogModel } from '../models/telemetryLog.model.js';
+import { AlertModel } from '../models/alert.model.js';
 import { isDatabaseConnected } from '../config/database.js';
 
-// Schema for incoming telemetry from physical ESP32 with dynamic GPS
+// Schema for incoming telemetry from physical ESP32 (Hardware nodes send their own GPS coordinates)
 const telemetryIngestSchema = z.object({
   node_id: z.string().default('NODE_01'),
-  // Live GPS Coordinates from onboard module (NEO-6M / NEO-8M)
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  altitude_m: z.number().optional().default(1730),
+  altitude_m: z.number().optional().default(1500),
   gps_fix: z.boolean().optional().default(true),
 
   // Soil & IMU Telemetry
@@ -60,6 +60,10 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
   try {
     const data = telemetryIngestSchema.parse(req.body);
 
+    const finalLat = data.latitude;
+    const finalLon = data.longitude;
+    const finalAlt = data.altitude_m;
+
     const tiltMagnitude = Number(Math.sqrt(data.tilt_x * data.tilt_x + data.tilt_y * data.tilt_y).toFixed(2));
     const previous = stateService.getTelemetry(data.node_id);
     const prevMagnitude = previous ? previous.tiltMagnitude : tiltMagnitude;
@@ -68,9 +72,9 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
     const telemetry: NodeTelemetry = {
       nodeId: data.node_id,
       timestamp: Date.now(),
-      latitude: data.latitude,
-      longitude: data.longitude,
-      altitudeM: data.altitude_m,
+      latitude: finalLat,
+      longitude: finalLon,
+      altitudeM: finalAlt,
       gpsFix: data.gps_fix,
       soilMoisturePct: Number(data.soil_moisture_pct.toFixed(1)),
       temperatureC: Number(data.temperature_c.toFixed(1)),
@@ -88,11 +92,11 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
     // Store in RAM state
     stateService.setTelemetry(telemetry);
 
-    // Resolve dynamic mountain sector based on live GPS position
-    const sector = resolveSectorForGPS(data.latitude, data.longitude);
+    // Resolve dynamic mountain sector based on stationary hardware position
+    const sector = resolveSectorForGPS(finalLat, finalLon);
 
-    // Dynamic Weather Sync for the Node's exact live GPS location
-    const weather = await weatherService.syncSectorWeather(sector.id, data.latitude, data.longitude);
+    // Dynamic Weather Sync for the Node's exact location
+    const weather = await weatherService.syncSectorWeather(sector.id, finalLat, finalLon);
 
     // Attempt AI Risk Evaluation via Python microservice
     let lsiResult: LSIResult | null = null;
@@ -114,6 +118,18 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
         generatedAlert = await alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
       } else {
         stateService.updateSectorRisk(sector.id, 'LOW', lsiResult.lsiScore);
+        // When terrain stabilizes back to normal, automatically resolve active sector alerts
+        const activeAlert = stateService.getActiveAlerts().find((a) => a.sectorId === sector.id);
+        if (activeAlert) {
+          const resolvedAt = new Date();
+          stateService.resolveAlert(activeAlert.id);
+          if (isDatabaseConnected()) {
+            AlertModel.findOneAndUpdate(
+              { alertId: activeAlert.id },
+              { status: 'RESOLVED', resolvedAt }
+            ).catch((e: any) => console.warn('⚠️ [MongoDB] Error auto-resolving alert:', e.message));
+          }
+        }
       }
     } catch (aiError: any) {
       aiStatus = 'OFFLINE';
@@ -186,10 +202,64 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
   }
 };
 
-export const getAllTelemetry = (req: Request, res: Response): void => {
+export const getAllTelemetry = async (req: Request, res: Response): Promise<void> => {
+  const memNodes = stateService.getAllTelemetry();
+  if (memNodes.length > 0) {
+    res.json({
+      success: true,
+      nodes: memNodes
+    });
+    return;
+  }
+
+  // Restore latest distinct telemetry records from MongoDB Atlas if in-memory state is empty
+  if (isDatabaseConnected()) {
+    try {
+      const distinctNodeIds = await TelemetryLogModel.distinct('nodeId');
+      const restoredNodes: NodeTelemetry[] = [];
+
+      for (const id of distinctNodeIds) {
+        const latest = await TelemetryLogModel.findOne({ nodeId: id }).sort({ timestamp: -1 });
+        if (latest) {
+          const nodeItem: NodeTelemetry = {
+            nodeId: latest.nodeId,
+            timestamp: new Date(latest.timestamp).getTime(),
+            latitude: latest.latitude,
+            longitude: latest.longitude,
+            altitudeM: latest.altitudeM || 1500,
+            gpsFix: true,
+            soilMoisturePct: latest.soilMoisturePct,
+            temperatureC: latest.temperatureC ?? 15,
+            humidityPct: latest.humidityPct ?? 70,
+            tiltX: latest.tiltX ?? 0,
+            tiltY: latest.tiltY ?? 0,
+            tiltMagnitude: latest.tiltMagnitude,
+            tiltDelta: latest.tiltDelta,
+            accelRms: latest.accelRms,
+            vibrationDetected: latest.vibrationDetected ?? false,
+            batteryPct: latest.batteryPct,
+            isPhysicalNode: true
+          };
+          stateService.setTelemetry(nodeItem);
+          restoredNodes.push(nodeItem);
+        }
+      }
+
+      if (restoredNodes.length > 0) {
+        res.json({
+          success: true,
+          nodes: restoredNodes
+        });
+        return;
+      }
+    } catch (e: any) {
+      console.warn('⚠️ [MongoDB] Error restoring active telemetry nodes:', e.message);
+    }
+  }
+
   res.json({
     success: true,
-    nodes: stateService.getAllTelemetry()
+    nodes: []
   });
 };
 

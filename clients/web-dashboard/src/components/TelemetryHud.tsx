@@ -11,6 +11,7 @@ import {
   RefreshCw 
 } from 'lucide-react';
 import { NodeTelemetry, SectorWeatherData, MountainSector } from '../types/index.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 
 interface TelemetryHudProps {
   telemetry: NodeTelemetry | null;
@@ -29,6 +30,7 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
   onTriggerWeatherSync,
   isWeatherSyncing
 }) => {
+  const { user } = useAuth();
   const lsiScore = sector?.lsiScore ?? null;
   const riskLevel = sector?.currentRiskLevel ?? 'LOW';
 
@@ -112,20 +114,20 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
         <div className="my-3 flex items-baseline justify-between">
           <div>
             <span className="text-3xl font-extrabold font-mono text-white tracking-tight">
-              {telemetry ? `${telemetry.tiltMagnitude.toFixed(1)}°` : '--'}
+              {typeof telemetry?.tiltMagnitude === 'number' ? `${telemetry.tiltMagnitude.toFixed(1)}°` : '--'}
             </span>
             <span className="text-xs font-mono text-slate-400 ml-1.5">magnitude</span>
           </div>
           <div className="text-right text-[11px] font-mono text-slate-400 space-y-0.5">
-            <p>X: {telemetry ? `${telemetry.tiltX.toFixed(1)}°` : '--'}</p>
-            <p>Y: {telemetry ? `${telemetry.tiltY.toFixed(1)}°` : '--'}</p>
+            <p>X: {typeof telemetry?.tiltX === 'number' ? `${telemetry.tiltX.toFixed(1)}°` : '--'}</p>
+            <p>Y: {typeof telemetry?.tiltY === 'number' ? `${telemetry.tiltY.toFixed(1)}°` : '--'}</p>
           </div>
         </div>
 
         <div className="flex items-center justify-between border-t border-[#21262D] pt-2 text-[11px]">
           <span className="text-slate-400">Deviation Δ:</span>
-          <span className={`font-mono font-medium ${telemetry && telemetry.tiltDelta > 1.0 ? 'text-rose-400 font-bold' : 'text-slate-200'}`}>
-            {telemetry ? `${telemetry.tiltDelta >= 0 ? '+' : ''}${telemetry.tiltDelta.toFixed(2)}°` : '--'}
+          <span className={`font-mono font-medium ${telemetry && (telemetry.tiltDelta || 0) > 1.0 ? 'text-rose-400 font-bold' : 'text-slate-200'}`}>
+            {typeof telemetry?.tiltDelta === 'number' ? `${telemetry.tiltDelta >= 0 ? '+' : ''}${telemetry.tiltDelta.toFixed(2)}°` : '--'}
           </span>
         </div>
       </div>
@@ -144,10 +146,10 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
 
         <div className="my-3 flex items-baseline justify-between">
           <span className="text-3xl font-extrabold font-mono text-white tracking-tight">
-            {telemetry ? `${telemetry.soilMoisturePct.toFixed(1)}%` : '--'}
+            {typeof telemetry?.soilMoisturePct === 'number' ? `${telemetry.soilMoisturePct.toFixed(1)}%` : '--'}
           </span>
           <span className="text-xs font-mono text-slate-400">
-            Temp: {telemetry ? `${telemetry.temperatureC.toFixed(1)}°C` : (weather ? `${weather.temperatureC.toFixed(1)}°C` : '--')}
+            Temp: {typeof telemetry?.temperatureC === 'number' ? `${telemetry.temperatureC.toFixed(1)}°C` : (typeof weather?.temperatureC === 'number' ? `${weather.temperatureC.toFixed(1)}°C` : '--')}
           </span>
         </div>
 
@@ -195,22 +197,32 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
         <div className="my-2">
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl font-extrabold font-mono text-white">
-              {weather ? `${weather.rain1hIntensityMm.toFixed(1)} mm/h` : '-- mm/h'}
+              {typeof weather?.rain1hIntensityMm === 'number' ? `${weather.rain1hIntensityMm.toFixed(1)} mm/h` : '-- mm/h'}
             </span>
           </div>
           <p className="text-[11px] font-mono text-slate-400">
-            24h Total: {weather ? `${weather.rain24hCumulativeMm.toFixed(1)} mm` : '-- mm'}
+            24h Total: {typeof weather?.rain24hCumulativeMm === 'number' ? `${weather.rain24hCumulativeMm.toFixed(1)} mm` : '-- mm'}
           </p>
         </div>
 
-        {/* Emergency Siren Trigger Button - Clean & Solid */}
-        <button
-          onClick={onOpenSirenModal}
-          className="mt-2 w-full py-2 px-3 rounded-none bg-rose-600 hover:bg-rose-500 text-white font-medium flex items-center justify-center gap-2 text-xs transition"
-        >
-          <Volume2 className="w-3.5 h-3.5" />
-          <span>Sound Emergency Siren</span>
-        </button>
+        {/* Sector Siren Status */}
+        <div className="mt-2.5 pt-2 border-t border-[#21262D] flex items-center justify-between text-xs font-mono">
+          <span className="text-slate-400">Sector Siren:</span>
+          <div className="flex items-center gap-2">
+            <span className={`font-bold ${sector?.sirenActive ? 'text-rose-400' : 'text-slate-300'}`}>
+              {sector?.sirenActive ? '🚨 ACTIVE' : 'STANDBY'}
+            </span>
+            {(user?.role === 'ADMIN' || user?.role === 'OPERATOR') && (
+              <button
+                onClick={onOpenSirenModal}
+                className="text-[10px] text-amber-400 hover:text-amber-300 underline font-sans ml-1"
+                title="Manual Siren Override"
+              >
+                Override
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
     </div>

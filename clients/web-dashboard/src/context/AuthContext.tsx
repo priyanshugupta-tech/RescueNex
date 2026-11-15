@@ -40,8 +40,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await api.get('/api/auth/me');
       if (res.data.success && res.data.user) {
         saveUser(res.data.user);
+        return;
       }
     } catch {
+      // If /api/auth/me fails, try explicit session token refresh before logging out
+      try {
+        const refreshRes = await api.get('/api/auth/tokengen');
+        if (refreshRes.data.accessToken) {
+          localStorage.setItem('rescuenex_token', refreshRes.data.accessToken);
+          const meRes = await api.get('/api/auth/me');
+          if (meRes.data.success && meRes.data.user) {
+            saveUser(meRes.data.user);
+            return;
+          }
+        }
+      } catch {
+        // Not authenticated
+      }
       saveUser(null);
     } finally {
       setLoading(false);

@@ -21,64 +21,71 @@ interface LandingPageProps {
   onNavigate: (tab: string) => void;
 }
 
-// Multi-faceted realistic rock component
+// Multi-faceted realistic rock component with 3D depth and crystalline highlights
 const RealisticRock: React.FC<{ type: 1 | 2 | 3; size: number }> = ({ type, size }) => {
   if (type === 1) {
-    // Angular faceted boulder
+    // Angular faceted crystalline boulder with illuminated edges
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" className="drop-shadow-md">
-        <polygon points="4,7 11,2 20,5 22,15 17,22 8,22 2,15" fill="#3E4C59" stroke="#252D37" strokeWidth="0.8" />
-        <polygon points="4,7 11,2 20,5 14,13 6,13" fill="#627D98" />
-        <polygon points="6,13 14,13 17,22 8,22" fill="#243B53" />
+      <svg width={size} height={size} viewBox="0 0 24 24" className="drop-shadow-lg filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+        <polygon points="4,7 11,2 20,5 22,15 17,22 8,22 2,15" fill="#252D37" stroke="#4B5563" strokeWidth="0.8" />
+        <polygon points="4,7 11,2 20,5 14,13 6,13" fill="#64748B" />
+        <polygon points="6,13 14,13 17,22 8,22" fill="#0F172A" />
+        <line x1="11" y1="2" x2="14" y2="13" stroke="#CBD5E1" strokeWidth="0.8" opacity="0.6" />
+        <line x1="14" y1="13" x2="22" y2="15" stroke="#94A3B8" strokeWidth="0.6" opacity="0.5" />
       </svg>
     );
   }
   if (type === 2) {
-    // Craggy broken rock
+    // Craggy broken rock with deep fracture facets
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" className="drop-shadow-md">
-        <polygon points="6,2 18,4 23,13 18,22 7,20 1,12" fill="#334155" stroke="#1E293B" strokeWidth="0.8" />
-        <polygon points="6,2 18,4 15,11 5,10" fill="#64748B" />
-        <polygon points="5,10 15,11 18,22 7,20" fill="#1E293B" />
+      <svg width={size} height={size} viewBox="0 0 24 24" className="drop-shadow-lg filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+        <polygon points="6,2 18,4 23,13 18,22 7,20 1,12" fill="#1E293B" stroke="#334155" strokeWidth="0.8" />
+        <polygon points="6,2 18,4 15,11 5,10" fill="#475569" />
+        <polygon points="5,10 15,11 18,22 7,20" fill="#0B1120" />
+        <line x1="6" y1="2" x2="15" y2="11" stroke="#E2E8F0" strokeWidth="0.7" opacity="0.7" />
       </svg>
     );
   }
-  // Jagged earth stone
+  // Jagged mineral rock with high-contrast strata
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" className="drop-shadow-md">
-      <polygon points="5,3 16,1 22,8 19,19 9,23 2,16" fill="#4B5563" stroke="#374151" strokeWidth="0.8" />
-      <polygon points="5,3 16,1 14,10 4,12" fill="#9CA3AF" />
-      <polygon points="4,12 14,10 19,19 9,23" fill="#1F2937" />
+    <svg width={size} height={size} viewBox="0 0 24 24" className="drop-shadow-lg filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+      <polygon points="5,3 16,1 22,8 19,19 9,23 2,16" fill="#334155" stroke="#475569" strokeWidth="0.8" />
+      <polygon points="5,3 16,1 14,10 4,12" fill="#94A3B8" />
+      <polygon points="4,12 14,10 19,19 9,23" fill="#0F172A" />
+      <line x1="16" y1="1" x2="14" y2="10" stroke="#FFFFFF" strokeWidth="0.8" opacity="0.8" />
     </svg>
   );
 };
 
-// Rock that rolls and tumbles strictly along the mountain cliff slope
+// Rock that bounces on cliff ledges with realistic physics keyframes and rotations
 const TumblingRock: React.FC<{
   type: 1 | 2 | 3;
   size: number;
   startX: number;
   startY: number;
-  midX: number;
-  midY: number;
+  bounce1X: number;
+  bounce1Y: number;
+  bounce2X: number;
+  bounce2Y: number;
   endX: number;
   endY: number;
   duration: number;
   delay: number;
-}> = ({ type, size, startX, startY, midX, midY, endX, endY, duration, delay }) => (
+}> = ({ type, size, startX, startY, bounce1X, bounce1Y, bounce2X, bounce2Y, endX, endY, duration, delay }) => (
   <motion.div
-    initial={{ x: startX, y: startY, opacity: 0, rotate: 0 }}
+    initial={{ x: startX, y: startY, opacity: 0, rotate: 0, scale: 0.8 }}
     animate={{
-      x: [startX, midX, endX],
-      y: [startY, midY, endY],
-      rotate: [0, 180, 540],
-      opacity: [0, 0.9, 0.95, 0]
+      x: [startX, bounce1X, (bounce1X + bounce2X) / 2, bounce2X, endX],
+      y: [startY, bounce1Y, bounce1Y - 14, bounce2Y, endY],
+      rotate: [0, 210, 460, 740, 1080],
+      opacity: [0, 0.95, 1, 0.9, 0],
+      scale: [0.85, 1, 1.05, 0.95, 0.7]
     }}
     transition={{
       duration,
       repeat: Infinity,
       delay,
-      ease: [0.4, 0, 0.6, 1]
+      ease: [0.35, 0.1, 0.25, 1]
     }}
     className="absolute pointer-events-none"
   >
@@ -104,61 +111,140 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* --- REALISTIC MOUNTAIN SLOPE & ROCKFALL LANDSLIDE ANIMATION --- */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
           
-          {/* Natural Mountain Slope & Cliff Ridge Silhouette */}
+          {/* Natural Mountain Slope & Cliff Ridge Silhouette with Topographic Wireframes */}
           <svg 
-            className="absolute right-0 top-0 h-full w-full max-w-[700px] opacity-40" 
-            viewBox="0 0 650 480" 
+            className="absolute right-0 top-0 h-full w-full max-w-[720px] opacity-60" 
+            viewBox="0 0 680 480" 
             fill="none" 
             preserveAspectRatio="none"
           >
+            <defs>
+              <linearGradient id="ridgeGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#1E293B" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#0B0F17" stopOpacity="0.9" />
+              </linearGradient>
+              <linearGradient id="ridgeGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#334155" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#0F172A" stopOpacity="0.85" />
+              </linearGradient>
+              <linearGradient id="facetHighlight" x1="0%" y1="0%" x2="50%" y2="100%">
+                <stop offset="0%" stopColor="#475569" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#1E293B" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
+
             {/* Distant background mountain peak */}
-            <polygon points="320,480 480,100 650,260 650,480" fill="#0C1017" />
+            <polygon points="340,480 490,90 680,240 680,480" fill="#080C14" />
             
-            {/* Rocky mountain ridge body */}
-            <polygon points="180,480 340,320 400,220 460,110 540,60 650,140 650,480" fill="#090D13" stroke="#1F2937" strokeWidth="1.5" />
+            {/* Midground rocky mountain ridge body */}
+            <polygon points="160,480 320,330 390,220 460,100 550,50 680,130 680,480" fill="url(#ridgeGradient1)" stroke="#334155" strokeWidth="1.2" />
             
-            {/* Rugged crags and rock strata facets */}
-            <polygon points="460,110 400,220 480,240 540,160" fill="#131B24" />
-            <polygon points="400,220 340,320 420,350 480,240" fill="#0E151E" />
-            <polygon points="340,320 260,420 360,450 420,350" fill="#111822" />
+            {/* Rugged crags, rock strata facets, and couloirs */}
+            <polygon points="460,100 390,220 480,240 550,150" fill="url(#facetHighlight)" stroke="#475569" strokeWidth="0.8" />
+            <polygon points="390,220 320,330 410,360 480,240" fill="#0E1726" stroke="#1E293B" strokeWidth="0.8" />
+            <polygon points="320,330 240,430 350,460 410,360" fill="url(#ridgeGradient2)" stroke="#334155" strokeWidth="0.8" />
             
             {/* Scree / debris accumulation zone at the mountain base */}
-            <polygon points="180,480 260,420 360,450 450,480" fill="#161F2B" />
+            <polygon points="160,480 240,430 350,460 460,480" fill="#131B26" stroke="#1E293B" strokeWidth="0.8" />
           </svg>
 
-          {/* Rocks breaking off strictly from the mountain cliff and tumbling down the slope */}
-          <div className="absolute right-0 top-0 w-[650px] h-full overflow-hidden">
-            {/* Rock 1: Angular boulder breaking off high cliff face and rolling down */}
-            <TumblingRock type={1} size={18} startX={480} startY={120} midX={410} midY={250} endX={320} endY={430} duration={2.8} delay={0} />
+          {/* --- REALISTIC BOUNCING ROCKFALL TUMBLING DOWN CLIFF LEDGES --- */}
+          <div className="absolute right-0 top-0 w-[680px] h-full overflow-hidden">
+            {/* Rock 1: Heavy angular boulder breaking off ridge, bouncing on mid ledge, and crashing to base */}
+            <TumblingRock 
+              type={1} 
+              size={20} 
+              startX={480} 
+              startY={90} 
+              bounce1X={420} 
+              bounce1Y={220} 
+              bounce2X={340} 
+              bounce2Y={340} 
+              endX={240} 
+              endY={450} 
+              duration={2.9} 
+              delay={0} 
+            />
             
-            {/* Rock 2: Medium craggy rock tumbling down */}
-            <TumblingRock type={2} size={14} startX={460} startY={140} midX={390} midY={270} endX={290} endY={440} duration={2.5} delay={0.6} />
+            {/* Rock 2: Medium craggy rock breaking off ledge 1 with high spin */}
+            <TumblingRock 
+              type={2} 
+              size={15} 
+              startX={460} 
+              startY={120} 
+              bounce1X={400} 
+              bounce1Y={240} 
+              bounce2X={310} 
+              bounce2Y={360} 
+              endX={210} 
+              endY={460} 
+              duration={2.6} 
+              delay={0.7} 
+            />
             
-            {/* Rock 3: Heavy jagged boulder */}
-            <TumblingRock type={3} size={20} startX={490} startY={130} midX={430} midY={260} endX={340} endY={450} duration={3.0} delay={1.2} />
+            {/* Rock 3: Fast jagged stone cutting down the couloir */}
+            <TumblingRock 
+              type={3} 
+              size={17} 
+              startX={490} 
+              startY={110} 
+              bounce1X={430} 
+              bounce1Y={230} 
+              bounce2X={360} 
+              bounce2Y={350} 
+              endX={270} 
+              endY={460} 
+              duration={3.1} 
+              delay={1.4} 
+            />
             
-            {/* Rock 4: Angular stone */}
-            <TumblingRock type={1} size={12} startX={470} startY={160} midX={400} midY={280} endX={300} endY={420} duration={2.3} delay={1.7} />
+            {/* Rock 4: Angular rock fragment bouncing rapidly */}
+            <TumblingRock 
+              type={1} 
+              size={13} 
+              startX={440} 
+              startY={140} 
+              bounce1X={380} 
+              bounce1Y={260} 
+              bounce2X={290} 
+              bounce2Y={380} 
+              endX={190} 
+              endY={450} 
+              duration={2.4} 
+              delay={2.1} 
+            />
             
-            {/* Rock 5: Stone fragment */}
-            <TumblingRock type={2} size={15} startX={450} startY={180} midX={380} midY={300} endX={280} endY={440} duration={2.6} delay={2.3} />
-            
-            {/* Rock 6: Heavy rock tumbling down slope */}
-            <TumblingRock type={3} size={16} startX={480} startY={150} midX={420} midY={280} endX={330} endY={450} duration={2.9} delay={2.9} />
-            
-            {/* Rock 7: Fast rolling stone */}
-            <TumblingRock type={1} size={13} startX={440} startY={200} midX={370} midY={320} endX={270} endY={430} duration={2.2} delay={3.5} />
+            {/* Rock 5: Heavy boulder following the main slip plane */}
+            <TumblingRock 
+              type={2} 
+              size={18} 
+              startX={470} 
+              startY={100} 
+              bounce1X={410} 
+              bounce1Y={220} 
+              bounce2X={330} 
+              bounce2Y={340} 
+              endX={230} 
+              endY={450} 
+              duration={2.8} 
+              delay={2.8} 
+            />
 
-            {/* Subtle natural dust puffs at rock impact ledges */}
+            {/* Dynamic Natural Dust Puffs at Impact Ledges */}
             <motion.div
-              animate={{ scale: [0.8, 2.0], opacity: [0.3, 0] }}
-              transition={{ duration: 2.8, repeat: Infinity, delay: 0.8 }}
-              className="absolute left-[400px] top-[240px] w-12 h-12 bg-slate-500/10 blur-md pointer-events-none"
+              animate={{ scale: [0.6, 2.4], opacity: [0.45, 0] }}
+              transition={{ duration: 2.9, repeat: Infinity, delay: 0.9 }}
+              className="absolute left-[410px] top-[215px] w-12 h-12 bg-slate-400/15 rounded-full blur-md pointer-events-none"
             />
             <motion.div
-              animate={{ scale: [0.8, 2.2], opacity: [0.25, 0] }}
-              transition={{ duration: 3.2, repeat: Infinity, delay: 2.1 }}
-              className="absolute left-[330px] top-[340px] w-14 h-14 bg-slate-600/10 blur-md pointer-events-none"
+              animate={{ scale: [0.6, 2.6], opacity: [0.4, 0] }}
+              transition={{ duration: 2.6, repeat: Infinity, delay: 1.6 }}
+              className="absolute left-[330px] top-[335px] w-14 h-14 bg-slate-400/15 rounded-full blur-md pointer-events-none"
+            />
+            <motion.div
+              animate={{ scale: [0.8, 2.8], opacity: [0.35, 0] }}
+              transition={{ duration: 3.1, repeat: Infinity, delay: 2.3 }}
+              className="absolute left-[240px] top-[430px] w-16 h-16 bg-amber-500/10 rounded-full blur-lg pointer-events-none"
             />
           </div>
         </div>
@@ -176,10 +262,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <button
-              onClick={() => onNavigate(isAuthenticated ? '/dashboard' : '/auth')}
+              onClick={() => onNavigate('/dashboard')}
               className="flex items-center gap-2.5 px-6 py-3.5 rounded-none bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition shadow"
             >
-              <span>{isAuthenticated ? 'Open Live Dashboard' : 'Sign In to Access Dashboard'}</span>
+              <span>Open Live Dashboard</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 

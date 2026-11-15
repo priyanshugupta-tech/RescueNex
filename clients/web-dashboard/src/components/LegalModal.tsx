@@ -131,28 +131,28 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">1. Operational Scope & Purpose</h4>
                 <p>
-                  RescueNex is an autonomous, sensor-driven early warning and landslide risk monitoring platform engineered for high-altitude mountain corridors and critical connecting transit sectors. The system is designed to provide real-time sensor telemetry to regional disaster response cells, emergency command hubs, and field operations teams.
+                  RescueNex is an autonomous, sensor-driven early warning and landslide risk monitoring platform engineered for high-altitude mountain corridors and critical connecting transit sectors. The system provides real-time sensor telemetry, automated 10 km geofenced evacuation broadcasts (SMS & Email), and decision intelligence to regional disaster response cells, emergency command hubs, and the commuting public.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">2. Advisory Nature of Predictive Indices</h4>
+                <h4 className="text-sm font-bold text-white mb-1">2. Advisory Nature of Predictive Indices & NDMA Alignment</h4>
                 <p>
-                  The Landslide Susceptibility Index (LSI), slope tilt magnitude, and soil moisture calculations represent automated statistical and machine learning projections derived from deployed hardware sensor nodes (MPU-6050 accelerometer/gyroscope, capacitive soil probes, and Open-Meteo precipitation feeds). While calibrated for high sensitivity, these predictions serve as decision-support alerts. Official vehicular traffic closure, evacuation notices, and emergency orders remain subject to field verification by on-site corridor maintenance teams and traffic safety authorities.
+                  The Landslide Susceptibility Index (LSI), slope tilt magnitude, and soil moisture calculations represent automated statistical and machine learning projections. All disaster bulletins comply with National Disaster Management Authority (NDMA) guidelines and Common Alerting Protocol (CAP v1.2) standards. While calibrated for high sensitivity, these predictions serve as rapid decision support; official vehicular traffic closures and statutory evacuation orders remain subject to field verification by on-site corridor maintenance teams and traffic safety authorities.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">3. Common Alerting Protocol (CAP v1.2) Compliance</h4>
+                <h4 className="text-sm font-bold text-white mb-1">3. Emergency Siren & Acoustic Override Protocol</h4>
                 <p>
-                  All hazard advisories and XML exports published by RescueNex comply with the standard Common Alerting Protocol (CAP) v1.2 specifications. Automated bulletins are signed with operational timestamps and sector geocodes for cross-agency dispatch.
+                  Acoustic siren activation transmits real-time actuation signals to physical sector horns. Manual activation requires strict confirmation (<code className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-amber-300">CONFIRM_DISASTER_OVERRIDE</code>). Unauthorised or malicious siren activation violates operational safety codes and is punishable under Section 54 of the Disaster Management Act, 2005.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">4. Emergency Siren & Acoustic Override Protocol</h4>
+                <h4 className="text-sm font-bold text-white mb-1">4. Emergency Broadcast Fair Use & Rate Limiting</h4>
                 <p>
-                  Acoustic siren activation transmits real-time actuation signals to physical sector horns. Manual activation requires strict two-man integrity confirmation (<code className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-amber-300">CONFIRM_DISASTER_OVERRIDE</code>). Unauthorised or malicious siren activation constitutes a violation of operational safety codes.
+                  In accordance with TRAI telecommunication regulations, verification SMS OTPs have a 60-second cooldown and 5-attempt verification lockout. Commuters are permitted up to 2 mobile number updates per week. Automated emergency broadcasts strictly apply a 2-hour suppression window per transit sector to prevent redundant SMS delivery when commuters repeatedly update or traverse locations.
                 </p>
               </div>
             </div>
@@ -161,30 +161,35 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           {activeTab === 'privacy' && (
             <div className="space-y-4">
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">1. Sensor & Environmental Telemetry</h4>
+                <h4 className="text-sm font-bold text-white mb-1">1. Personal Data Protection (DPDP Act, 2023)</h4>
+                <p>
+                  RescueNex complies with India's Digital Personal Data Protection Act (DPDP Act, 2023). Personal information collected is strictly limited to:
+                </p>
+                <ul className="list-disc pl-5 mt-1 space-y-1 text-slate-400">
+                  <li><strong>Email:</strong> Required for account authentication, password recovery, and emergency evacuation email fallback.</li>
+                  <li><strong>Mobile Phone Number:</strong> Optional; collected strictly with post-signup user consent exclusively to dispatch life-safety SMS disaster evacuation orders.</li>
+                  <li><strong>Transit Location:</strong> Commuters may optionally synchronize their current transit point (GPS or searched town) to enable 10 km geofenced risk monitoring. Location data is never monetized or shared with third-party advertisers.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-white mb-1">2. Sensor & Environmental Telemetry</h4>
                 <p>
                   RescueNex continuously ingests bi-axial tilt angles, acceleration RMS, volumetric soil moisture percentages, ambient temperature, and rainfall rates from stationary field nodes. These metrics are strictly environmental and non-personal.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">2. Hardware GPS Coordinates</h4>
-                <p>
-                  GPS coordinates collected by the Core Gateway represent stationary, physical hardware nodes installed along mountain slopes. The system does not track civilian travelers, vehicles, or personal mobile GPS locations.
-                </p>
-              </div>
-
-              <div>
                 <h4 className="text-sm font-bold text-white mb-1">3. Authorized Operator Account Data</h4>
                 <p>
-                  Designated incident commanders, scouts, and field response operators provide credentials (official email, agency affiliation, and contact details) for role-based access control. Passwords are cryptographically hashed using standard Bcrypt routines with salted rounds, and access tokens are signed using high-entropy JWT keys. Operator activity (including siren triggers and alert acknowledgements) is retained in an immutable audit log for operational accountability.
+                  Designated incident commanders, scouts, and field response operators provide official credentials for role-based access control. Passwords are cryptographically hashed using standard Bcrypt routines with salted rounds, and access tokens are signed using high-entropy JWT keys. Operator activity is retained in an immutable audit log for operational accountability.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">4. Data Retention & Integrity</h4>
+                <h4 className="text-sm font-bold text-white mb-1">4. Rights to Update & Data Erasure</h4>
                 <p>
-                  Telemetry data is cached in low-latency memory queues and synced with MongoDB Atlas clusters for disaster retrospective analysis and geological research with academic and civil defense partners.
+                  Users may update their mobile number (up to 2 times per week), opt out of SMS notifications, or request account erasure by contacting the Data Protection Officer at <span className="font-mono text-amber-400">privacy@rescuenex.org</span>.
                 </p>
               </div>
             </div>

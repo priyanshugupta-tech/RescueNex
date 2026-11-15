@@ -25,7 +25,7 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
   {
     id: 'SECTOR_BANIHAL',
     name: 'Banihal Pass Tunnel Zone',
-    highway: 'NH-44',
+    highway: 'Jammu-Srinagar Corridor',
     latitude: 33.4975,
     longitude: 75.2014,
     elevationM: 1730,
@@ -36,7 +36,7 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
   {
     id: 'SECTOR_RAMBAN',
     name: 'Ramban Chanderkote Stretch',
-    highway: 'NH-44',
+    highway: 'Jammu-Srinagar Corridor',
     latitude: 33.2422,
     longitude: 75.2443,
     elevationM: 1156,
@@ -47,7 +47,7 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
   {
     id: 'SECTOR_PATNITOP',
     name: 'Patnitop Nashri Tunnel North',
-    highway: 'NH-44',
+    highway: 'Jammu-Srinagar Corridor',
     latitude: 33.0911,
     longitude: 75.3283,
     elevationM: 2024,
@@ -58,7 +58,7 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
   {
     id: 'SECTOR_MUGHAL_ROAD',
     name: 'Pir Ki Gali High Pass',
-    highway: 'Mughal Road',
+    highway: 'Mughal Road Corridor',
     latitude: 33.6190,
     longitude: 74.5200,
     elevationM: 3485,
@@ -69,7 +69,7 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
   {
     id: 'SECTOR_DODA_KISHTWAR',
     name: 'Batote-Kishtwar Gorge Corridor',
-    highway: 'NH-244',
+    highway: 'Kishtwar Transit Corridor',
     latitude: 33.3106,
     longitude: 75.7667,
     elevationM: 1638,

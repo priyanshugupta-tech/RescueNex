@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { stateService } from '../services/state.service.js';
-import { weatherService, WeatherScenario } from '../services/weather.service.js';
+import { weatherService } from '../services/weather.service.js';
 
 let weatherSocketEmitter: any = null;
 export const setWeatherSocketEmitter = (emitter: any) => {
@@ -8,10 +8,7 @@ export const setWeatherSocketEmitter = (emitter: any) => {
 };
 
 export const getAllWeather = (req: Request, res: Response): void => {
-  const weatherList = stateService.getAllWeather().map((w) => ({
-    ...w,
-    activeScenario: weatherService.getActiveScenario(w.sectorId)
-  }));
+  const weatherList = stateService.getAllWeather();
 
   res.json({
     success: true,
@@ -39,28 +36,4 @@ export const syncWeather = async (req: Request, res: Response): Promise<void> =>
       message: error.message || 'Failed to sync weather telemetry.'
     });
   }
-};
-
-export const setWeatherScenario = (req: Request, res: Response): void => {
-  const { sectorId, scenario } = req.body;
-
-  if (!sectorId || !['LIVE', 'CLEAR', 'MONSOON', 'CLOUDBURST'].includes(scenario)) {
-    res.status(400).json({
-      success: false,
-      message: 'sectorId and valid scenario ("LIVE" | "CLEAR" | "MONSOON" | "CLOUDBURST") are required.'
-    });
-    return;
-  }
-
-  const updatedWeather = weatherService.applyPresetScenario(sectorId, scenario as WeatherScenario);
-
-  if (weatherSocketEmitter) {
-    weatherSocketEmitter('WEATHER_UPDATED', [updatedWeather]);
-  }
-
-  res.json({
-    success: true,
-    message: `Sector '${sectorId}' weather scenario set to '${scenario}'.`,
-    weather: updatedWeather
-  });
 };

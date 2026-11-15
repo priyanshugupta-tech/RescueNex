@@ -25,8 +25,27 @@ export const authenticateToken = (
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(403).json({ success: false, message: 'Invalid or expired token.' });
+    res.status(401).json({ success: false, message: 'Invalid or expired token.' });
   }
+};
+
+export const optionalAuthToken = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret) as User;
+      req.user = decoded;
+    } catch {
+      // Ignore invalid token in optional auth
+    }
+  }
+  next();
 };
 
 export const requireRole = (allowedRoles: UserRole[]) => {

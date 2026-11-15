@@ -92,6 +92,37 @@ export const acknowledgeAlert = async (req: AuthenticatedRequest, res: Response)
   });
 };
 
+export const resolveAlert = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  const resolvedAt = new Date();
+
+  const updated = stateService.resolveAlert(id);
+
+  if (isDatabaseConnected()) {
+    try {
+      await AlertModel.findOneAndUpdate(
+        { alertId: id },
+        {
+          status: 'RESOLVED',
+          resolvedAt: resolvedAt
+        }
+      );
+    } catch (e: any) {
+      console.warn('⚠️ [MongoDB] Error resolving alert in Atlas:', e.message);
+    }
+  }
+
+  if (alertSocketEmitter) {
+    alertSocketEmitter('ALERT_RESOLVED', { alertId: id, resolvedAt });
+  }
+
+  res.json({
+    success: true,
+    message: `Alert '${id}' marked as RESOLVED and will be automatically purged by MongoDB TTL.`,
+    resolvedAt
+  });
+};
+
 export const toggleSiren = (req: AuthenticatedRequest, res: Response): void => {
   const { sectorId, active } = req.body;
   if (!sectorId || typeof active !== 'boolean') {

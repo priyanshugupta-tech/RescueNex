@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getAlerts,
   acknowledgeAlert,
+  resolveAlert,
   toggleSiren,
   getAlertCAP
 } from '../controllers/alerts.controller.js';
@@ -25,12 +26,19 @@ router.post(
   acknowledgeAlert
 );
 
-// High-security siren toggle: Admin only + confirmation header
+// Operators/Admins can resolve alerts (triggers 48h TTL deletion in Atlas)
+router.post(
+  '/:id/resolve',
+  authenticateToken,
+  requireRole(['ADMIN', 'OPERATOR']),
+  resolveAlert
+);
+
+// Siren toggle: Admin / Operator role-based toggle
 router.post(
   '/siren/toggle',
   authenticateToken,
-  requireRole(['ADMIN']),
-  requireEmergencyConfirmation,
+  requireRole(['ADMIN', 'OPERATOR']),
   toggleSiren
 );
 

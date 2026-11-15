@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ShieldAlert, Volume2, X } from 'lucide-react';
+import { Volume2, X, AlertTriangle } from 'lucide-react';
 import { api } from '../services/api.ts';
 
 interface SirenModalProps {
@@ -17,17 +17,12 @@ export const SirenModal: React.FC<SirenModalProps> = ({
   isSirenActive,
   onSuccess
 }) => {
-  const [confirmText, setConfirmText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const targetConfirmPhrase = 'CONFIRM_DISASTER_OVERRIDE';
-  const isMatch = confirmText.trim() === targetConfirmPhrase;
-
   const handleToggle = async () => {
-    if (!isMatch) return;
     setLoading(true);
     setError('');
 
@@ -37,63 +32,48 @@ export const SirenModal: React.FC<SirenModalProps> = ({
         {
           sectorId: sectorId || 'SECTOR_RAMBAN',
           active: !isSirenActive
-        },
-        {
-          headers: {
-            'x-emergency-confirm': targetConfirmPhrase
-          }
         }
       );
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to trigger siren override.');
+      setError(err.response?.data?.message || 'Failed to toggle siren status.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-none bg-slate-900 border border-slate-800 p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-none bg-[#0D1117] border border-[#30363D] p-6 shadow-2xl relative text-slate-200">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg"
+          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white font-sans">
-              Emergency Siren Interlock
-            </h3>
-            <p className="text-xs text-slate-400 font-mono">
-              Sector: {sectorId || 'SECTOR_RAMBAN'}
-            </p>
-          </div>
+        <div className="mb-4">
+          <h3 className="text-base font-bold text-white font-sans">
+            Acoustic Siren Override
+          </h3>
+          <p className="text-xs text-slate-400 font-mono mt-0.5">
+            Target Sector: {sectorId || 'SECTOR_RAMBAN'}
+          </p>
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed mb-4">
-          Manual acoustic siren broadcast triggers physical audio warning horns across the active sector. 
-          To prevent accidental triggers, enter the disaster override code below.
+          {isSirenActive
+            ? 'The evacuation horn is currently broadcasting in this sector. Do you want to silence the physical siren?'
+            : 'Sounding the emergency siren will trigger physical audio warning horns across the active sector to instruct drivers and commuters to halt and evacuate immediately.'}
         </p>
 
-        <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 mb-4 text-xs font-mono text-center">
-          <span className="text-slate-400">Type exact confirmation: </span>
-          <span className="text-amber-400 font-bold select-all">CONFIRM_DISASTER_OVERRIDE</span>
+        <div className="p-3 bg-[#161B22] border border-[#21262D] mb-4 text-xs font-mono flex items-center justify-between">
+          <span className="text-slate-400">Current Status:</span>
+          <span className={`font-bold ${isSirenActive ? 'text-rose-400' : 'text-slate-300'}`}>
+            {isSirenActive ? 'ACTIVE (BROADCASTING)' : 'STANDBY'}
+          </span>
         </div>
-
-        <input
-          type="text"
-          value={confirmText}
-          onChange={(e) => setConfirmText(e.target.value)}
-          placeholder="Type CONFIRM_DISASTER_OVERRIDE"
-          className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-mono text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 mb-4"
-        />
 
         {error && (
           <p className="text-xs font-medium text-rose-400 mb-3 flex items-center gap-1.5">
@@ -105,19 +85,17 @@ export const SirenModal: React.FC<SirenModalProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+            className="flex-1 py-2 px-4 rounded-none bg-[#21262D] hover:bg-[#30363D] text-slate-300 text-xs font-semibold transition border border-[#30363D]"
           >
             Cancel
           </button>
           <button
             onClick={handleToggle}
-            disabled={!isMatch || loading}
-            className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-xs font-bold transition ${
-              isMatch && !loading
-                ? isSirenActive
-                  ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg'
-                  : 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/30'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+            disabled={loading}
+            className={`flex-1 py-2 px-4 rounded-none flex items-center justify-center gap-2 text-xs font-bold transition text-white ${
+              isSirenActive
+                ? 'bg-amber-600 hover:bg-amber-500'
+                : 'bg-rose-600 hover:bg-rose-500'
             }`}
           >
             <Volume2 className="w-4 h-4" />
@@ -125,8 +103,8 @@ export const SirenModal: React.FC<SirenModalProps> = ({
               {loading
                 ? 'Dispatching...'
                 : isSirenActive
-                ? 'Standby Sirens'
-                : 'Broadcast Alarm'}
+                ? 'Silence Siren'
+                : 'Sound Evacuation Siren'}
             </span>
           </button>
         </div>

@@ -3,7 +3,8 @@ import {
   EmergencyAlert,
   MountainSector,
   NodeTelemetry,
-  SectorWeatherData
+  SectorWeatherData,
+  FieldReport
 } from '../types/index.js';
 
 class StateService {
@@ -12,6 +13,7 @@ class StateService {
   private sectorWeather: Map<string, SectorWeatherData> = new Map();
   private activeAlerts: Map<string, EmergencyAlert> = new Map();
   private alertHistory: EmergencyAlert[] = [];
+  private fieldReports: FieldReport[] = [];
 
   constructor() {
     STRATEGIC_SECTORS.forEach((sec) => {
@@ -109,6 +111,34 @@ class StateService {
       return true;
     }
     return false;
+  }
+
+  public resolveAlert(alertId: string): boolean {
+    const alert = this.activeAlerts.get(alertId);
+    if (alert) {
+      alert.status = 'RESOLVED';
+      alert.resolvedAt = Date.now();
+      this.activeAlerts.delete(alertId);
+      return true;
+    }
+    return false;
+  }
+
+  // Field Reports (Scout / Commuter ground observations)
+  public addFieldReport(report: FieldReport): void {
+    const existingIdx = this.fieldReports.findIndex((r) => r.id === report.id);
+    if (existingIdx >= 0) {
+      this.fieldReports[existingIdx] = report;
+    } else {
+      this.fieldReports.unshift(report);
+      if (this.fieldReports.length > 200) {
+        this.fieldReports.pop();
+      }
+    }
+  }
+
+  public getFieldReports(): FieldReport[] {
+    return this.fieldReports;
   }
 }
 

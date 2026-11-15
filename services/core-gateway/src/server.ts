@@ -11,6 +11,8 @@ import authRoutes from './routes/auth.routes.js';
 import telemetryRoutes from './routes/telemetry.routes.js';
 import alertsRoutes from './routes/alerts.routes.js';
 import weatherRoutes from './routes/weather.routes.js';
+import syncRoutes from './routes/sync.routes.js';
+import broadcastRoutes from './routes/broadcast.routes.js';
 
 // Services & Sockets
 import { alertService } from './services/alert.service.js';
@@ -18,6 +20,7 @@ import { weatherService } from './services/weather.service.js';
 import { setTelemetrySocketEmitter } from './controllers/telemetry.controller.js';
 import { setAlertSocketEmitter } from './controllers/alerts.controller.js';
 import { setWeatherSocketEmitter } from './controllers/weather.controller.js';
+import { setSyncSocketEmitter } from './controllers/sync.controller.js';
 import { seedDefaultUsers } from './controllers/auth.controller.js';
 
 const app = express();
@@ -40,6 +43,7 @@ const socketBroadcaster = (event: string, payload: any) => {
 setTelemetrySocketEmitter(socketBroadcaster);
 setAlertSocketEmitter(socketBroadcaster);
 setWeatherSocketEmitter(socketBroadcaster);
+setSyncSocketEmitter(socketBroadcaster);
 
 // Express Middleware
 app.use(cors({
@@ -54,6 +58,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/weather', weatherRoutes);
+app.use('/api/broadcast', broadcastRoutes);
+app.use('/api', syncRoutes);
 
 // System Health Check (Without leaking internal network topology)
 app.get('/api/health', async (req, res) => {

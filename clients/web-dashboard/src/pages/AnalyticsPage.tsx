@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
-import { TrendingUp, RefreshCw, Database, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
 
-export const AnalyticsPage: React.FC = () => {
+interface AnalyticsPageProps {
+  userLocation: GeoLocation | null;
+  onOpenLocationModal?: () => void;
+}
+
+export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
+  userLocation,
+  onOpenLocationModal
+}) => {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const userLat = Number(userLocation?.latitude) || 33.2422;
+  const userLon = Number(userLocation?.longitude) || 75.2443;
 
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/telemetry/history?limit=25');
+      const res = await api.get('/api/telemetry/history?limit=50');
       if (res.data.success) {
         setHistory(res.data.history || []);
       }
@@ -24,90 +36,185 @@ export const AnalyticsPage: React.FC = () => {
     fetchHistory();
   }, []);
 
+  // Compute distance from user location for each telemetry entry
+  const historyWithDistance = history.map((row) => {
+    const lat = typeof row.latitude === 'number' ? row.latitude : undefined;
+    const lon = typeof row.longitude === 'number' ? row.longitude : undefined;
+
+    let distKm: number | null = null;
+    if (lat !== undefined && lon !== undefined && !isNaN(lat) && !isNaN(lon)) {
+      distKm = calculateDistanceKm(userLat, userLon, lat, lon);
+    }
+
+    return {
+      ...row,
+      distanceKm: distKm,
+      isWithin10Km: distKm !== null && distKm <= 10.0
+    };
+  }).sort((a, b) => {
+    if (a.distanceKm === null) return 1;
+    if (b.distanceKm === null) return -1;
+    return a.distanceKm - b.distanceKm;
+  });
+
+  // Strictly localized to 10 km geofence
+  const displayedRecords = historyWithDistance.filter((r) => r.isWithin10Km);
+  const nearestRecord = historyWithDistance.find((r) => r.distanceKm !== null);
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div>
-          <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-sky-400" />
-            <span>Sensor Telemetry & Inclinometer History</span>
+          <h2 className="text-lg font-bold text-white uppercase tracking-wider font-mono">
+            Sensor Telemetry Logs
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Real hardware readings ingested from deployed field nodes.
+          <p className="text-xs text-slate-400 mt-0.5 font-sans">
+            Real hardware readings ingested from slope field nodes within 10 km.
           </p>
         </div>
 
         <button
           onClick={fetchHistory}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-xs font-mono text-slate-300 transition"
+          className="px-3 py-1.5 rounded-none bg-slate-900 border border-slate-800 hover:bg-slate-800 text-xs font-mono text-slate-300 transition shrink-0"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-amber-400' : ''}`} />
-          <span>Refresh</span>
+          {loading ? 'Refreshing...' : 'Refresh'}
         </button>
+      </div>
+
+      {/* User Location Context Banner */}
+      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <div className="space-y-1 font-mono text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-300 uppercase tracking-wide">
+              Active Transit Corridor:
+            </span>
+            <span className="font-bold text-amber-400 bg-[#0D1117] px-2 py-0.5 border border-[#30363D]">
+              {userLocation?.cityName || 'Ramban Central'}
+            </span>
+            <span className="text-slate-400 text-[11px]">
+              ({userLat.toFixed(2)}°N, {userLon.toFixed(2)}°E)
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-400 font-sans mt-0.5">
+            {displayedRecords.length > 0 ? (
+              <span className="text-emerald-400 font-semibold font-mono">
+                Showing {displayedRecords.length} live telemetry packet(s) within 10 km.
+              </span>
+            ) : (
+              <span className="text-slate-400 font-mono text-xs">
+                No active sensor stations within 10 km. Nearest station: {' '}
+                <span className="text-amber-400 font-bold">{nearestRecord?.nodeId || 'PHYSICAL_ESP32_01'}</span>{' '}
+                ({nearestRecord?.distanceKm ?? '--'} km away).
+              </span>
+            )}
+          </p>
+        </div>
+
+        {onOpenLocationModal && (
+          <button
+            onClick={onOpenLocationModal}
+            className="px-3 py-1.5 rounded-none bg-[#21262D] hover:bg-[#30363D] text-amber-400 border border-amber-500/30 text-xs font-mono font-medium transition"
+          >
+            Edit Location
+          </button>
+        )}
       </div>
 
       {/* Telemetry Log Table */}
       <div className="rounded-none border border-slate-800 overflow-hidden bg-slate-900/80 shadow-lg">
-        <div className="p-3.5 border-b border-slate-800/80 flex items-center justify-between text-xs">
-          <span className="font-semibold text-slate-300 font-sans flex items-center gap-1.5">
-            <Database className="w-3.5 h-3.5 text-amber-400" />
-            Recent Telemetry Ingestion Events
+        <div className="p-3 border-b border-slate-800 flex items-center justify-between text-xs">
+          <span className="font-semibold text-slate-300 font-mono text-xs uppercase tracking-wider">
+            Telemetry Logs Within 10 km ({displayedRecords.length})
           </span>
-          <span className="font-mono text-slate-500">Source: Core Gateway RAM / Atlas</span>
         </div>
 
         {loading ? (
           <div className="p-10 flex flex-col items-center justify-center space-y-2 text-center">
-            <Loader2 className="w-6 h-6 animate-spin text-sky-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
             <p className="text-xs font-mono text-slate-400">Fetching live sensor readings...</p>
           </div>
-        ) : history.length === 0 ? (
-          <p className="p-8 text-center text-xs text-slate-400">No historical records available yet.</p>
+        ) : displayedRecords.length === 0 ? (
+          <div className="p-8 text-center space-y-1 text-slate-400">
+            <p className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
+              [ NO SENSORS IN 10 KM ]
+            </p>
+            <p className="text-xs text-slate-400">
+              No field stations detected within 10 km of {userLocation?.cityName || 'current location'}.
+            </p>
+            {nearestRecord && (
+              <p className="text-[11px] text-slate-500 font-mono mt-1">
+                Nearest active station: {nearestRecord.nodeId} ({nearestRecord.distanceKm} km away).
+              </p>
+            )}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
               <thead className="bg-slate-950 text-slate-400 text-[11px] uppercase tracking-wider border-b border-slate-800">
                 <tr>
                   <th className="py-2.5 px-3">Node ID</th>
-                  <th className="py-2.5 px-3">GPS Coordinate</th>
-                  <th className="py-2.5 px-3">Tilt Mag</th>
+                  <th className="py-2.5 px-3">Distance</th>
+                  <th className="py-2.5 px-3">Coordinate</th>
+                  <th className="py-2.5 px-3">Tilt</th>
                   <th className="py-2.5 px-3">Soil Moisture</th>
-                  <th className="py-2.5 px-3">Rainfall Rate</th>
+                  <th className="py-2.5 px-3">Rainfall</th>
                   <th className="py-2.5 px-3">Vibration</th>
-                  <th className="py-2.5 px-3">Battery</th>
                   <th className="py-2.5 px-3">Timestamp</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {history.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-800/40 transition">
-                    <td className="py-2.5 px-3 font-semibold text-white">{row.nodeId || 'ESP32_NODE'}</td>
-                    <td className="py-2.5 px-3 text-sky-400 font-mono text-[11px]">
-                      {row.latitude ? `${row.latitude.toFixed(3)}°, ${row.longitude.toFixed(3)}°` : 'N/A'}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <span className={row.tiltMagnitude > 4.0 ? 'text-rose-400 font-bold' : ''}>
-                        {row.tiltMagnitude ? `${row.tiltMagnitude}°` : '2.1°'}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3">{row.soilMoisturePct ? `${row.soilMoisturePct}%` : '65%'}</td>
-                    <td className="py-2.5 px-3">{row.rain1hIntensityMm ? `${row.rain1hIntensityMm} mm/h` : '0 mm/h'}</td>
-                    <td className="py-2.5 px-3">
-                      {row.vibrationDetected ? (
-                        <span className="text-rose-400 font-bold">YES</span>
-                      ) : (
-                        <span className="text-slate-500">NO</span>
-                      )}
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-400">{row.batteryPct ? `${row.batteryPct}%` : '95%'}</td>
-                    <td className="py-2.5 px-3 text-slate-500 text-[11px]">
-                      {row.timestamp ? new Date(row.timestamp).toLocaleTimeString() : 'Recent'}
-                    </td>
-                  </tr>
-                ))}
+                {displayedRecords.map((row, idx) => {
+                  const tilt = typeof row.tiltMagnitude === 'number' ? row.tiltMagnitude : (typeof row.tiltX === 'number' ? Math.sqrt(row.tiltX**2 + (row.tiltY||0)**2) : 0);
+                  const isCritical = tilt >= 4.0;
+                  const isWarning = tilt >= 2.0;
+
+                  return (
+                    <tr key={idx} className="hover:bg-slate-800/40 transition">
+                      <td className="py-2.5 px-3 font-semibold text-white">
+                        {row.nodeId || 'ESP32_NODE'}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {row.distanceKm !== null ? (
+                          <span className="text-slate-300">
+                            {row.distanceKm} km
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">--</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-sky-400 font-mono text-[11px]">
+                        {typeof row.latitude === 'number' && typeof row.longitude === 'number'
+                          ? `${row.latitude.toFixed(3)}°, ${row.longitude.toFixed(3)}°`
+                          : 'N/A'}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={isCritical ? 'text-rose-400 font-bold' : isWarning ? 'text-amber-400 font-bold' : 'text-slate-300'}>
+                          {tilt.toFixed(1)}°
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {typeof row.soilMoisturePct === 'number' ? `${row.soilMoisturePct}%` : '--'}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {typeof row.rain1hIntensityMm === 'number' ? `${row.rain1hIntensityMm} mm/h` : '0.0 mm/h'}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {row.vibrationDetected ? (
+                          <span className="text-rose-400 font-bold">YES</span>
+                        ) : (
+                          <span className="text-slate-500">NO</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-500 text-[11px]">
+                        {row.timestamp ? new Date(row.timestamp).toLocaleTimeString() : 'Recent'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
