@@ -1,15 +1,10 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import dns from 'dns';
-
-// Fix Node.js Windows SRV lookup issue (querySrv ECONNREFUSED) by using reliable DNS servers
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch {
-  // silent
-}
+import path from 'path';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'services/core-gateway/.env') });
 
 export const connectDatabase = async (): Promise<boolean> => {
   const uri = process.env.MONGODB_URI;
