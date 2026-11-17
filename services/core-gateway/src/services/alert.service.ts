@@ -74,7 +74,9 @@ export class AlertService {
       lsiScore: lsi.lsiScore,
       headline: `${lsi.riskLevel} - Landslide Risk at ${sector.name}`,
       descriptions,
-      sirenTriggered: lsi.triggerSiren
+      sirenTriggered: lsi.triggerSiren,
+      latitude: sector.latitude,
+      longitude: sector.longitude
     };
 
     // 1. Update in-memory state

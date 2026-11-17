@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
 import { offlineCache } from '../services/offlineCache.ts';
 import { offlineSync } from '../services/offlineSync.ts';
-import { EmergencyAlert, MountainSector, FieldReport } from '../types/index.ts';
+import { EmergencyAlert, MountainSector, FieldReport, NodeTelemetry } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
+import { getNodeProximity } from '../utils/proximityFilter.ts';
 import { Loader2, ShieldAlert, PlusCircle } from 'lucide-react';
 
 interface AlertsPageProps {
   userLocation: GeoLocation | null;
   sectors?: MountainSector[];
+  nodes?: NodeTelemetry[];
   onOpenLocationModal?: () => void;
   onOpenReportModal?: () => void;
 }
@@ -17,6 +19,7 @@ interface AlertsPageProps {
 export const AlertsPage: React.FC<AlertsPageProps> = ({
   userLocation,
   sectors = [],
+  nodes = [],
   onOpenLocationModal,
   onOpenReportModal
 }) => {
@@ -98,6 +101,9 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
 
   // Associate each alert with geographical distance to user location
   const computeAlertDistance = (alert: EmergencyAlert) => {
+    if (typeof (alert as any).latitude === 'number' && typeof (alert as any).longitude === 'number') {
+      return calculateDistanceKm(userLat, userLon, (alert as any).latitude, (alert as any).longitude);
+    }
     const sec = sectors.find((s) => s.id === alert.sectorId);
     if (sec && typeof sec.latitude === 'number' && typeof sec.longitude === 'number') {
       return calculateDistanceKm(userLat, userLon, sec.latitude, sec.longitude);
@@ -105,8 +111,45 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
     return 999;
   };
 
-  const alertsWithDistance = activeAlerts.map((a) => {
-    const dist = computeAlertDistance(a);
+  // Check physical sensor nodes within 10 km corridor
+  const nodeSummary = getNodeProximity(userLat, userLon, nodes, 10);
+
+  // Synthesize real-time sensor hazard alerts for any nodes within 10 km that exceed safety thresholds
+  const sensorAlerts: EmergencyAlert[] = nodeSummary.nodesInRadius
+    .filter(({ node }) => (node.tiltMagnitude || 0) >= 2.0 || Boolean(node.vibrationDetected))
+    .map(({ node, distanceKm }) => {
+      const tilt = node.tiltMagnitude || 0;
+      const isCritical = tilt >= 4.0;
+      return {
+        id: `SENSOR_ALERT_${node.nodeId}`,
+        sectorId: 'LOCAL_CORRIDOR',
+        sectorName: `${userLocation?.cityName || 'Transit Corridor'} (Station ${node.nodeId})`,
+        highway: 'NH44 Transit',
+        kmMarker: `${distanceKm} km away`,
+        level: isCritical ? 'CRITICAL' : 'WARNING',
+        status: 'ACTIVE',
+        timestamp: node.timestamp || Date.now(),
+        lsiScore: isCritical ? 95 : 65,
+        triggerCause: `Physical Sensor Tilt Displacement (${tilt.toFixed(1)}°)`,
+        multilingual: {
+          en: `CRITICAL SENSOR ALERT: Physical slope node ${node.nodeId} (${distanceKm} km away) detected ${tilt.toFixed(1)}° slope displacement. Immediate landslide hazard in 10 km transit perimeter. Halt immediately and move to designated evacuation shelter.`,
+          hi: `10 किमी परिधि में स्थित सेंसर ${node.nodeId} (${distanceKm} किमी दूर) द्वारा ${tilt.toFixed(1)}° गंभीर ढलान विस्थापन दर्ज किया गया है। तुरंत वाहन रोकें और सुरक्षित स्थान पर जाएं।`,
+          dogri: `भारी ख़तरा: सेंसर ${node.nodeId} पर ढलान खिसकने दा गंभीर ख़तरा दर्ज कीता गेया ऐ। सुरक्षित जगह जाओ।`,
+          kashmiri: `خطرناک چتاونی: سنسر ${node.nodeId} پیٹھ شدید سلایٔڈ یُنک خطرہ۔ محفوظ جائے پؠٹھ کُن تلو۔`
+        },
+        latitude: node.latitude,
+        longitude: node.longitude,
+        distanceKm
+      } as any;
+    });
+
+  // Combine official activeAlerts with live sensorAlerts (avoiding duplicate node IDs)
+  const officialNodeIds = new Set(activeAlerts.map(a => (a as any).nodeId));
+  const newSensorAlerts = sensorAlerts.filter(sa => !officialNodeIds.has((sa as any).nodeId));
+  const combinedAlerts = [...activeAlerts, ...newSensorAlerts];
+
+  const alertsWithDistance = combinedAlerts.map((a) => {
+    const dist = (a as any).distanceKm !== undefined ? (a as any).distanceKm : computeAlertDistance(a);
     return {
       ...a,
       distanceKm: dist,
@@ -157,7 +200,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
             <span className="font-bold text-slate-300 uppercase tracking-wide">
               Active Transit Corridor:
             </span>
-            <span className="font-bold text-amber-400 bg-[#0D1117] px-2 py-0.5 border border-[#30363D]">
+            <span className="font-semibold text-white font-mono bg-[#0D1117] px-2 py-0.5 border border-[#30363D] rounded">
               {userLocation?.cityName || 'Ramban Central'}
             </span>
             <span className="text-slate-400 text-[11px]">
@@ -167,11 +210,11 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
 
           <p className="text-xs font-sans mt-0.5">
             {displayedAlerts.length > 0 ? (
-              <span className="text-rose-400 font-bold font-mono">
+              <span className="text-rose-400 font-medium font-mono">
                 [!] {displayedAlerts.length} hazard bulletin(s) active inside your 10 km zone.
               </span>
             ) : (
-              <span className="text-emerald-400 font-sans">
+              <span className="text-slate-300 font-sans">
                 Status: Normal. No active slope failure detected within 10 km.
               </span>
             )}
@@ -182,7 +225,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
           {onOpenReportModal && isAuthorizedFieldPersonnel && (
             <button
               onClick={onOpenReportModal}
-              className="px-3 py-1.5 rounded-none bg-[#21262D] hover:bg-[#30363D] text-amber-400 border border-amber-500/30 text-xs font-mono font-medium transition"
+              className="px-3 py-1.5 rounded-md bg-[#21262D] hover:bg-[#30363D] text-slate-200 border border-[#30363D] text-xs font-mono font-medium transition"
             >
               + Field Report
             </button>
@@ -190,7 +233,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
           {onOpenLocationModal && (
             <button
               onClick={onOpenLocationModal}
-              className="px-3 py-1.5 rounded-none bg-[#21262D] hover:bg-[#30363D] text-slate-300 border border-[#30363D] text-xs font-mono font-medium transition"
+              className="px-3 py-1.5 rounded-md bg-[#21262D] hover:bg-[#30363D] text-slate-200 border border-[#30363D] text-xs font-mono font-medium transition"
             >
               Edit Location
             </button>
@@ -200,7 +243,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
 
       {/* Active Alerts List (Strictly 10 km Geofenced) */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+        <div className="flex items-center justify-between border-b border-[#21262D] pb-2">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
             Advisories Within 10 km ({displayedAlerts.length})
           </h3>
@@ -208,12 +251,12 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
 
         {loading ? (
           <div className="py-12 flex flex-col items-center justify-center text-center space-y-2">
-            <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
             <p className="text-xs text-slate-400 font-mono">Checking regional hazard feeds...</p>
           </div>
         ) : displayedAlerts.length === 0 ? (
-          <div className="p-6 rounded-none bg-[#161B22] border border-[#30363D] text-center space-y-1">
-            <p className="text-xs font-bold text-emerald-400 font-mono uppercase tracking-wider">
+          <div className="p-6 rounded-md bg-[#161B22] border border-[#30363D] text-center space-y-1">
+            <p className="text-xs font-semibold text-slate-300 font-mono uppercase tracking-wider">
               [ STATUS: NORMAL ]
             </p>
             <p className="text-xs text-slate-300 font-sans mt-1">

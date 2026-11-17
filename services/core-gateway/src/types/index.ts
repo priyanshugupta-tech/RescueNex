@@ -144,6 +144,8 @@ export interface EmergencyAlert {
     kashmiri: string;
   };
   sirenTriggered: boolean;
+  latitude?: number;
+  longitude?: number;
   status?: 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED';
   acknowledgedBy?: string;
   acknowledgedAt?: number;

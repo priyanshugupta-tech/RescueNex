@@ -13,6 +13,7 @@ export const setAlertSocketEmitter = (emitter: any) => {
 const formatAlert = (a: any) => {
   const doc = a.toObject ? a.toObject() : a;
   const alertId = doc.alertId || doc.id || (doc._id ? String(doc._id) : `ALERT_${Date.now()}`);
+  const sector = stateService.getSector(doc.sectorId);
   const descriptions = doc.descriptions || doc.multilingual || {
     en: doc.headline || 'Active landslide warning.',
     hi: 'सक्रिय भूस्खलन चेतावनी।',
@@ -25,6 +26,8 @@ const formatAlert = (a: any) => {
     alertId,
     level: doc.riskLevel || doc.level || 'WARNING',
     riskLevel: doc.riskLevel || doc.level || 'WARNING',
+    latitude: typeof doc.latitude === 'number' ? doc.latitude : sector?.latitude,
+    longitude: typeof doc.longitude === 'number' ? doc.longitude : sector?.longitude,
     descriptions,
     multilingual: descriptions,
     kmMarker: doc.kmMarker || 'KM 142.5',
