@@ -250,28 +250,22 @@ export const GisMap: React.FC<GisMapProps> = ({
       </MapContainer>
 
       {/* Map Legend Overlay */}
-      <div className="absolute bottom-3 left-3 z-[1000] p-2.5 rounded-none bg-slate-950/90 backdrop-blur border border-slate-800 text-[11px] font-mono space-y-1 shadow-2xl">
-        <p className="font-bold text-slate-300 font-sans uppercase text-[10px] tracking-wider mb-1">
-          Live Status Matrix
+      <div className="absolute bottom-3 left-3 z-[1000] p-2.5 rounded-md bg-[#161B22]/90 backdrop-blur border border-[#30363D] text-[11px] font-mono space-y-1 shadow-lg">
+        <p className="font-semibold text-slate-300 font-sans uppercase text-[10px] tracking-wider mb-1">
+          Status Matrix
         </p>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span className="text-slate-300">Green: Normal / Stable</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span className="text-slate-300">Normal / Stable</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-          <span className="text-slate-300">Yellow: Active Warning</span>
+          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span className="text-slate-300">Active Warning</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-          <span className="text-slate-300">Red: Critical Hazard</span>
+          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+          <span className="text-slate-300">Critical Hazard</span>
         </div>
-        {userLocation && (
-          <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
-            <span className="w-2.5 h-2.5 border border-dashed" style={{ borderColor: threatColor, backgroundColor: `${threatColor}33` }}></span>
-            <span className="font-bold" style={{ color: threatColor }}>Your 10 km Circle ({threatLevel})</span>
-          </div>
-        )}
       </div>
     </div>
   );
