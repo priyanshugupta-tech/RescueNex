@@ -236,6 +236,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
               const level = (alert as any).level || (alert as any).riskLevel || 'WARNING';
               const enMsg = (alert as any).descriptions?.en || alert.multilingual?.en || (alert as any).headline || 'Emergency bulletin active.';
               const hiMsg = (alert as any).descriptions?.hi || alert.multilingual?.hi || 'भूस्खलन चेतावनी सक्रिय।';
+              const dogriMsg = (alert as any).descriptions?.dogri || alert.multilingual?.dogri || 'ज़मीन खिसकने दी चेताउनी: एहतियात बरतौ।';
               const cause = alert.triggerCause || (alert as any).headline || 'Slope Deformation Threshold Exceeded';
               const km = alert.kmMarker || 'Transit Corridor';
               const dist = alert.distanceKm;
@@ -287,14 +288,18 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
                     <div className="p-3 rounded bg-[#0D1117] border border-[#21262D]">
                       <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">English Advisory</span>
                       <p className="text-slate-200 mt-1 font-sans leading-relaxed">{enMsg}</p>
                     </div>
-                    <div className="p-3 rounded-none bg-[#0D1117] border border-[#21262D]">
+                    <div className="p-3 rounded bg-[#0D1117] border border-[#21262D]">
                       <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">हिंदी चेतावनी</span>
                       <p className="text-slate-200 mt-1 font-sans leading-relaxed">{hiMsg}</p>
+                    </div>
+                    <div className="p-3 rounded bg-[#0D1117] border border-[#21262D]">
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">डोगरी चेताउनी</span>
+                      <p className="text-slate-200 mt-1 font-sans leading-relaxed">{dogriMsg}</p>
                     </div>
                   </div>
 

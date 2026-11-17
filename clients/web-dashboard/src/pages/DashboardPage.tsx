@@ -164,9 +164,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 EVACUATE / HALT
               </span>
             </div>
-            <p className="text-xs mt-1 text-slate-300 leading-relaxed font-sans">
-              {activeCriticalAlert.multilingual?.hi || activeCriticalAlert.multilingual?.en || activeCriticalAlert.triggerCause}
-            </p>
+            <div className="space-y-1 mt-1 text-xs text-slate-300 leading-relaxed font-sans">
+              <p>{activeCriticalAlert.multilingual?.en || activeCriticalAlert.triggerCause}</p>
+              {activeCriticalAlert.multilingual?.hi && (
+                <p className="text-slate-400 font-sans"><span className="text-[10px] font-mono font-semibold text-slate-500 uppercase">हिंदी:</span> {activeCriticalAlert.multilingual.hi}</p>
+              )}
+              {activeCriticalAlert.multilingual?.dogri && (
+                <p className="text-slate-400 font-sans"><span className="text-[10px] font-mono font-semibold text-slate-500 uppercase">डोगरी:</span> {activeCriticalAlert.multilingual.dogri}</p>
+              )}
+            </div>
             <p className="text-[11px] font-mono text-slate-400 mt-1">
               Sector: {activeCriticalAlert.sectorName} • Status: {activeCriticalAlert.status}
             </p>
@@ -287,7 +293,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </span>
             </div>
 
-            <div className="space-y-2 text-xs max-h-56 overflow-y-auto custom-scrollbar pr-1">
+            <div className="space-y-2 text-xs max-h-72 overflow-y-auto custom-scrollbar pr-1">
               {nodeSummary.threatLevel === 'CRITICAL' ? (
                 <>
                   <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
@@ -297,6 +303,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
                     <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Hindi Advisory (हिंदी)</p>
                     <p className="text-xs text-slate-200 leading-relaxed font-sans">10 किमी के भीतर गंभीर भूस्खलन खतरा। तुरंत वाहन रोकें और सुरक्षित स्थान पर जाएं।</p>
+                  </div>
+                  <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                    <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Dogri Advisory (डोगरी)</p>
+                    <p className="text-xs text-slate-200 leading-relaxed font-sans">10 किमी दे अंदर भारी ज़मीन खिसकने दा गंभीर ख़तरा। गड्डियां तुरंत रोको ते सुरक्षित जगह पर जाह्ओ।</p>
                   </div>
                 </>
               ) : nodeSummary.threatLevel === 'WARNING' ? (
@@ -309,16 +319,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Hindi Advisory (हिंदी)</p>
                     <p className="text-xs text-slate-200 leading-relaxed font-sans">सावधानी: 10 किमी के भीतर हल्का भूस्खलन या भारी बारिश दर्ज की गई है। सतर्क रहें।</p>
                   </div>
+                  <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                    <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Dogri Advisory (डोगरी)</p>
+                    <p className="text-xs text-slate-200 leading-relaxed font-sans">चौकसी: 10 किमी दे दायरे च ज़मीन खिसकने जां भारी बारिश दा ख़तरा ऐ। गड्डी बड़ी एहतियात कन्नै चलाओ।</p>
+                  </div>
                 </>
               ) : (
-                <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
-                  <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Status: Normal</p>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    {nodeSummary.hasCoverage
-                      ? 'All slope monitoring nodes within 10 km report stable terrain. Highway traffic running normally.'
-                      : 'No active sensor nodes in this 10 km perimeter. Drive cautiously and observe highway markers.'}
-                  </p>
-                </div>
+                <>
+                  <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                    <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Status: Normal (English)</p>
+                    <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                      {nodeSummary.hasCoverage
+                        ? 'All slope monitoring nodes within 10 km report stable terrain. Highway traffic running normally.'
+                        : 'No active sensor nodes in this 10 km perimeter. Drive cautiously and observe highway markers.'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                    <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Dogri Advisory (डोगरी)</p>
+                    <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                      हालात सामान्य: 10 किमी दे दायरे च सारा इलाका ठीक-ठाक ऐ। हाईवे पर गाड़ियां आराम कन्नै चलदियां पइयां न।
+                    </p>
+                  </div>
+                </>
               )}
             </div>
           </div>
