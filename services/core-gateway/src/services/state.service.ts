@@ -48,6 +48,7 @@ class StateService {
     if (sec) {
       sec.currentRiskLevel = riskLevel;
       sec.currentLsiScore = lsiScore;
+      sec.lsiScore = lsiScore;
     }
   }
 

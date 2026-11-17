@@ -22,7 +22,7 @@ const createNodeIcon = (risk: 'SAFE' | 'WARNING' | 'CRITICAL', nodeId: string) =
       <div class="relative flex items-center justify-center">
         <div class="w-4 h-4 rounded-full ${dotColor} border-2 border-white shadow"></div>
         <div class="absolute -top-6 px-1.5 py-0.5 rounded bg-[#161B22] text-[9px] font-mono ${badgeColor} font-bold border border-[#30363D] whitespace-nowrap shadow-md">
-          📡 ${nodeId.replace('NODE_', '')}
+          📡 ${nodeId}
         </div>
       </div>
     `,

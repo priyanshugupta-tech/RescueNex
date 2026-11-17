@@ -46,11 +46,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // Dynamic Nodes Proximity & Color Coding
   const nodeSummary = getNodeProximity(userLat, userLon, nodes, 10);
 
-  // Determine active telemetry to display: closest node in 10 km, or nearest active station, or fallback
+  // Determine active telemetry to display: ONLY show sensor metrics if there is an active node within the user's 10 km perimeter
   const displayTelemetry: NodeTelemetry | null =
     nodeSummary.nodesInRadius.length > 0
       ? nodeSummary.nodesInRadius[0].node
-      : (nodeSummary.nearestNode ? nodeSummary.nearestNode.node : telemetry);
+      : null;
 
   // Calculate distances to all sectors
   const sectorsWithDistance = sectors.map((sec) => {

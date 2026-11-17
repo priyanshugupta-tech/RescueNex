@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../services/api.ts';
+import { api, setAccessToken, getAccessToken } from '../services/api.ts';
 import { User } from '../types/index.ts';
 
 interface AuthContextType {
@@ -18,7 +18,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     try {
-      const cached = localStorage.getItem('rescuenex_user');
+      // Read from sessionStorage or memory store (never permanent localStorage)
+      const cached = sessionStorage.getItem('rescuenex_session_user');
       return cached ? JSON.parse(cached) : null;
     } catch {
       return null;
@@ -29,9 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveUser = (u: User | null) => {
     setUser(u);
     if (u) {
-      localStorage.setItem('rescuenex_user', JSON.stringify(u));
+      sessionStorage.setItem('rescuenex_session_user', JSON.stringify(u));
     } else {
-      localStorage.removeItem('rescuenex_user');
+      sessionStorage.removeItem('rescuenex_session_user');
     }
   };
 
@@ -47,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const refreshRes = await api.get('/api/auth/tokengen');
         if (refreshRes.data.accessToken) {
-          localStorage.setItem('rescuenex_token', refreshRes.data.accessToken);
+          setAccessToken(refreshRes.data.accessToken);
           const meRes = await api.get('/api/auth/me');
           if (meRes.data.success && meRes.data.user) {
             saveUser(meRes.data.user);
@@ -57,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         // Not authenticated
       }
+      setAccessToken(null);
       saveUser(null);
     } finally {
       setLoading(false);
@@ -64,13 +66,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Clear legacy localStorage token if lingering
+    localStorage.removeItem('rescuenex_token');
+    localStorage.removeItem('rescuenex_user');
     refreshMe();
   }, []);
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/api/auth/login', { email, password });
     if (res.data.accessToken) {
-      localStorage.setItem('rescuenex_token', res.data.accessToken);
+      setAccessToken(res.data.accessToken);
       if (res.data.user) {
         saveUser(res.data.user);
       }
@@ -80,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const googleLogin = async (credential: string) => {
     const res = await api.post('/api/auth/oauth/google', { credential });
     if (res.data.accessToken) {
-      localStorage.setItem('rescuenex_token', res.data.accessToken);
+      setAccessToken(res.data.accessToken);
       if (res.data.user) {
         saveUser(res.data.user);
       }
@@ -94,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const verifyOtp = async (email: string, otp: string) => {
     const res = await api.post('/api/auth/verify-otp', { email, otp });
     if (res.data.accessToken) {
-      localStorage.setItem('rescuenex_token', res.data.accessToken);
+      setAccessToken(res.data.accessToken);
       if (res.data.user) {
         saveUser(res.data.user);
       }
@@ -107,8 +112,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       // silent
     }
-    localStorage.removeItem('rescuenex_token');
+    setAccessToken(null);
     saveUser(null);
+    localStorage.removeItem('rescuenex_token');
+    localStorage.removeItem('rescuenex_user');
   };
 
   return (

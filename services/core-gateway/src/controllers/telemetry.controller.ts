@@ -8,10 +8,11 @@ import { NodeTelemetry, LSIResult, MountainSector } from '../types/index.js';
 import { TelemetryLogModel } from '../models/telemetryLog.model.js';
 import { AlertModel } from '../models/alert.model.js';
 import { isDatabaseConnected } from '../config/database.js';
+import { logEspTelemetry } from '../services/logger.service.js';
 
 // Schema for incoming telemetry from physical ESP32 (Hardware nodes send their own GPS coordinates)
 const telemetryIngestSchema = z.object({
-  node_id: z.string().default('NODE_01'),
+  node_id: z.string().min(1, 'node_id is required'),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   altitude_m: z.number().optional().default(1500),
@@ -174,6 +175,45 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
       }
     }
 
+    // Secondary Atlas DB Ingestion via Winston Logger (rescuenex_esp32_logs)
+    const logEvent = lsiResult?.riskLevel === 'CRITICAL' 
+      ? 'EVALUATED_CRITICAL' 
+      : lsiResult?.riskLevel === 'WARNING' 
+      ? 'EVALUATED_WARNING' 
+      : 'EVALUATED_SAFE';
+
+    logEspTelemetry(telemetry.nodeId, logEvent, {
+      sectorId: sector.id,
+      sectorName: sector.name,
+      coords: { lat: telemetry.latitude, lon: telemetry.longitude, alt: telemetry.altitudeM },
+      geotechnical: {
+        soilMoisturePct: telemetry.soilMoisturePct,
+        tiltX: data.tilt_x,
+        tiltY: data.tilt_y,
+        tiltMagnitude: telemetry.tiltMagnitude,
+        tiltDelta: telemetry.tiltDelta,
+        accelRms: telemetry.accelRms,
+        vibrationDetected: data.vibration_detected
+      },
+      weatherSnapshot: {
+        rain1hIntensityMm: weather.rain1hIntensityMm,
+        rain24hCumulativeMm: weather.rain24hCumulativeMm,
+        tempC: data.temperature_c,
+        humidityPct: data.humidity_pct
+      },
+      aiEvaluation: {
+        lsiScore: lsiResult ? lsiResult.lsiScore : 0,
+        riskLevel: lsiResult ? lsiResult.riskLevel : 'LOW',
+        timeToFailureHours: lsiResult ? lsiResult.timeToFailureHours : null,
+        aiStatus
+      },
+      hardwareStatus: {
+        wakeReason: data.wake_reason,
+        batteryPct: telemetry.batteryPct,
+        gpsFix: data.gps_fix
+      }
+    });
+
     // Broadcast over WebSocket with dynamic GPS fix
     if (socketEmitter) {
       socketEmitter('TELEMETRY_STREAM', {
@@ -274,9 +314,18 @@ export const getAllTelemetry = async (req: Request, res: Response): Promise<void
 };
 
 export const getAllSectors = (req: Request, res: Response): void => {
+  const sectors = stateService.getAllSectors().map((sec) => {
+    const score = sec.lsiScore !== undefined ? sec.lsiScore : (sec.currentLsiScore !== undefined ? sec.currentLsiScore : 18.0);
+    return {
+      ...sec,
+      lsiScore: score,
+      currentLsiScore: score
+    };
+  });
+
   res.json({
     success: true,
-    sectors: stateService.getAllSectors()
+    sectors
   });
 };
 

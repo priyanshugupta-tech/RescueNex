@@ -31,7 +31,10 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
   isWeatherSyncing
 }) => {
   const { user } = useAuth();
-  const lsiScore = sector?.lsiScore ?? null;
+  const rawScore = sector?.lsiScore ?? (sector as any)?.currentLsiScore;
+  const lsiScore = rawScore != null 
+    ? (rawScore <= 1.0 && rawScore > 0 ? Math.round(rawScore * 100) : Math.round(rawScore)) 
+    : null;
   const riskLevel = sector?.currentRiskLevel ?? 'LOW';
 
   const getRiskBadge = () => {
