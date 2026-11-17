@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ShieldCheck, FileText, Lock, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { FileText, Lock, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const LegalPage: React.FC = () => {
@@ -105,8 +105,8 @@ export const LegalPage: React.FC = () => {
             </div>
 
             <div className="border-t border-[#21262D] pt-6">
-              <div className="flex items-center gap-2 mb-2 text-amber-400 font-bold font-mono">
-                <ShieldCheck className="w-4 h-4" />
+              <div className="flex items-center gap-2 mb-2 text-slate-300 font-bold font-mono">
+                <FileText className="w-4 h-4 text-slate-400" />
                 <span className="uppercase tracking-wider">Section 02</span>
               </div>
               <h3 className="text-base font-bold text-white font-sans mb-2">
@@ -118,21 +118,21 @@ export const LegalPage: React.FC = () => {
             </div>
 
             <div className="border-t border-[#21262D] pt-6">
-              <div className="flex items-center gap-2 mb-2 text-amber-400 font-bold font-mono">
-                <AlertTriangle className="w-4 h-4" />
+              <div className="flex items-center gap-2 mb-2 text-slate-300 font-bold font-mono">
+                <FileText className="w-4 h-4 text-slate-400" />
                 <span className="uppercase tracking-wider">Section 03</span>
               </div>
               <h3 className="text-base font-bold text-white font-sans mb-2">
                 Emergency Siren & Acoustic Horn Actuation
               </h3>
               <p>
-                Acoustic sirens installed in monitored mountain sectors are triggered automatically upon critical slope collapse detection or actuated via authenticated operator override requiring high-security authorization (<code className="px-1.5 py-0.5 rounded-none bg-[#0D1117] border border-[#30363D] font-mono text-amber-400">CONFIRM_DISASTER_OVERRIDE</code>). Unapproved, malicious, or prank siren triggers are strictly prohibited and subject to legal prosecution under Section 54 of the Disaster Management Act, 2005 (punishment for false warning).
+                Acoustic sirens installed in monitored mountain sectors are triggered automatically upon critical slope collapse detection or actuated via authenticated operator override requiring high-security authorization (<code className="px-1.5 py-0.5 rounded-none bg-[#0D1117] border border-[#30363D] font-mono text-slate-300">CONFIRM_DISASTER_OVERRIDE</code>). Unapproved, malicious, or prank siren triggers are strictly prohibited and subject to legal prosecution under Section 54 of the Disaster Management Act, 2005 (punishment for false warning).
               </p>
             </div>
 
             <div className="border-t border-[#21262D] pt-6">
-              <div className="flex items-center gap-2 mb-2 text-amber-400 font-bold font-mono">
-                <ShieldCheck className="w-4 h-4" />
+              <div className="flex items-center gap-2 mb-2 text-slate-300 font-bold font-mono">
+                <FileText className="w-4 h-4 text-slate-400" />
                 <span className="uppercase tracking-wider">Section 04</span>
               </div>
               <h3 className="text-base font-bold text-white font-sans mb-2">
@@ -167,8 +167,8 @@ export const LegalPage: React.FC = () => {
             </div>
 
             <div className="border-t border-[#21262D] pt-6">
-              <div className="flex items-center gap-2 mb-2 text-sky-400 font-bold font-mono">
-                <ShieldCheck className="w-4 h-4" />
+              <div className="flex items-center gap-2 mb-2 text-slate-300 font-bold font-mono">
+                <FileText className="w-4 h-4 text-slate-400" />
                 <span className="uppercase tracking-wider">Data Ingestion 02</span>
               </div>
               <h3 className="text-base font-bold text-white font-sans mb-2">

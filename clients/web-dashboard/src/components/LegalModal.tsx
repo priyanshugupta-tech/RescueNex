@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, FileText, Lock, AlertTriangle, X, ExternalLink, CheckCircle } from 'lucide-react';
+import { FileText, Lock, X, ExternalLink, CheckCircle } from 'lucide-react';
 
 interface LegalModalProps {
   isOpen: boolean;
@@ -62,8 +62,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-none bg-gradient-to-b from-amber-500 to-amber-700 text-white shadow-md border-t border-amber-300/60 border-b border-amber-900">
-              <Shield className="w-5 h-5 text-white" />
+            <div className="p-2 rounded-none bg-slate-800 text-white shadow-md border border-slate-700">
+              <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
               <h3 id="legal-dialog-title" className="text-base font-bold text-white font-sans">
@@ -118,7 +118,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
-            <AlertTriangle className="w-4 h-4 text-white" />
+            <FileText className="w-4 h-4 text-white" />
             <span>Disaster Advisory & SOP</span>
           </button>
         </div>
@@ -215,9 +215,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   </p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-900 border border-amber-500/30">
-                  <div className="flex items-center gap-1.5 text-amber-400 font-bold mb-1">
-                    <AlertTriangle className="w-3.5 h-3.5" />
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-700">
+                  <div className="text-slate-200 font-bold mb-1">
                     <span>LEVEL 2: ADVISORY</span>
                   </div>
                   <p className="text-slate-400 font-sans text-xs">
@@ -225,9 +224,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   </p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-900 border border-rose-500/30">
-                  <div className="flex items-center gap-1.5 text-rose-400 font-bold mb-1">
-                    <AlertTriangle className="w-3.5 h-3.5" />
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-700">
+                  <div className="text-slate-200 font-bold mb-1">
                     <span>LEVEL 3: CRITICAL</span>
                   </div>
                   <p className="text-slate-400 font-sans text-xs">

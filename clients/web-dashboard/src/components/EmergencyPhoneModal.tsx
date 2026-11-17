@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../services/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { X, Check, Smartphone, Send, KeyRound, Mail, ArrowRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import { X, Check, Smartphone, Send, KeyRound, Mail, ArrowRight, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface EmergencyPhoneModalProps {

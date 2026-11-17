@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Volume2, X, AlertTriangle } from 'lucide-react';
+import { Volume2, X } from 'lucide-react';
 import { api } from '../services/api.ts';
 
 interface SirenModalProps {
@@ -76,9 +76,8 @@ export const SirenModal: React.FC<SirenModalProps> = ({
         </div>
 
         {error && (
-          <p className="text-xs font-medium text-rose-400 mb-3 flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>{error}</span>
+          <p className="text-xs font-medium text-rose-400 mb-3">
+            {error}
           </p>
         )}
 

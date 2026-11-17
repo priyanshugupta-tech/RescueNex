@@ -4,7 +4,7 @@ import { offlineSync } from '../services/offlineSync.ts';
 import { GeoLocation } from '../utils/geoUtils.ts';
 import { HazardType, ReportSeverity } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { X, Send, AlertTriangle, CheckCircle } from 'lucide-react';
+import { X, Send, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface FieldReportModalProps {
@@ -295,10 +295,8 @@ export const FieldReportModal: React.FC<FieldReportModalProps> = ({
                     : 'bg-rose-950/40 border-rose-600 text-rose-300'
                 }`}
               >
-                {feedback.type === 'success' ? (
+                {feedback.type === 'success' && (
                   <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                ) : (
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
                 )}
                 <span>{feedback.message}</span>
               </div>

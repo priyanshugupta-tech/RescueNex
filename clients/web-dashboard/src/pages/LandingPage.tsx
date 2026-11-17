@@ -5,7 +5,6 @@ import {
   Compass, 
   Droplets, 
   CloudRain, 
-  Shield, 
   ArrowRight,
   Cpu,
   Layers,
@@ -418,8 +417,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         className="p-8 sm:p-10 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl"
       >
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-amber-400">
-            <Shield className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
             <span>Emergency Operations Portal</span>
           </div>
           <h3 className="text-xl font-bold text-white font-sans">
