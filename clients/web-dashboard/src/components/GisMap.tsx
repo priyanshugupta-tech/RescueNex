@@ -106,7 +106,7 @@ export const GisMap: React.FC<GisMapProps> = ({
   const displayNodes = nodes.length > 0 ? nodes : (telemetry ? [telemetry] : []);
 
   return (
-    <div className="relative w-full h-[540px] rounded-none overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl">
+    <div className="relative isolate z-0 w-full h-[540px] rounded-none overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl">
       <MapContainer
         center={[centerLat, centerLon]}
         zoom={11}
@@ -244,7 +244,7 @@ export const GisMap: React.FC<GisMapProps> = ({
       </MapContainer>
 
       {/* Map Legend Overlay */}
-      <div className="absolute bottom-3 left-3 z-[1000] p-2.5 rounded-md bg-[#161B22]/90 backdrop-blur border border-[#30363D] text-[11px] font-mono space-y-1 shadow-lg">
+      <div className="absolute bottom-3 left-3 z-10 p-2.5 rounded-md bg-[#161B22]/90 backdrop-blur border border-[#30363D] text-[11px] font-mono space-y-1 shadow-lg">
         <p className="font-semibold text-slate-300 font-sans uppercase text-[10px] tracking-wider mb-1">
           Status Matrix
         </p>

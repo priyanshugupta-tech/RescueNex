@@ -331,6 +331,7 @@ export const getAllSectors = (req: Request, res: Response): void => {
 
 export const getTelemetryHistory = async (req: Request, res: Response): Promise<void> => {
   const { nodeId, limit = 50 } = req.query;
+  const parsedLimit = Math.min(Math.max(1, Number(limit) || 50), 50);
 
   if (isDatabaseConnected()) {
     try {
@@ -338,7 +339,7 @@ export const getTelemetryHistory = async (req: Request, res: Response): Promise<
       if (nodeId) query.nodeId = nodeId;
       const history = await TelemetryLogModel.find(query)
         .sort({ timestamp: -1 })
-        .limit(Number(limit));
+        .limit(parsedLimit);
 
       res.json({
         success: true,
@@ -355,6 +356,6 @@ export const getTelemetryHistory = async (req: Request, res: Response): Promise<
   res.json({
     success: true,
     source: 'In_Memory',
-    history: stateService.getAllTelemetry()
+    history: stateService.getAllTelemetry().slice(-parsedLimit)
   });
 };

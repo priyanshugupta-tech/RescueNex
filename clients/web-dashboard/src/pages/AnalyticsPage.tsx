@@ -59,8 +59,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     return a.distanceKm - b.distanceKm;
   });
 
-  // Strictly localized to 10 km geofence
-  const displayedRecords = historyWithDistance.filter((r) => r.isWithin10Km);
+  // Strictly localized to 10 km geofence & capped at max 50 packets
+  const displayedRecords = historyWithDistance.filter((r) => r.isWithin10Km).slice(0, 50);
   const nearestRecord = historyWithDistance.find((r) => r.distanceKm !== null);
   const visibleRecords = showAllLogs ? displayedRecords : displayedRecords.slice(0, 8);
 
