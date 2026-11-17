@@ -209,15 +209,21 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
             </span>
           </div>
           <p className="text-[11px] font-mono text-slate-400">
-            24h Total: {typeof weather?.rain24hCumulativeMm === 'number' ? `${weather.rain24hCumulativeMm.toFixed(1)} mm` : '-- mm'}
+            24h: {typeof weather?.rain24hCumulativeMm === 'number' ? `${weather.rain24hCumulativeMm.toFixed(1)} mm` : '-- mm'} • 7-Day: {typeof weather?.antecedentRain7dMm === 'number' ? `${weather.antecedentRain7dMm.toFixed(1)} mm` : '-- mm'}
           </p>
         </div>
 
-        {/* Relative Humidity */}
+        {/* Precipitation Condition */}
         <div className="mt-2.5 pt-2 border-t border-[#21262D] flex items-center justify-between text-xs font-mono">
-          <span className="text-slate-400">Relative Humidity:</span>
+          <span className="text-slate-400">Precipitation:</span>
           <span className="text-slate-200 font-medium">
-            {typeof weather?.relativeHumidityPct === 'number' ? `${weather.relativeHumidityPct}%` : '--'}
+            {weather?.cloudburstRisk
+              ? '🚨 CLOUDBURST RISK'
+              : (weather?.rain1hIntensityMm ?? 0) > 15
+              ? 'HEAVY RAINFALL'
+              : (weather?.rain1hIntensityMm ?? 0) > 0
+              ? 'ACTIVE RAINFALL'
+              : 'CLEAR / NO RAIN'}
           </span>
         </div>
       </div>
