@@ -146,7 +146,11 @@ const MainAppContent: React.FC = () => {
       const sectorsRes = await api.get('/api/telemetry/sectors');
       let loadedSectors: MountainSector[] = [];
       if (sectorsRes.data.success) {
-        loadedSectors = sectorsRes.data.sectors || [];
+        loadedSectors = (sectorsRes.data.sectors || []).map((sec: any) => ({
+          ...sec,
+          lsiScore: sec.lsiScore ?? sec.currentLsiScore ?? 0,
+          currentLsiScore: sec.currentLsiScore ?? sec.lsiScore ?? 0
+        }));
         setSectors(loadedSectors);
         offlineCache.save('sectors', loadedSectors);
       }
@@ -245,8 +249,45 @@ const MainAppContent: React.FC = () => {
           return [...prev, data.telemetry];
         });
       }
+      if (data.sector || data.lsiResult) {
+        const sectorId = data.sector?.id;
+        const newScore = data.lsiResult?.lsiScore ?? data.sector?.lsiScore ?? data.sector?.currentLsiScore;
+        const newRisk = data.lsiResult?.riskLevel ?? data.sector?.currentRiskLevel;
+        if (sectorId && newScore != null) {
+          setSectors((prev) =>
+            prev.map((s) =>
+              s.id === sectorId
+                ? {
+                    ...s,
+                    lsiScore: newScore,
+                    currentLsiScore: newScore,
+                    currentRiskLevel: newRisk || s.currentRiskLevel
+                  }
+                : s
+            )
+          );
+        }
+      }
       if (data.aiStatus) {
         setAiOnline(data.aiStatus === 'ONLINE' || data.aiStatus === 'HEALTHY');
+      }
+    });
+
+    socket.on('SECTOR_STATUS_UPDATED', (data: any) => {
+      if (data?.sectorId) {
+        setSectors((prev) =>
+          prev.map((s) =>
+            s.id === data.sectorId
+              ? {
+                  ...s,
+                  currentRiskLevel: data.currentRiskLevel || s.currentRiskLevel,
+                  currentLsiScore: data.currentLsiScore ?? s.currentLsiScore,
+                  lsiScore: data.currentLsiScore ?? s.lsiScore,
+                  sirenActive: data.sirenActive ?? s.sirenActive
+                }
+              : s
+          )
+        );
       }
     });
 
@@ -263,6 +304,7 @@ const MainAppContent: React.FC = () => {
     return () => {
       clearInterval(pollTimer);
       socket.off('TELEMETRY_STREAM');
+      socket.off('SECTOR_STATUS_UPDATED');
       socket.off('WEATHER_UPDATED');
       socket.off('EMERGENCY_ALERT');
     };

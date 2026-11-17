@@ -27,7 +27,7 @@ export class AIService {
           humidityPct: fusedData.telemetry.humidityPct || 65.0,
           saveToDb: true
         },
-        { timeout: 4000 }
+        { timeout: 10000 }
       );
 
       const data = response.data;

@@ -304,9 +304,18 @@ export const getAllTelemetry = async (req: Request, res: Response): Promise<void
 };
 
 export const getAllSectors = (req: Request, res: Response): void => {
+  const sectors = stateService.getAllSectors().map((sec) => {
+    const score = sec.lsiScore !== undefined ? sec.lsiScore : (sec.currentLsiScore !== undefined ? sec.currentLsiScore : 18.0);
+    return {
+      ...sec,
+      lsiScore: score,
+      currentLsiScore: score
+    };
+  });
+
   res.json({
     success: true,
-    sectors: stateService.getAllSectors()
+    sectors
   });
 };
 

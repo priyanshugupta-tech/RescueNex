@@ -125,6 +125,7 @@ export interface MountainSector {
   sirenActive: boolean;
   currentRiskLevel: RiskLevel;
   currentLsiScore: number;
+  lsiScore?: number;
 }
 
 export interface EmergencyAlert {

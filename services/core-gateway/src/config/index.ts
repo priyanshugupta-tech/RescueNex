@@ -33,7 +33,8 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
     elevationM: 1730,
     sirenActive: false,
     currentRiskLevel: 'LOW',
-    currentLsiScore: 0.15
+    currentLsiScore: 15.0,
+    lsiScore: 15.0
   },
   {
     id: 'SECTOR_RAMBAN',
@@ -44,7 +45,8 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
     elevationM: 1156,
     sirenActive: false,
     currentRiskLevel: 'LOW',
-    currentLsiScore: 0.22
+    currentLsiScore: 22.0,
+    lsiScore: 22.0
   },
   {
     id: 'SECTOR_PATNITOP',
@@ -55,7 +57,8 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
     elevationM: 2024,
     sirenActive: false,
     currentRiskLevel: 'LOW',
-    currentLsiScore: 0.12
+    currentLsiScore: 12.0,
+    lsiScore: 12.0
   },
   {
     id: 'SECTOR_MUGHAL_ROAD',
@@ -66,7 +69,8 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
     elevationM: 3485,
     sirenActive: false,
     currentRiskLevel: 'LOW',
-    currentLsiScore: 0.18
+    currentLsiScore: 18.0,
+    lsiScore: 18.0
   },
   {
     id: 'SECTOR_DODA_KISHTWAR',
@@ -77,6 +81,7 @@ export const STRATEGIC_SECTORS: MountainSector[] = [
     elevationM: 1638,
     sirenActive: false,
     currentRiskLevel: 'LOW',
-    currentLsiScore: 0.25
+    currentLsiScore: 25.0,
+    lsiScore: 25.0
   }
 ];

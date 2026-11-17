@@ -48,6 +48,7 @@ export interface MountainSector {
   soilType: string;
   currentRiskLevel: 'SAFE' | 'LOW' | 'WARNING' | 'CRITICAL';
   lsiScore: number;
+  currentLsiScore?: number;
   sirenActive: boolean;
 }
 
