@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
-import { ShieldCheck, UserCheck, Check, Clock, AlertTriangle, Loader2 } from 'lucide-react';
+import { UserCheck, Check, Loader2 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
@@ -42,12 +42,11 @@ export const AdminPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-amber-400" />
-            <span>HQ Command & Personnel Authorization</span>
+          <h2 className="text-xl font-bold text-white font-sans">
+            Personnel Approvals & Access Control
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Main verification queue for Incident Commanders and Field Response Operators.
+            Verification and role authorization queue for emergency operators and field scouts.
           </p>
         </div>
 
@@ -61,15 +60,15 @@ export const AdminPage: React.FC = () => {
       {/* Pending Authorizations List */}
       <div className="space-y-3">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-2">
-          <span>Pending Official Authorizations</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300">
+          <span>Pending Access Requests</span>
+          <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-mono border border-slate-700">
             {pendingUsers.length}
           </span>
         </h3>
 
         {loading ? (
           <div className="p-10 flex flex-col items-center justify-center space-y-2 text-center">
-            <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
             <p className="text-xs font-mono text-slate-400">Checking pending authorization requests...</p>
           </div>
         ) : pendingUsers.length === 0 ? (
@@ -90,7 +89,7 @@ export const AdminPage: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-white font-sans">{u.fullName || u.email}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-400">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-800 text-slate-300 border border-slate-700">
                         {u.role}
                       </span>
                       <span className="text-xs font-mono text-slate-400">
