@@ -2,9 +2,15 @@ import { Request, Response } from 'express';
 import { broadcastService, calculateHaversineDistanceKm } from '../services/broadcast.service.js';
 import { stateService } from '../services/state.service.js';
 import { UserModel } from '../models/user.model.js';
+import { AlertModel } from '../models/alert.model.js';
 import { isDatabaseConnected } from '../config/database.js';
 import { rateLimitService } from '../services/rateLimit.service.js';
 import { EmergencyAlert } from '../types/index.js';
+
+let broadcastSocketEmitter: any = null;
+export const setBroadcastSocketEmitter = (emitter: any) => {
+  broadcastSocketEmitter = emitter;
+};
 
 /**
  * GET /api/broadcast/logs
@@ -51,10 +57,50 @@ export const manualDispatch = async (req: Request, res: Response): Promise<void>
       sirenTriggered: true
     };
 
+    // 1. Add alert to RAM state and update sector status
+    stateService.addAlert(syntheticAlert);
+    stateService.updateSectorRisk(sector.id, syntheticAlert.riskLevel, syntheticAlert.lsiScore);
+    if (syntheticAlert.sirenTriggered) {
+      stateService.setSirenState(sector.id, true);
+    }
+
+    // 2. Persist to MongoDB Atlas if connected
+    if (isDatabaseConnected()) {
+      try {
+        await AlertModel.create({
+          alertId: syntheticAlert.id,
+          sectorId: syntheticAlert.sectorId,
+          sectorName: syntheticAlert.sectorName,
+          nodeId: syntheticAlert.nodeId,
+          timestamp: new Date(syntheticAlert.timestamp),
+          riskLevel: syntheticAlert.riskLevel,
+          lsiScore: syntheticAlert.lsiScore,
+          headline: syntheticAlert.headline,
+          descriptions: syntheticAlert.descriptions,
+          sirenTriggered: syntheticAlert.sirenTriggered,
+          status: 'ACTIVE'
+        });
+      } catch (err: any) {
+        console.warn('⚠️ [MongoDB] Failed to log manual alert to Atlas:', err.message);
+      }
+    }
+
+    // 3. Broadcast in real-time over WebSockets to all connected dashboards
+    if (broadcastSocketEmitter) {
+      broadcastSocketEmitter('EMERGENCY_ALERT', syntheticAlert);
+      broadcastSocketEmitter('SECTOR_STATUS_UPDATED', {
+        sectorId: sector.id,
+        currentRiskLevel: syntheticAlert.riskLevel,
+        currentLsiScore: syntheticAlert.lsiScore,
+        sirenActive: syntheticAlert.sirenTriggered
+      });
+    }
+
     const result = await broadcastService.dispatchCorridorEvacuationAlert(syntheticAlert, sector);
     res.status(200).json({
       success: true,
-      message: `Evacuation notice dispatched to ${result.recipientCount} commuters within 10 km corridor.`,
+      message: `Evacuation notice dispatched to ${result.recipientCount} commuters within 10 km corridor. Alert registered on command dashboard.`,
+      alert: syntheticAlert,
       result
     });
   } catch (err: any) {

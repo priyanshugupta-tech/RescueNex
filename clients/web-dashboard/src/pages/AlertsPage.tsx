@@ -114,7 +114,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
     };
   }).sort((a, b) => a.distanceKm - b.distanceKm);
 
-  // Strictly filter to 10 km geofence
+  // Strictly filter to user's active 10 km geofence only
   const displayedAlerts = alertsWithDistance.filter((a) => a.isWithin10Km);
 
   return (
@@ -198,7 +198,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
         </div>
       </div>
 
-      {/* Active Alerts List */}
+      {/* Active Alerts List (Strictly 10 km Geofenced) */}
       <div className="space-y-3">
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">

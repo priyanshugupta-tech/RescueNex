@@ -21,6 +21,7 @@ import { setTelemetrySocketEmitter } from './controllers/telemetry.controller.js
 import { setAlertSocketEmitter } from './controllers/alerts.controller.js';
 import { setWeatherSocketEmitter } from './controllers/weather.controller.js';
 import { setSyncSocketEmitter } from './controllers/sync.controller.js';
+import { setBroadcastSocketEmitter } from './controllers/broadcast.controller.js';
 import { seedDefaultUsers } from './controllers/auth.controller.js';
 
 const app = express();
@@ -100,6 +101,7 @@ setTelemetrySocketEmitter(socketBroadcaster);
 setAlertSocketEmitter(socketBroadcaster);
 setWeatherSocketEmitter(socketBroadcaster);
 setSyncSocketEmitter(socketBroadcaster);
+setBroadcastSocketEmitter(socketBroadcaster);
 
 // Express Middleware
 app.use(cors(corsOptions));

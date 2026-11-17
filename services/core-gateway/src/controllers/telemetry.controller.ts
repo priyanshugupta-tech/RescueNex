@@ -23,6 +23,7 @@ const telemetryIngestSchema = z.object({
   humidity_pct: z.number().optional().default(70.0),
   tilt_x: z.number().default(0),
   tilt_y: z.number().default(0),
+  tilt_delta: z.number().optional(),
   accel_rms: z.number().optional().default(1.0),
   vibration_detected: z.boolean().optional().default(false),
   wake_reason: z.enum(['TIMER_HEARTBEAT', 'MOTION_INTERRUPT', 'MANUAL']).optional().default('TIMER_HEARTBEAT'),
@@ -66,8 +67,15 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
 
     const tiltMagnitude = Number(Math.sqrt(data.tilt_x * data.tilt_x + data.tilt_y * data.tilt_y).toFixed(2));
     const previous = stateService.getTelemetry(data.node_id);
-    const prevMagnitude = previous ? previous.tiltMagnitude : tiltMagnitude;
-    const tiltDelta = Number(Math.abs(tiltMagnitude - prevMagnitude).toFixed(2));
+    let tiltDelta = 0;
+    if (data.tilt_delta !== undefined) {
+      tiltDelta = Number(data.tilt_delta.toFixed(2));
+    } else if (previous) {
+      tiltDelta = Number(Math.abs(tiltMagnitude - previous.tiltMagnitude).toFixed(2));
+    } else {
+      // First reading from node: if tilt is already elevated (> 2.0 deg), account for initial deformation
+      tiltDelta = tiltMagnitude > 2.0 ? Number((tiltMagnitude * 0.25).toFixed(2)) : 0;
+    }
 
     const telemetry: NodeTelemetry = {
       nodeId: data.node_id,
@@ -118,16 +126,18 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
         generatedAlert = await alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
       } else {
         stateService.updateSectorRisk(sector.id, 'LOW', lsiResult.lsiScore);
-        // When terrain stabilizes back to normal, automatically resolve active sector alerts
-        const activeAlert = stateService.getActiveAlerts().find((a) => a.sectorId === sector.id);
-        if (activeAlert) {
+        // Only auto-resolve transient ADVISORY alerts from this same node; WARNING, CRITICAL, and OPERATOR dispatches require official resolution
+        const transientAlert = stateService.getActiveAlerts().find(
+          (a) => a.sectorId === sector.id && a.nodeId === telemetry.nodeId && a.riskLevel === 'ADVISORY'
+        );
+        if (transientAlert) {
           const resolvedAt = new Date();
-          stateService.resolveAlert(activeAlert.id);
+          stateService.resolveAlert(transientAlert.id);
           if (isDatabaseConnected()) {
             AlertModel.findOneAndUpdate(
-              { alertId: activeAlert.id },
+              { alertId: transientAlert.id },
               { status: 'RESOLVED', resolvedAt }
-            ).catch((e: any) => console.warn('⚠️ [MongoDB] Error auto-resolving alert:', e.message));
+            ).catch((e: any) => console.warn('⚠️ [MongoDB] Error auto-resolving advisory alert:', e.message));
           }
         }
       }

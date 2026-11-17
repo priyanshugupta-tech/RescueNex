@@ -68,7 +68,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // Filter alerts: ONLY alerts for sectors within the 10km perimeter
   const sectorIdsIn10Km = new Set(sectorsWithin10Km.map((s) => s.id));
   const localizedAlerts = alerts.filter((a) => sectorIdsIn10Km.has(a.sectorId));
-  const activeCriticalAlert = localizedAlerts.find((a) => a.level === 'CRITICAL' || a.level === 'WARNING');
+  // Strictly 10 km localized critical alerts only
+  const activeCriticalAlert = localizedAlerts.find(
+    (a) =>
+      (a as any).level === 'CRITICAL' ||
+      (a as any).riskLevel === 'CRITICAL' ||
+      (a as any).level === 'WARNING' ||
+      (a as any).riskLevel === 'WARNING'
+  );
 
   const handleWeatherSync = async () => {
     setIsSyncingWeather(true);

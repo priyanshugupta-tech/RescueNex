@@ -83,16 +83,6 @@ class MLService:
         lsi_pred = float(self.regressor.predict(X_scaled)[0])
         lsi_score = round(max(0.0, min(100.0, lsi_pred)), 2)
 
-        # Ensure consistency between LSI score and risk level
-        if lsi_score >= 80.0 or sample.tiltDelta >= 3.0:
-            risk_level = 'CRITICAL'
-        elif lsi_score >= 60.0 or sample.tiltDelta >= 1.5:
-            if risk_level not in ['CRITICAL', 'WARNING']:
-                risk_level = 'WARNING'
-        elif lsi_score >= 35.0:
-            if risk_level == 'LOW':
-                risk_level = 'ADVISORY'
-
         # 3. Saito's Time-To-Failure (TTF) Estimation
         ttf = None
         if risk_level == 'CRITICAL':
