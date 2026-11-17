@@ -4,7 +4,7 @@ import { offlineSync } from '../services/offlineSync.ts';
 import { GeoLocation } from '../utils/geoUtils.ts';
 import { HazardType, ReportSeverity } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { X, Send, AlertTriangle, CheckCircle, ShieldAlert } from 'lucide-react';
+import { X, Send, AlertTriangle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface FieldReportModalProps {
@@ -186,12 +186,9 @@ export const FieldReportModal: React.FC<FieldReportModalProps> = ({
         >
           {/* Header */}
           <div className="px-5 py-3.5 bg-[#161B22] border-b border-[#30363D] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-400" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                [ FIELD SCOUT & HAZARD REPORTING ]
-              </h3>
-            </div>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+              [ FIELD SCOUT & HAZARD REPORTING ]
+            </h3>
             <button
               onClick={onClose}
               className="text-slate-400 hover:text-white p-1 rounded-none hover:bg-[#21262D] transition"

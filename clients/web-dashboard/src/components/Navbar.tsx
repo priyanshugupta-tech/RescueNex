@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
-import { LogOut, User as UserIcon, ChevronDown, MapPin, Edit2, Phone, Smartphone, ShieldAlert } from 'lucide-react';
+import { LogOut, User as UserIcon, ChevronDown, MapPin, Edit2, Phone, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EmergencyPhoneModal } from './EmergencyPhoneModal.tsx';
 

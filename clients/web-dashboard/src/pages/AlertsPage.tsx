@@ -5,7 +5,7 @@ import { offlineSync } from '../services/offlineSync.ts';
 import { EmergencyAlert, MountainSector, FieldReport } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface AlertsPageProps {
   userLocation: GeoLocation | null;
@@ -319,8 +319,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                   {attachedReports.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-[#21262D] space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                          <ShieldAlert className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
                           Attached Scout Responses & Situation Updates ({attachedReports.length})
                         </span>
                       </div>
@@ -362,8 +361,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
       {/* Ground Scout & Commuter Field Observations (Strictly 10 km Geofenced) */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-amber-400" />
+          <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
               Ground Scout Field Reports Within 10 km ({fieldReports.length})
             </h3>

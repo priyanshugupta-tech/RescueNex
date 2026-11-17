@@ -5,7 +5,6 @@ import {
   Droplets, 
   CloudRain, 
   Battery, 
-  AlertOctagon, 
   Volume2, 
   CheckCircle2, 
   RefreshCw 
@@ -159,18 +158,8 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
         <div className="flex items-center justify-between border-t border-[#21262D] pt-2 text-[11px]">
           <span className="text-slate-400">Vibration:</span>
           {telemetry ? (
-            <span className="font-mono text-xs flex items-center gap-1 text-slate-300 font-medium">
-              {telemetry.vibrationDetected ? (
-                <>
-                  <AlertOctagon className="w-3.5 h-3.5 text-slate-400" />
-                  Vibration Detected
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
-                  NORMAL
-                </>
-              )}
+            <span className="font-mono text-xs text-slate-300 font-medium">
+              {telemetry.vibrationDetected ? 'Vibration Detected' : 'NORMAL'}
             </span>
           ) : (
             <span className="text-slate-500 font-mono text-[11px]">Standby</span>

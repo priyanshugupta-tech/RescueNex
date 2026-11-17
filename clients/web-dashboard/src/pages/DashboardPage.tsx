@@ -8,7 +8,7 @@ import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
 import { getNodeProximity } from '../utils/proximityFilter.ts';
 import { api } from '../services/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Radio, Volume2, MapPin, ShieldAlert, Cpu } from 'lucide-react';
+import { Radio, Volume2, MapPin, Cpu } from 'lucide-react';
 
 interface DashboardPageProps {
   sectors: MountainSector[];
@@ -135,7 +135,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       {/* Local 10km Emergency Alert Notification Banner if active within 10 km */}
       {activeCriticalAlert && (
         <div className="p-4 bg-[#161B22] border-l-4 border-l-slate-400 border-y border-r border-[#30363D] text-slate-200 flex items-start gap-3 shadow-md rounded-md">
-          <ShieldAlert className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-sm text-white tracking-wide">
