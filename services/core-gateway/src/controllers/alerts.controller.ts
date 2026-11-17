@@ -41,12 +41,25 @@ export const getAlerts = async (req: Request, res: Response): Promise<void> => {
     const activeFromDb = await AlertModel.find({ status: 'ACTIVE' }).sort({ timestamp: -1 }).limit(20);
     const historyFromDb = await AlertModel.find().sort({ timestamp: -1 }).limit(100);
 
-    const activeList = activeFromDb.length > 0 ? activeFromDb : stateService.getActiveAlerts();
+    const dbAlerts = activeFromDb.map(formatAlert);
+    const memAlerts = stateService.getActiveAlerts().map(formatAlert);
+
+    // Merge both RAM and MongoDB active alerts, de-duplicating by ID
+    const seenIds = new Set<string>();
+    const activeList = [];
+    for (const a of [...memAlerts, ...dbAlerts]) {
+      const key = a.alertId || a.id;
+      if (key && !seenIds.has(key)) {
+        seenIds.add(key);
+        activeList.push(a);
+      }
+    }
+
     const historyList = historyFromDb.length > 0 ? historyFromDb : stateService.getAlertHistory();
 
     res.json({
       success: true,
-      activeAlerts: activeList.map(formatAlert),
+      activeAlerts: activeList,
       history: historyList.map(formatAlert)
     });
   } catch (e: any) {

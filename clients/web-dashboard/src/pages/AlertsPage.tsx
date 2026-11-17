@@ -105,6 +105,9 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
     if (sec && typeof sec.latitude === 'number' && typeof sec.longitude === 'number') {
       return calculateDistanceKm(userLat, userLon, sec.latitude, sec.longitude);
     }
+    if (alert.sectorName && userLocation?.cityName && alert.sectorName.toLowerCase().includes(userLocation.cityName.toLowerCase())) {
+      return 0;
+    }
     return 999;
   };
 
