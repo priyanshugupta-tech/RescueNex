@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GisMap } from '../components/GisMap.tsx';
 import { TelemetryHud } from '../components/TelemetryHud.tsx';
+import { TelemetryTrendChart } from '../components/TelemetryTrendChart.tsx';
 import { SirenModal } from '../components/SirenModal.tsx';
 import { LocationModal } from '../components/LocationModal.tsx';
 import { MountainSector, NodeTelemetry, SectorWeatherData, EmergencyAlert } from '../types/index.ts';
@@ -215,33 +216,40 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
             <div className="space-y-2 text-xs font-mono">
               {nodeSummary.nodesInRadius.length > 0 ? (
-                nodeSummary.nodesInRadius.map(({ node: n, distanceKm }) => {
-                  const tilt = n.tiltMagnitude || 0;
-                  const nodeStatus = tilt >= 4.0 ? 'Critical' : tilt >= 2.0 ? 'Warning' : 'Normal';
-                  const badgeStyle = 'bg-[#21262D] text-slate-300 border-[#30363D]';
+                <>
+                  {nodeSummary.nodesInRadius.slice(0, 3).map(({ node: n, distanceKm }) => {
+                    const tilt = n.tiltMagnitude || 0;
+                    const nodeStatus = tilt >= 4.0 ? 'Critical' : tilt >= 2.0 ? 'Warning' : 'Normal';
+                    const badgeStyle = 'bg-[#21262D] text-slate-300 border-[#30363D]';
 
-                  return (
-                    <div
-                      key={n.nodeId}
-                      className="p-2.5 bg-[#0D1117] border border-[#21262D] rounded transition flex flex-col gap-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-200 font-sans font-medium">
-                          Node: {n.nodeId}
-                        </span>
-                        <span className={`px-2 py-0.5 text-[10px] font-mono rounded border ${badgeStyle}`}>
-                          {nodeStatus} ({tilt.toFixed(1)}°)
-                        </span>
+                    return (
+                      <div
+                        key={n.nodeId}
+                        className="p-2.5 bg-[#0D1117] border border-[#21262D] rounded transition flex flex-col gap-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-200 font-sans font-medium">
+                            Node: {n.nodeId}
+                          </span>
+                          <span className={`px-2 py-0.5 text-[10px] font-mono rounded border ${badgeStyle}`}>
+                            {nodeStatus} ({tilt.toFixed(1)}°)
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-sans">
+                          <span>Moisture: {n.soilMoisturePct}%</span>
+                          <span className="text-slate-300 font-mono">
+                            {distanceKm} km away
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-sans">
-                        <span>Moisture: {n.soilMoisturePct}%</span>
-                        <span className="text-slate-300 font-mono">
-                          {distanceKm} km away
-                        </span>
-                      </div>
+                    );
+                  })}
+                  {nodeSummary.nodesInRadius.length > 3 && (
+                    <div className="p-2 bg-[#0D1117] border border-[#21262D] rounded text-center text-[11px] text-slate-400 font-mono">
+                      + {nodeSummary.nodesInRadius.length - 3} additional sensor node(s) monitored in corridor
                     </div>
-                  );
-                })
+                  )}
+                </>
               ) : (
                 <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-400 text-xs font-sans space-y-1">
                   <p className="font-medium text-slate-300">
@@ -324,6 +332,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
       </div>
+
+      {/* Geotechnical Telemetry Trends (Strictly localized to 10 km corridor) */}
+      <TelemetryTrendChart
+        userLocation={userLocation}
+        latestTelemetry={displayTelemetry}
+        radiusKm={10}
+      />
 
       {/* Acoustic Siren Modal */}
       <SirenModal

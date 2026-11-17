@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
 import { Loader2 } from 'lucide-react';
 import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
+import { TelemetryTrendChart } from '../components/TelemetryTrendChart.tsx';
 
 interface AnalyticsPageProps {
   userLocation: GeoLocation | null;
@@ -14,6 +15,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 }) => {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllLogs, setShowAllLogs] = useState(false);
 
   const userLat = Number(userLocation?.latitude) || 33.2422;
   const userLon = Number(userLocation?.longitude) || 75.2443;
@@ -60,6 +62,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   // Strictly localized to 10 km geofence
   const displayedRecords = historyWithDistance.filter((r) => r.isWithin10Km);
   const nearestRecord = historyWithDistance.find((r) => r.distanceKm !== null);
+  const visibleRecords = showAllLogs ? displayedRecords : displayedRecords.slice(0, 8);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -124,12 +127,28 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
         )}
       </div>
 
+      {/* Geotechnical Telemetry Trends (Strictly localized to 10 km corridor) */}
+      <TelemetryTrendChart
+        userLocation={userLocation}
+        historyData={displayedRecords}
+        radiusKm={10}
+      />
+
       {/* Telemetry Log Table */}
       <div className="rounded-none border border-slate-800 overflow-hidden bg-slate-900/80 shadow-lg">
-        <div className="p-3 border-b border-slate-800 flex items-center justify-between text-xs">
+        <div className="p-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className="font-semibold text-slate-300 font-mono text-xs uppercase tracking-wider">
-            Telemetry Logs Within 10 km ({displayedRecords.length})
+            Recent Telemetry Track ({visibleRecords.length} of {displayedRecords.length} packets)
           </span>
+
+          {displayedRecords.length > 8 && (
+            <button
+              onClick={() => setShowAllLogs(!showAllLogs)}
+              className="text-[11px] font-mono text-slate-300 hover:text-white px-2.5 py-1 rounded bg-[#21262D] hover:bg-[#30363D] border border-[#30363D] transition"
+            >
+              {showAllLogs ? 'Show Limited Track (8)' : `View All Packets (${displayedRecords.length})`}
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -167,7 +186,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                {displayedRecords.map((row, idx) => {
+                {visibleRecords.map((row, idx) => {
                   const tilt = typeof row.tiltMagnitude === 'number' ? row.tiltMagnitude : (typeof row.tiltX === 'number' ? Math.sqrt(row.tiltX**2 + (row.tiltY||0)**2) : 0);
                   const isCritical = tilt >= 4.0;
                   const isWarning = tilt >= 2.0;
@@ -204,9 +223,9 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                       </td>
                       <td className="py-2.5 px-3">
                         {row.vibrationDetected ? (
-                          <span className="text-rose-400 font-bold">YES</span>
+                          <span className="text-slate-200 font-medium font-mono">DETECTED</span>
                         ) : (
-                          <span className="text-slate-500">NO</span>
+                          <span className="text-slate-500 font-mono">NORMAL</span>
                         )}
                       </td>
                       <td className="py-2.5 px-3 text-slate-500 text-[11px]">
