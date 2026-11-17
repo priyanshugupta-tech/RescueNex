@@ -388,7 +388,6 @@ const MainAppContent: React.FC = () => {
                     <AlertsPage 
                       userLocation={userLocation}
                       sectors={sectors}
-                      nodes={nodes}
                       onOpenLocationModal={() => setIsLocationModalOpen(true)}
                       onOpenReportModal={() => setIsReportModalOpen(true)}
                     />

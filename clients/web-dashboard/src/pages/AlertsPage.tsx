@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
 import { offlineCache } from '../services/offlineCache.ts';
 import { offlineSync } from '../services/offlineSync.ts';
-import { EmergencyAlert, MountainSector, FieldReport, NodeTelemetry } from '../types/index.ts';
+import { EmergencyAlert, MountainSector, FieldReport } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
-import { getNodeProximity } from '../utils/proximityFilter.ts';
 import { Loader2, ShieldAlert, PlusCircle } from 'lucide-react';
 
 interface AlertsPageProps {
   userLocation: GeoLocation | null;
   sectors?: MountainSector[];
-  nodes?: NodeTelemetry[];
   onOpenLocationModal?: () => void;
   onOpenReportModal?: () => void;
 }
@@ -19,7 +17,6 @@ interface AlertsPageProps {
 export const AlertsPage: React.FC<AlertsPageProps> = ({
   userLocation,
   sectors = [],
-  nodes = [],
   onOpenLocationModal,
   onOpenReportModal
 }) => {
@@ -111,45 +108,8 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
     return 999;
   };
 
-  // Check physical sensor nodes within 10 km corridor
-  const nodeSummary = getNodeProximity(userLat, userLon, nodes, 10);
-
-  // Synthesize real-time sensor hazard alerts for any nodes within 10 km that exceed safety thresholds
-  const sensorAlerts: EmergencyAlert[] = nodeSummary.nodesInRadius
-    .filter(({ node }) => (node.tiltMagnitude || 0) >= 2.0 || Boolean(node.vibrationDetected))
-    .map(({ node, distanceKm }) => {
-      const tilt = node.tiltMagnitude || 0;
-      const isCritical = tilt >= 4.0;
-      return {
-        id: `SENSOR_ALERT_${node.nodeId}`,
-        sectorId: 'LOCAL_CORRIDOR',
-        sectorName: `${userLocation?.cityName || 'Transit Corridor'} (Station ${node.nodeId})`,
-        highway: 'NH44 Transit',
-        kmMarker: `${distanceKm} km away`,
-        level: isCritical ? 'CRITICAL' : 'WARNING',
-        status: 'ACTIVE',
-        timestamp: node.timestamp || Date.now(),
-        lsiScore: isCritical ? 95 : 65,
-        triggerCause: `Physical Sensor Tilt Displacement (${tilt.toFixed(1)}°)`,
-        multilingual: {
-          en: `CRITICAL SENSOR ALERT: Physical slope node ${node.nodeId} (${distanceKm} km away) detected ${tilt.toFixed(1)}° slope displacement. Immediate landslide hazard in 10 km transit perimeter. Halt immediately and move to designated evacuation shelter.`,
-          hi: `10 किमी परिधि में स्थित सेंसर ${node.nodeId} (${distanceKm} किमी दूर) द्वारा ${tilt.toFixed(1)}° गंभीर ढलान विस्थापन दर्ज किया गया है। तुरंत वाहन रोकें और सुरक्षित स्थान पर जाएं।`,
-          dogri: `भारी ख़तरा: सेंसर ${node.nodeId} पर ढलान खिसकने दा गंभीर ख़तरा दर्ज कीता गेया ऐ। सुरक्षित जगह जाओ।`,
-          kashmiri: `خطرناک چتاونی: سنسر ${node.nodeId} پیٹھ شدید سلایٔڈ یُنک خطرہ۔ محفوظ جائے پؠٹھ کُن تلو۔`
-        },
-        latitude: node.latitude,
-        longitude: node.longitude,
-        distanceKm
-      } as any;
-    });
-
-  // Combine official activeAlerts with live sensorAlerts (avoiding duplicate node IDs)
-  const officialNodeIds = new Set(activeAlerts.map(a => (a as any).nodeId));
-  const newSensorAlerts = sensorAlerts.filter(sa => !officialNodeIds.has((sa as any).nodeId));
-  const combinedAlerts = [...activeAlerts, ...newSensorAlerts];
-
-  const alertsWithDistance = combinedAlerts.map((a) => {
-    const dist = (a as any).distanceKm !== undefined ? (a as any).distanceKm : computeAlertDistance(a);
+  const alertsWithDistance = activeAlerts.map((a) => {
+    const dist = computeAlertDistance(a);
     return {
       ...a,
       distanceKm: dist,

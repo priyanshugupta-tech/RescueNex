@@ -144,46 +144,7 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
       }
     } catch (aiError: any) {
       aiStatus = 'OFFLINE';
-      console.warn(`[AI Engine] ${aiError.message}. Seamlessly engaging geotechnical threshold fallback.`);
-
-      // Deterministic threshold calculation based on physical geotechnical parameters
-      const tilt = telemetry.tiltMagnitude || 0;
-      const tiltDelta = telemetry.tiltDelta || 0;
-      const moisture = telemetry.soilMoisturePct || 0;
-      const rain1h = weather.rain1hIntensityMm || 0;
-      const vibration = Boolean(telemetry.vibrationDetected);
-
-      let fallbackRiskLevel: 'LOW' | 'WARNING' | 'CRITICAL' = 'LOW';
-      let fallbackLsiScore = 15;
-
-      if (tilt >= 4.0 || tiltDelta >= 2.0 || (vibration && tilt >= 2.0) || rain1h >= 25.0) {
-        fallbackRiskLevel = 'CRITICAL';
-        fallbackLsiScore = Math.min(100, Math.round(75 + (tilt * 0.3) + (moisture * 0.15)));
-      } else if (tilt >= 2.0 || tiltDelta >= 1.0 || moisture >= 75 || rain1h >= 10.0) {
-        fallbackRiskLevel = 'WARNING';
-        fallbackLsiScore = Math.min(74, Math.round(45 + (tilt * 2.0) + (moisture * 0.2)));
-      }
-
-      lsiResult = {
-        lsiScore: fallbackLsiScore,
-        riskLevel: fallbackRiskLevel,
-        confidence: 0.95,
-        anomalyDetected: fallbackRiskLevel !== 'LOW',
-        isFalseAlarm: false,
-        triggerSiren: fallbackRiskLevel === 'CRITICAL',
-        recommendation: fallbackRiskLevel === 'CRITICAL' ? 'EVACUATE_IMMEDIATELY' : fallbackRiskLevel === 'WARNING' ? 'PREPARE_EVACUATION' : 'MONITOR',
-        explanation: {
-          soilFactor: moisture,
-          tiltFactor: tiltDelta,
-          rainFactor: rain1h
-        }
-      };
-
-      if (lsiResult.riskLevel !== 'LOW') {
-        generatedAlert = await alertService.triggerEmergencyAlert(sector, telemetry.nodeId, lsiResult);
-      } else {
-        stateService.updateSectorRisk(sector.id, 'LOW', lsiResult.lsiScore);
-      }
+      console.warn(`[AI Engine] ${aiError.message}`);
     }
 
     // Persist to MongoDB Atlas TelemetryLog with dynamic GPS fix
