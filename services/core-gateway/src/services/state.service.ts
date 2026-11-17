@@ -23,12 +23,12 @@ class StateService {
         latitude: sec.latitude,
         longitude: sec.longitude,
         timestamp: Date.now(),
-        rain1hIntensityMm: 0,
-        rain24hCumulativeMm: 12.5,
-        antecedentRain7dMm: 45.0,
+        rain1hIntensityMm: 0.0,
+        rain24hCumulativeMm: 0.0,
+        antecedentRain7dMm: 0.0,
         cloudburstRisk: false,
-        temperatureC: 15.0,
-        relativeHumidityPct: 65.0,
+        temperatureC: 0.0,
+        relativeHumidityPct: 0.0,
         weatherCode: 0
       });
     });
