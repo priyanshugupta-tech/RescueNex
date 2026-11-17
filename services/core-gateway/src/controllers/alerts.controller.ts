@@ -3,6 +3,7 @@ import { stateService } from '../services/state.service.js';
 import { alertService } from '../services/alert.service.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { AlertModel } from '../models/alert.model.js';
+import { FieldReportModel } from '../models/fieldReport.model.js';
 import { isDatabaseConnected } from '../config/database.js';
 
 let alertSocketEmitter: any = null;
@@ -142,21 +143,27 @@ export const resolveAlert = async (req: AuthenticatedRequest, res: Response): Pr
 export const clearAllAlerts = async (req: Request, res: Response): Promise<void> => {
   try {
     stateService.clearAlerts();
-    let deletedCount = 0;
+    stateService.clearFieldReports();
+    let deletedAlertCount = 0;
+    let deletedReportCount = 0;
     if (isDatabaseConnected()) {
-      const result = await AlertModel.deleteMany({});
-      deletedCount = result.deletedCount;
+      const alertRes = await AlertModel.deleteMany({});
+      deletedAlertCount = alertRes.deletedCount;
+      const reportRes = await FieldReportModel.deleteMany({});
+      deletedReportCount = reportRes.deletedCount;
     }
     if (alertSocketEmitter) {
       alertSocketEmitter('ALERTS_CLEARED', { timestamp: Date.now() });
+      alertSocketEmitter('FIELD_REPORTS_CLEARED', { timestamp: Date.now() });
     }
     res.json({
       success: true,
-      message: `Cleared all ${deletedCount} alerts from database and reset in-memory state.`,
-      deletedCount
+      message: `Cleared ${deletedAlertCount} alerts and ${deletedReportCount} field reports from database and reset memory state.`,
+      deletedAlertCount,
+      deletedReportCount
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, message: 'Failed to clear alerts.', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to clear alerts and reports.', error: err.message });
   }
 };
 

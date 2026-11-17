@@ -25,6 +25,7 @@ import { setSyncSocketEmitter } from './controllers/sync.controller.js';
 import { setBroadcastSocketEmitter } from './controllers/broadcast.controller.js';
 import { seedDefaultUsers } from './controllers/auth.controller.js';
 import { AlertModel } from './models/alert.model.js';
+import { FieldReportModel } from './models/fieldReport.model.js';
 import { stateService } from './services/state.service.js';
 
 const app = express();
@@ -156,15 +157,17 @@ const startServer = async () => {
     await connectDatabase();
     await seedDefaultUsers();
 
-    // Clear previous alerts from DB and in-memory cache as requested
+    // Clear previous alerts & field reports from DB and in-memory cache as requested
     try {
       if (isDatabaseConnected()) {
-        const deleted = await AlertModel.deleteMany({});
-        console.log(`🧹 [MongoDB] Cleared all ${deleted.deletedCount} previous alerts from Atlas.`);
+        const deletedAlerts = await AlertModel.deleteMany({});
+        const deletedReports = await FieldReportModel.deleteMany({});
+        console.log(`🧹 [MongoDB] Cleared all ${deletedAlerts.deletedCount} previous alerts and ${deletedReports.deletedCount} field reports from Atlas.`);
       }
       stateService.clearAlerts();
+      stateService.clearFieldReports();
     } catch (e: any) {
-      console.warn('⚠️ [MongoDB] Alert cleanup notice:', e.message);
+      console.warn('⚠️ [MongoDB] Alert/Report cleanup notice:', e.message);
     }
   } catch (err: any) {
     console.error(`💥 [Fatal Startup Aborted] ${err.message}`);

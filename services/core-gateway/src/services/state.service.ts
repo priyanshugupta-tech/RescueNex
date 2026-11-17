@@ -151,6 +151,10 @@ class StateService {
   public getFieldReports(): FieldReport[] {
     return this.fieldReports;
   }
+
+  public clearFieldReports(): void {
+    this.fieldReports = [];
+  }
 }
 
 export const stateService = new StateService();

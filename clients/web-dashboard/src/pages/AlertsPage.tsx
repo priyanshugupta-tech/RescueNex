@@ -113,14 +113,18 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
   };
 
   const handleClearAllAlerts = async () => {
-    if (!window.confirm('Are you sure you want to clear all alerts from database and memory?')) return;
+    if (!window.confirm('Are you sure you want to clear all alerts and field reports from database and memory?')) return;
     try {
       await api.post('/api/alerts/clear-all');
-      setActionSuccess('All alerts cleared from database and RAM.');
+      offlineCache.save('alerts', []);
+      offlineCache.save('field_reports', []);
+      setActiveAlerts([]);
+      setFieldReports([]);
+      setActionSuccess('All alerts and field reports cleared from database and RAM.');
       setTimeout(() => setActionSuccess(''), 3000);
       fetchAlertsAndReports();
     } catch (e: any) {
-      setActionSuccess(`Failed to clear alerts: ${e.message}`);
+      setActionSuccess(`Failed to clear: ${e.message}`);
       setTimeout(() => setActionSuccess(''), 3500);
     }
   };
@@ -177,9 +181,9 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
             <button
               onClick={handleClearAllAlerts}
               className="px-3 py-1.5 rounded-md bg-[#21262D] hover:bg-rose-950/40 text-slate-300 hover:text-rose-300 text-xs font-mono border border-[#30363D] hover:border-rose-500/30 transition shadow-sm"
-              title="Purge all active and historical alerts from DB"
+              title="Purge all alerts and field reports from DB and RAM"
             >
-              Clear All Alerts (DB)
+              Clear All Alerts & Reports (DB)
             </button>
           )}
         </div>
