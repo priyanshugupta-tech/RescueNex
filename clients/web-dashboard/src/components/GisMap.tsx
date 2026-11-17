@@ -14,14 +14,13 @@ L.Icon.Default.mergeOptions({
 
 // Custom IoT Node Pin with dynamic risk color
 const createNodeIcon = (risk: 'SAFE' | 'WARNING' | 'CRITICAL', nodeId: string) => {
-  const dotColor = risk === 'CRITICAL' ? 'bg-rose-500 animate-ping' : risk === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500';
-  const badgeColor = risk === 'CRITICAL' ? 'text-rose-400' : risk === 'WARNING' ? 'text-amber-400' : 'text-emerald-400';
+  const dotColor = risk === 'CRITICAL' ? 'bg-rose-500' : risk === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500';
   return L.divIcon({
     className: 'custom-node-pin',
     html: `
       <div class="relative flex items-center justify-center">
         <div class="w-4 h-4 rounded-full ${dotColor} border-2 border-white shadow"></div>
-        <div class="absolute -top-6 px-1.5 py-0.5 rounded bg-[#161B22] text-[9px] font-mono ${badgeColor} font-bold border border-[#30363D] whitespace-nowrap shadow-md">
+        <div class="absolute -top-6 px-1.5 py-0.5 rounded bg-[#161B22] text-[9px] font-mono text-slate-200 font-medium border border-[#30363D] whitespace-nowrap shadow-md">
           📡 ${nodeId}
         </div>
       </div>
@@ -202,7 +201,7 @@ export const GisMap: React.FC<GisMapProps> = ({
                   </span>
                 </div>
                 {sec.sirenActive && (
-                  <p className="text-[10px] text-rose-600 font-bold mt-1 animate-pulse">
+                  <p className="text-[10px] text-rose-400 font-semibold mt-1">
                     🚨 Evacuation Siren Triggered
                   </p>
                 )}

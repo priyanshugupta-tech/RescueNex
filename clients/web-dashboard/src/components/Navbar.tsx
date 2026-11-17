@@ -160,20 +160,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             user.isPhoneVerified ? (
               <button
                 onClick={() => setIsPhoneModalOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono border border-emerald-500/50 bg-emerald-950/30 text-emerald-300 rounded-none hover:bg-emerald-900/40 transition shadow-sm"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono border border-[#30363D] bg-[#21262D] hover:bg-[#30363D] text-slate-200 rounded-md transition shadow-sm"
                 title="Emergency Mobile Alerts Active - Click to Manage"
               >
-                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                <Smartphone className="w-3.5 h-3.5 text-slate-400" />
                 <span>+91 {user.phoneNumber ? user.phoneNumber.slice(-10) : ''}</span>
               </button>
             ) : (
               <button
                 onClick={() => setIsPhoneModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono border border-amber-500/70 bg-amber-500/10 text-amber-300 rounded-none hover:bg-amber-500/20 transition shadow-sm animate-pulse"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono border border-[#30363D] bg-[#21262D] hover:bg-[#30363D] text-slate-200 rounded-md transition shadow-sm"
                 title="Add & verify mobile number to receive 10 km corridor SMS evacuation alerts"
               >
-                <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-bold">+ Add Mobile (SMS)</span>
+                <Smartphone className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-medium">+ Add Mobile</span>
               </button>
             )
           )}
@@ -303,11 +303,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                             setIsDropdownOpen(false);
                             setIsPhoneModalOpen(true);
                           }}
-                          className={`flex items-center gap-1 px-2.5 py-0.5 text-xs font-mono font-semibold rounded-none transition shadow-sm ${
-                            user.isPhoneVerified
-                              ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-400 hover:text-black border border-emerald-500/40'
-                              : 'text-amber-400 bg-amber-500/10 hover:bg-amber-400 hover:text-black border border-amber-500/40'
-                          }`}
+                          className="flex items-center gap-1 px-2.5 py-0.5 text-xs font-mono font-medium rounded text-slate-200 bg-[#21262D] hover:bg-[#30363D] border border-[#30363D] transition shadow-sm"
                           title="Configure SMS Emergency Evacuation Broadcasts"
                         >
                           <Edit2 className="w-3 h-3" />
