@@ -238,7 +238,6 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
               const hiMsg = (alert as any).descriptions?.hi || alert.multilingual?.hi || 'भूस्खलन चेतावनी सक्रिय।';
               const dogriMsg = (alert as any).descriptions?.dogri || alert.multilingual?.dogri || 'ज़मीन खिसकने दी चेताउनी: एहतियात बरतौ।';
               const cause = alert.triggerCause || (alert as any).headline || 'Slope Deformation Threshold Exceeded';
-              const km = alert.kmMarker || 'Transit Corridor';
               const dist = alert.distanceKm;
 
               return (
@@ -257,9 +256,6 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                       </span>
                       <span className="text-sm font-semibold text-white font-sans">
                         {alert.sectorName}
-                      </span>
-                      <span className="text-xs font-mono text-slate-400">
-                        {km}
                       </span>
                       {dist !== undefined && dist < 999 && (
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono text-slate-300 bg-[#21262D] border border-[#30363D]">
