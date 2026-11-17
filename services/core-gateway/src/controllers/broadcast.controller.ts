@@ -420,9 +420,23 @@ export const syncUserLocation = async (req: Request, res: Response): Promise<voi
     }
 
     // Check if new location is within 10 km of any active hazard sector
-    const activeAlerts = stateService.getActiveAlerts().filter(
-      (a) => a.riskLevel === 'CRITICAL' || a.riskLevel === 'WARNING'
+    let activeAlerts: any[] = stateService.getActiveAlerts().filter(
+      (a: any) =>
+        (a.riskLevel === 'CRITICAL' || (a as any).level === 'CRITICAL' || a.riskLevel === 'WARNING' || (a as any).level === 'WARNING')
     );
+
+    // If RAM state has no active alerts, check MongoDB Atlas for active disaster alerts
+    if (activeAlerts.length === 0 && isDatabaseConnected()) {
+      try {
+        const dbAlerts = await AlertModel.find({ status: 'ACTIVE' }).lean();
+        activeAlerts = dbAlerts.filter(
+          (a: any) =>
+            (a.riskLevel === 'CRITICAL' || a.level === 'CRITICAL' || a.riskLevel === 'WARNING' || a.level === 'WARNING')
+        );
+      } catch (err: any) {
+        console.warn('⚠️ [MongoDB] Error querying active alerts during location sync:', err.message);
+      }
+    }
 
     let hazardAlertDispatched = false;
     let suppressedDuplicate = false;

@@ -75,13 +75,13 @@ export class BroadcastService {
     alert: EmergencyAlert,
     sector: MountainSector,
     distanceKm: number
-  ): Promise<{ dispatched: boolean; recipient?: BroadcastRecipient }> {
+  ): Promise<{ dispatched: boolean; recipients?: BroadcastRecipient[] }> {
     const userIdStr = (u._id || u.id || '').toString();
     const alreadySent = await this.hasUserReceivedRecentAlert(userIdStr, sector.id);
 
     if (alreadySent) {
       console.log(
-        `ℹ️ [Broadcast Deduplication] Commuter ${u.email || userIdStr} already received evacuation alert for ${sector.name} within last 2 hours. Repeated SMS suppressed.`
+        `ℹ️ [Broadcast Deduplication] Commuter ${u.email || userIdStr} already received evacuation alert for ${sector.name} within last 2 hours. Repeated alert suppressed.`
       );
       return { dispatched: false };
     }
@@ -93,11 +93,12 @@ export class BroadcastService {
 
     const fast2SmsKey = process.env.FAST2SMS_API_KEY;
     const hasVerifiedPhone = Boolean(u.phoneNumber && u.isPhoneVerified && u.smsAlertsEnabled !== false);
-    let recipient: BroadcastRecipient;
+    const userRecipients: BroadcastRecipient[] = [];
 
+    // 1. Dispatch SMS if mobile phone number is registered & verified
     if (hasVerifiedPhone && fast2SmsKey) {
       const smsResult = await this.sendSms(u.phoneNumber, messageToSend, fast2SmsKey);
-      recipient = {
+      userRecipients.push({
         userId: userIdStr,
         phoneNumber: u.phoneNumber,
         channel: 'SMS',
@@ -105,10 +106,13 @@ export class BroadcastService {
         messageId: smsResult.messageId,
         errorMessage: smsResult.error,
         distanceKm
-      };
-    } else {
+      });
+    }
+
+    // 2. Dispatch Email (always send email if user has registered email)
+    if (u.email) {
       const emailRes = await emailService.sendEvacuationAlertEmail(u.email, alert, sector, distanceKm);
-      recipient = {
+      userRecipients.push({
         userId: userIdStr,
         email: u.email,
         channel: 'EMAIL',
@@ -116,23 +120,31 @@ export class BroadcastService {
         messageId: `EMAIL_${Date.now()}`,
         errorMessage: emailRes.error ? String(emailRes.error) : undefined,
         distanceKm
-      };
+      });
+    }
+
+    if (userRecipients.length === 0) {
+      return { dispatched: false };
     }
 
     // Record in database and in-memory log so subsequent switches within 2 hours are suppressed
     const broadcastId = `BC_LOC_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const hasSms = userRecipients.some((r) => r.channel === 'SMS');
+    const hasEmail = userRecipients.some((r) => r.channel === 'EMAIL');
+    const channelType = hasSms && hasEmail ? ('ALL' as const) : hasSms ? ('SMS' as const) : ('EMAIL' as const);
+
     const logData = {
       broadcastId,
       alertId: alert.id,
       sectorId: sector.id,
       sectorName: sector.name,
       riskLevel: alert.riskLevel,
-      channel: recipient.channel,
-      recipientCount: 1,
-      recipients: [recipient],
+      channel: channelType,
+      recipientCount: userRecipients.length,
+      recipients: userRecipients,
       message: { en: englishMsg, hi: hindiMsg },
       dispatchedAt: new Date(),
-      provider: recipient.channel === 'SMS' ? ('FAST2SMS' as const) : ('RESEND' as const)
+      provider: hasSms ? ('FAST2SMS' as const) : ('RESEND' as const)
     };
 
     if (isDatabaseConnected()) {
@@ -150,15 +162,16 @@ export class BroadcastService {
       sectorId: sector.id,
       sectorName: sector.name,
       riskLevel: alert.riskLevel,
-      channel: recipient.channel,
-      recipientCount: 1,
-      recipients: [recipient],
+      channel: channelType,
+      recipientCount: userRecipients.length,
+      recipients: userRecipients,
       message: { en: englishMsg, hi: hindiMsg },
       dispatchedAt: Date.now(),
-      provider: recipient.channel === 'SMS' ? 'FAST2SMS' : 'RESEND'
+      provider: hasSms ? 'FAST2SMS' : 'RESEND'
     });
 
-    return { dispatched: recipient.status === 'SENT', recipient };
+    const anySent = userRecipients.some((r) => r.status === 'SENT');
+    return { dispatched: anySent, recipients: userRecipients };
   }
 
   /**
@@ -201,7 +214,7 @@ export class BroadcastService {
       `📢 [Corridor Broadcast] Alert for ${sector.name} (${alert.riskLevel}). Found ${nearbyUsers.length} commuters within 10 km.`
     );
 
-    // 3. Dispatch: Verified mobile users receive Fast2SMS; users without verified phones receive Evacuation Email via Resend
+    // 3. Dispatch: Users with mobile numbers receive SMS and Email; users without phone numbers receive Email
     for (const { user: u, distanceKm } of nearbyUsers) {
       const userIdStr = (u._id || u.id || '').toString();
 
@@ -219,35 +232,22 @@ export class BroadcastService {
 
       const hasVerifiedPhone = Boolean(u.phoneNumber && u.isPhoneVerified && u.smsAlertsEnabled !== false);
 
-      if (hasVerifiedPhone) {
-        if (smsProvider === 'FAST2SMS') {
-          const smsResult = await this.sendSms(u.phoneNumber, messageToSend, fast2SmsKey);
-          recipients.push({
-            userId: userIdStr,
-            phoneNumber: u.phoneNumber,
-            channel: 'SMS',
-            status: smsResult.status,
-            messageId: smsResult.messageId,
-            errorMessage: smsResult.error,
-            distanceKm
-          });
-        } else {
-          // Fast2SMS key not in .env -> Route to high-priority disaster email
-          console.warn(`[Broadcast] SMS key not in .env, routing to email for commuter ${u.email}`);
-          const emailRes = await emailService.sendEvacuationAlertEmail(u.email, alert, sector, distanceKm);
-          recipients.push({
-            userId: userIdStr,
-            email: u.email,
-            channel: 'EMAIL',
-            status: emailRes.success ? 'SENT' : 'FAILED',
-            messageId: `EMAIL_${Date.now()}`,
-            errorMessage: emailRes.error ? String(emailRes.error) : undefined,
-            distanceKm
-          });
-        }
-      } else {
-        // Commuter does not have a verified mobile number -> Dispatch Emergency Evacuation Email
-        console.log(`📧 [Broadcast] Commuter ${u.email} has no verified phone. Dispatched Emergency Evacuation Email.`);
+      // 3a. Dispatch SMS if commuter has a verified mobile number
+      if (hasVerifiedPhone && smsProvider === 'FAST2SMS') {
+        const smsResult = await this.sendSms(u.phoneNumber, messageToSend, fast2SmsKey);
+        recipients.push({
+          userId: userIdStr,
+          phoneNumber: u.phoneNumber,
+          channel: 'SMS',
+          status: smsResult.status,
+          messageId: smsResult.messageId,
+          errorMessage: smsResult.error,
+          distanceKm
+        });
+      }
+
+      // 3b. Always dispatch Emergency Evacuation Email to registered email address
+      if (u.email) {
         const emailRes = await emailService.sendEvacuationAlertEmail(u.email, alert, sector, distanceKm);
         recipients.push({
           userId: userIdStr,

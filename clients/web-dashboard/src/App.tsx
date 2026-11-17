@@ -123,6 +123,17 @@ const MainAppContent: React.FC = () => {
     }
   }, [location.pathname]);
 
+  // Synchronize location to backend whenever user logs in or userLocation initializes
+  useEffect(() => {
+    if (user && userLocation) {
+      api.post('/api/broadcast/location', {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        cityName: userLocation.cityName
+      }).catch((e) => console.warn('Auto location sync on login skipped:', e.message));
+    }
+  }, [user]);
+
   const handleUpdateLocation = (newLoc: GeoLocation) => {
     setUserLocation(newLoc);
     localStorage.setItem('rescuenex_user_location', JSON.stringify(newLoc));
