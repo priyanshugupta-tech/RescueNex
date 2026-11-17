@@ -32,22 +32,39 @@ class MLService:
 
     def load_models(self):
         try:
-            scaler_path = os.path.join(settings.WEIGHTS_DIR, 'scaler.joblib')
-            classifier_path = os.path.join(settings.WEIGHTS_DIR, 'landslide_classifier.joblib')
-            regressor_path = os.path.join(settings.WEIGHTS_DIR, 'landslide_lsi_regressor.joblib')
-            metrics_path = os.path.join(settings.WEIGHTS_DIR, 'model_metrics.json')
+            # Check multiple potential directory paths for container and local compatibility
+            possible_dirs = [
+                settings.WEIGHTS_DIR,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'models', 'weights')),
+                os.path.abspath(os.path.join(os.getcwd(), 'app', 'models', 'weights')),
+                os.path.abspath(os.path.join(os.getcwd(), 'services', 'ai-engine', 'app', 'models', 'weights'))
+            ]
 
-            if os.path.exists(scaler_path) and os.path.exists(classifier_path) and os.path.exists(regressor_path):
-                self.scaler = joblib.load(scaler_path)
-                self.classifier = joblib.load(classifier_path)
-                self.regressor = joblib.load(regressor_path)
-                if os.path.exists(metrics_path):
-                    with open(metrics_path, 'r') as f:
-                        self.metrics = json.load(f)
-                self.is_loaded = True
-                print("✅ [AI Engine] Loaded ML models (Classifier + LSI Regressor + Scaler) successfully.")
-            else:
-                print(f"⚠️ [AI Engine] Model weights not found in: {settings.WEIGHTS_DIR}. Please run training script.")
+            weights_dir = None
+            for d in possible_dirs:
+                if os.path.exists(os.path.join(d, 'landslide_classifier.joblib')):
+                    weights_dir = d
+                    break
+
+            if not weights_dir:
+                print(f"⚠️ [AI Engine] Model weights not found in any search dir: {possible_dirs}")
+                return
+
+            scaler_path = os.path.join(weights_dir, 'scaler.joblib')
+            classifier_path = os.path.join(weights_dir, 'landslide_classifier.joblib')
+            regressor_path = os.path.join(weights_dir, 'landslide_lsi_regressor.joblib')
+            metrics_path = os.path.join(weights_dir, 'model_metrics.json')
+
+            self.scaler = joblib.load(scaler_path)
+            self.classifier = joblib.load(classifier_path)
+            self.regressor = joblib.load(regressor_path)
+            if os.path.exists(metrics_path):
+                with open(metrics_path, 'r') as f:
+                    self.metrics = json.load(f)
+            self.is_loaded = True
+            print(f"✅ [AI Engine] Loaded ML models successfully from: {weights_dir}")
+        except Exception as e:
+            print(f"❌ [AI Engine] Error loading ML models: {e}")
         except Exception as e:
             print(f"❌ [AI Engine] Error loading models: {e}")
 
