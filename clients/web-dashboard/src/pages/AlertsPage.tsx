@@ -320,7 +320,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                     <div className="mt-3 pt-3 border-t border-[#21262D] space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                          Attached Scout Responses & Situation Updates ({attachedReports.length})
+                          RESPONSES ({attachedReports.length})
                         </span>
                       </div>
                       <div className="space-y-1.5">
@@ -336,9 +336,14 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                               <span className="text-white font-sans font-medium">{r.hazardType.replace('_', ' ')}:</span>
                               <span className="text-slate-300 font-sans">{r.description}</span>
                             </div>
-                            <span className="text-[10px] text-slate-500 shrink-0">
-                              {r.userName} • {new Date(r.reportedAt).toLocaleTimeString()}
-                            </span>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 shrink-0">
+                              <span className="text-slate-300 font-medium font-sans">{r.userName || 'Responder'}</span>
+                              <span className="px-1.5 py-0.5 text-[9px] font-mono rounded bg-[#21262D] text-slate-300 border border-[#30363D]">
+                                {r.userRole || (r as any).role || 'SCOUT'}
+                              </span>
+                              <span>•</span>
+                              <span>{new Date(r.reportedAt).toLocaleTimeString()}</span>
+                            </div>
                           </div>
                         ))}
                       </div>
