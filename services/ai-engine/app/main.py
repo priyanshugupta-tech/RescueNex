@@ -40,10 +40,13 @@ app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/health")
 async def health():
+    if not ml_service.is_loaded:
+        ml_service.load_models()
     return {
         "status": "HEALTHY",
         "modelsLoaded": ml_service.is_loaded,
-        "service": "RescueNex AI Early Warning Engine"
+        "service": "RescueNex AI Early Warning Engine",
+        "metrics": ml_service.metrics.get("classifier", {}).get("accuracy") if ml_service.is_loaded else None
     }
 
 @app.get("/")
