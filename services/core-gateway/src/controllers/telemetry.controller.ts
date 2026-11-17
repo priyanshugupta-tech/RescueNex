@@ -8,6 +8,7 @@ import { NodeTelemetry, LSIResult, MountainSector } from '../types/index.js';
 import { TelemetryLogModel } from '../models/telemetryLog.model.js';
 import { AlertModel } from '../models/alert.model.js';
 import { isDatabaseConnected } from '../config/database.js';
+import { logEspTelemetry } from '../services/logger.service.js';
 
 // Schema for incoming telemetry from physical ESP32 (Hardware nodes send their own GPS coordinates)
 const telemetryIngestSchema = z.object({
@@ -163,6 +164,45 @@ export const ingestTelemetry = async (req: Request, res: Response): Promise<void
         console.warn('⚠️ [MongoDB] TelemetryLog write error:', e.message);
       }
     }
+
+    // Secondary Atlas DB Ingestion via Winston Logger (rescuenex_esp32_logs)
+    const logEvent = lsiResult?.riskLevel === 'CRITICAL' 
+      ? 'EVALUATED_CRITICAL' 
+      : lsiResult?.riskLevel === 'WARNING' 
+      ? 'EVALUATED_WARNING' 
+      : 'EVALUATED_SAFE';
+
+    logEspTelemetry(telemetry.nodeId, logEvent, {
+      sectorId: sector.id,
+      sectorName: sector.name,
+      coords: { lat: telemetry.latitude, lon: telemetry.longitude, alt: telemetry.altitudeM },
+      geotechnical: {
+        soilMoisturePct: telemetry.soilMoisturePct,
+        tiltX: data.tilt_x,
+        tiltY: data.tilt_y,
+        tiltMagnitude: telemetry.tiltMagnitude,
+        tiltDelta: telemetry.tiltDelta,
+        accelRms: telemetry.accelRms,
+        vibrationDetected: data.vibration_detected
+      },
+      weatherSnapshot: {
+        rain1hIntensityMm: weather.rain1hIntensityMm,
+        rain24hCumulativeMm: weather.rain24hCumulativeMm,
+        tempC: data.temperature_c,
+        humidityPct: data.humidity_pct
+      },
+      aiEvaluation: {
+        lsiScore: lsiResult ? lsiResult.lsiScore : 0,
+        riskLevel: lsiResult ? lsiResult.riskLevel : 'LOW',
+        timeToFailureHours: lsiResult ? lsiResult.timeToFailureHours : null,
+        aiStatus
+      },
+      hardwareStatus: {
+        wakeReason: data.wake_reason,
+        batteryPct: telemetry.batteryPct,
+        gpsFix: data.gps_fix
+      }
+    });
 
     // Broadcast over WebSocket with dynamic GPS fix
     if (socketEmitter) {
