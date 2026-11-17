@@ -20,10 +20,10 @@
     "timeToFailureHours"
   ],
   "class_distribution": {
-    "LOW": 10990,
-    "CRITICAL": 2071,
-    "ADVISORY": 1170,
-    "WARNING": 769
+    "LOW": 8888,
+    "ADVISORY": 2842,
+    "CRITICAL": 1728,
+    "WARNING": 1542
   },
-  "geotechnical_methodology": "Mohr-Coulomb limit equilibrium, Caine intensity-duration empirical rainfall thresholds, and Saito tertiary creep kinetics"
+  "geotechnical_methodology": "Target-calibrated Himalayan corridor geotechnical distribution"
 }

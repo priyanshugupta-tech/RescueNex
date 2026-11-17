@@ -14,6 +14,8 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   jwtSecret: process.env.JWT_SECRET || 'rescuenex_dev_secret_2026',
   aiEngineUrl: process.env.AI_ENGINE_URL || 'http://localhost:8000',
+  clientUrl: process.env.CLIENT_URL || '',
+  corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()) : [],
   weatherPollIntervalMins: parseInt(process.env.WEATHER_POLL_INTERVAL_MINS || '15', 10),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   resendApiKey: process.env.RESEND_API_KEY || '',

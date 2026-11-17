@@ -2,9 +2,9 @@
   "model_version": "1.0.0",
   "classifier": {
     "algorithm": "GradientBoostingClassifier",
-    "accuracy": 0.9713,
-    "f1_macro": 0.9463,
-    "f1_weighted": 0.9707,
+    "accuracy": 0.8977,
+    "f1_macro": 0.8689,
+    "f1_weighted": 0.8982,
     "classes": [
       "ADVISORY",
       "CRITICAL",
@@ -13,61 +13,61 @@
     ],
     "classification_report": {
       "ADVISORY": {
-        "precision": 0.8530805687203792,
-        "recall": 0.7692307692307693,
-        "f1-score": 0.8089887640449438,
-        "support": 234.0
+        "precision": 0.7754010695187166,
+        "recall": 0.7658450704225352,
+        "f1-score": 0.770593445527015,
+        "support": 568.0
       },
       "CRITICAL": {
-        "precision": 1.0,
-        "recall": 0.9975845410628019,
-        "f1-score": 0.9987908101571947,
-        "support": 414.0
+        "precision": 0.9469026548672567,
+        "recall": 0.9277456647398844,
+        "f1-score": 0.9372262773722628,
+        "support": 346.0
       },
       "LOW": {
-        "precision": 0.9756866276452049,
-        "recall": 0.9858962693357598,
-        "f1-score": 0.980764878931885,
-        "support": 2198.0
+        "precision": 0.9499146272054638,
+        "recall": 0.9386951631046119,
+        "f1-score": 0.9442715700141443,
+        "support": 1778.0
       },
       "WARNING": {
-        "precision": 0.9935483870967742,
-        "recall": 1.0,
-        "f1-score": 0.9967637540453075,
-        "support": 154.0
+        "precision": 0.7813411078717201,
+        "recall": 0.8701298701298701,
+        "f1-score": 0.8233486943164362,
+        "support": 308.0
       },
-      "accuracy": 0.9713333333333334,
+      "accuracy": 0.8976666666666666,
       "macro avg": {
-        "precision": 0.9555788958655895,
-        "recall": 0.9381778949073327,
-        "f1-score": 0.9463270517948328,
+        "precision": 0.8633898648657892,
+        "recall": 0.8756039420992254,
+        "f1-score": 0.8688599968074646,
         "support": 3000.0
       },
       "weighted avg": {
-        "precision": 0.9703955040858775,
-        "recall": 0.9713333333333334,
-        "f1-score": 0.9706751960689523,
+        "precision": 0.8992191314888354,
+        "recall": 0.8976666666666666,
+        "f1-score": 0.898161206121586,
         "support": 3000.0
       }
     }
   },
   "regressor": {
     "algorithm": "GradientBoostingRegressor",
-    "mae": 2.0627,
-    "r2_score": 0.9882
+    "mae": 2.5053,
+    "r2_score": 0.9796
   },
   "feature_importances": {
-    "tiltDelta": 0.8027,
-    "rain24hCumulativeMm": 0.0588,
-    "slopeAngleDeg": 0.0377,
-    "soilMoisturePct": 0.0326,
-    "tiltMagnitude": 0.0307,
-    "accelRms": 0.0154,
-    "rain1hIntensityMm": 0.0105,
-    "antecedentRain7dMm": 0.0063,
-    "humidityPct": 0.003,
-    "temperatureC": 0.0021,
-    "vibrationDetected": 0.0002
+    "rain1hIntensityMm": 0.4256,
+    "tiltDelta": 0.2941,
+    "antecedentRain7dMm": 0.2044,
+    "soilMoisturePct": 0.0144,
+    "tiltMagnitude": 0.014,
+    "rain24hCumulativeMm": 0.0124,
+    "slopeAngleDeg": 0.0091,
+    "temperatureC": 0.0089,
+    "accelRms": 0.0086,
+    "humidityPct": 0.0078,
+    "vibrationDetected": 0.0006
   },
   "features": [
     "soilMoisturePct",

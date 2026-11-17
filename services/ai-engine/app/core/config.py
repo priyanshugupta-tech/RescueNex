@@ -15,6 +15,9 @@ class Settings:
     PORT: int = int(os.getenv("AI_ENGINE_PORT", 8000))
     HOST: str = "0.0.0.0"
     
+    # CORS Configuration
+    CORS_ORIGINS: list = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "*").split(",") if origin.strip()]
+    
     # MongoDB Atlas
     MONGODB_URI: str = os.getenv("MONGODB_URI", "")
     DATABASE_NAME: str = "rescuenex"

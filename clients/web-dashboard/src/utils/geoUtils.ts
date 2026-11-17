@@ -75,7 +75,7 @@ export const searchLocationNominatim = async (query: string): Promise<GeocodedLo
 };
 
 /**
- * Popular Quick-Select Transit Points along NH-44 & Mountain Passes
+ * Popular Quick-Select Transit Points along Mountain Passes & Highway Corridors
  */
 export const QUICK_TRANSIT_POINTS: GeocodedLocation[] = [
   { id: 'RAMBAN', name: 'Ramban', displayName: 'Ramban Central Corridor', latitude: 33.2422, longitude: 75.2443 },

@@ -1,11 +1,17 @@
 import { io, Socket } from 'socket.io-client';
 
+const SOCKET_SERVER_URL = 
+  import.meta.env.VITE_SOCKET_URL || 
+  import.meta.env.VITE_API_URL || 
+  import.meta.env.VITE_BACKEND_URL || 
+  window.location.origin;
+
 class SocketService {
   private socket: Socket | null = null;
 
   public connect(): Socket {
     if (!this.socket) {
-      this.socket = io(window.location.origin, {
+      this.socket = io(SOCKET_SERVER_URL, {
         withCredentials: true,
         transports: ['websocket', 'polling']
       });

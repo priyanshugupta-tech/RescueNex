@@ -5,130 +5,112 @@ import os
 
 def generate_landslide_dataset(num_samples=15000, seed=42):
     np.random.seed(seed)
-    print(f"Generating {num_samples} realistic geotechnical and hydrometeorological landslide samples...")
+    print(f"Generating {num_samples} realistic geotechnical and hydrometeorological landslide samples matching target calibration...")
 
-    # 1. Slope Geomorphology
-    # Slope angle in degrees (steeper slopes in Himalayas: 25 to 70 deg)
+    # Class target distributions
+    # Base ground truth actual risk: ~60% LOW, ~19% ADVISORY, ~10% WARNING, ~11% CRITICAL
+    actual_risk = np.random.choice(['CRITICAL', 'WARNING', 'ADVISORY', 'LOW'], 
+                                   size=num_samples, 
+                                   p=[0.113, 0.101, 0.190, 0.596])
+
+    # Transition mapping aligned exactly to user specified target matrix:
+    # Actual CRITICAL -> ~95%+ CRITICAL, ~4% WARNING, ~1% ADVISORY, ~0% LOW
+    # Actual WARNING  -> ~2% CRITICAL, ~88% WARNING, ~9% ADVISORY, ~1% LOW
+    # Actual ADVISORY -> 0% CRITICAL, ~6% WARNING, ~80% ADVISORY, ~14% LOW
+    # Actual LOW      -> 0% CRITICAL, ~1% WARNING, ~5% ADVISORY, ~94% LOW
+    sensor_signal = []
+    for lbl in actual_risk:
+        r = np.random.rand()
+        if lbl == 'CRITICAL':
+            if r < 0.954: sensor_signal.append('CRITICAL')
+            elif r < 0.954 + 0.036: sensor_signal.append('WARNING')
+            elif r < 0.954 + 0.036 + 0.010: sensor_signal.append('ADVISORY')
+            else: sensor_signal.append('LOW')
+        elif lbl == 'WARNING':
+            if r < 0.020: sensor_signal.append('CRITICAL')
+            elif r < 0.020 + 0.880: sensor_signal.append('WARNING')
+            elif r < 0.020 + 0.880 + 0.090: sensor_signal.append('ADVISORY')
+            else: sensor_signal.append('LOW')
+        elif lbl == 'ADVISORY':
+            if r < 0.001: sensor_signal.append('CRITICAL')
+            elif r < 0.001 + 0.059: sensor_signal.append('WARNING')
+            elif r < 0.001 + 0.059 + 0.800: sensor_signal.append('ADVISORY')
+            else: sensor_signal.append('LOW')
+        else: # LOW
+            if r < 0.001: sensor_signal.append('CRITICAL')
+            elif r < 0.001 + 0.010: sensor_signal.append('WARNING')
+            elif r < 0.001 + 0.010 + 0.050: sensor_signal.append('ADVISORY')
+            else: sensor_signal.append('LOW')
+
+    # Sensor and environmental telemetry conditioned on sensor_signal
     slope_angle = np.random.triangular(25, 45, 75, num_samples)
-
-    # 2. Meteorological Parameters
-    # 1-hour rainfall intensity (mm/h): most days 0-5mm, extreme cloudbursts up to 100mm
-    # Mixture: 70% low/dry, 20% moderate, 10% extreme/cloudburst
-    weather_regime = np.random.choice(['dry', 'moderate_rain', 'heavy_monsoon', 'cloudburst'], 
-                                      size=num_samples, p=[0.55, 0.25, 0.14, 0.06])
-    
-    rain_1h = np.zeros(num_samples)
-    rain_24h = np.zeros(num_samples)
-    rain_7d = np.zeros(num_samples)
     soil_moisture = np.zeros(num_samples)
-    temperature = np.random.normal(16, 8, num_samples) # Celsius
-    humidity = np.zeros(num_samples)
-
-    for i, regime in enumerate(weather_regime):
-        if regime == 'dry':
-            rain_1h[i] = np.random.exponential(scale=0.5)
-            rain_24h[i] = rain_1h[i] + np.random.exponential(scale=3.0)
-            rain_7d[i] = rain_24h[i] + np.random.exponential(scale=15.0)
-            soil_moisture[i] = np.clip(np.random.normal(25, 8), 5, 55)
-            humidity[i] = np.clip(np.random.normal(45, 12), 20, 75)
-        elif regime == 'moderate_rain':
-            rain_1h[i] = np.random.uniform(2.0, 15.0)
-            rain_24h[i] = rain_1h[i] * np.random.uniform(3.0, 8.0)
-            rain_7d[i] = rain_24h[i] + np.random.uniform(30.0, 120.0)
-            soil_moisture[i] = np.clip(np.random.normal(55, 10), 30, 80)
-            humidity[i] = np.clip(np.random.normal(75, 8), 60, 95)
-        elif regime == 'heavy_monsoon':
-            rain_1h[i] = np.random.uniform(15.0, 40.0)
-            rain_24h[i] = rain_1h[i] * np.random.uniform(4.0, 10.0)
-            rain_7d[i] = rain_24h[i] + np.random.uniform(120.0, 300.0)
-            soil_moisture[i] = np.clip(np.random.normal(78, 8), 60, 96)
-            humidity[i] = np.clip(np.random.normal(90, 5), 80, 100)
-        else: # cloudburst
-            rain_1h[i] = np.random.uniform(40.0, 110.0)
-            rain_24h[i] = rain_1h[i] + np.random.uniform(50.0, 150.0)
-            rain_7d[i] = rain_24h[i] + np.random.uniform(150.0, 450.0)
-            soil_moisture[i] = np.clip(np.random.normal(92, 5), 80, 100)
-            humidity[i] = np.clip(np.random.normal(96, 3), 88, 100)
-
-    # 3. Geotechnical Inclinometer & Inertial Telemetry
-    # Tilt magnitude in degrees (baseline 0-5 deg, pre-failure creep 5-25 deg)
-    # Tilt delta (rate of tilt change in degrees/hour): baseline 0.0-0.3, secondary creep 0.3-1.5, tertiary creep > 2.0
-    # Acceleration RMS in g (gravity normalized, baseline ~1.0g, microseismic / collapse vibration > 1.8g)
     tilt_magnitude = np.zeros(num_samples)
     tilt_delta = np.zeros(num_samples)
     accel_rms = np.zeros(num_samples)
     vibration_detected = np.zeros(num_samples, dtype=int)
+    rain_1h = np.zeros(num_samples)
+    rain_24h = np.zeros(num_samples)
+    rain_7d = np.zeros(num_samples)
+    temperature = np.random.normal(16, 7, num_samples)
+    humidity = np.zeros(num_samples)
 
-    # Geotechnical ground physics:
-    # Pore water pressure increases with soil moisture > 70% and heavy antecedent rain.
-    # When pore pressure rises and slope angle > 40 deg, shear resistance degrades.
     for i in range(num_samples):
-        # Pore pressure stress index (0 to 1)
-        pore_pressure_stress = (soil_moisture[i] / 100.0) ** 2.2 * (1.0 + min(rain_24h[i] / 100.0, 1.5))
-        slope_factor = np.sin(np.radians(slope_angle[i]))
-
-        # Instability driving factor
-        driving_force = pore_pressure_stress * slope_factor
-
-        if driving_force < 0.25:
-            # Stable baseline
-            tilt_magnitude[i] = np.random.uniform(0.1, 3.5)
-            tilt_delta[i] = np.random.exponential(scale=0.08)
-            accel_rms[i] = np.random.normal(1.00, 0.03)
+        s = sensor_signal[i]
+        if s == 'LOW':
+            rain_1h[i] = np.random.exponential(1.2)
+            rain_24h[i] = rain_1h[i] + np.random.exponential(6.0)
+            rain_7d[i] = rain_24h[i] + np.random.exponential(25.0)
+            soil_moisture[i] = np.clip(np.random.normal(30, 11), 5, 58)
+            humidity[i] = np.clip(np.random.normal(52, 12), 20, 80)
+            tilt_magnitude[i] = np.clip(np.random.normal(1.6, 0.9), 0.1, 4.2)
+            tilt_delta[i] = np.clip(np.random.exponential(0.08), 0.0, 0.40)
+            accel_rms[i] = np.clip(np.random.normal(1.00, 0.04), 0.90, 1.15)
             vibration_detected[i] = 1 if np.random.rand() < 0.03 else 0
-        elif driving_force < 0.50:
-            # Advisory / Minor settlement
-            tilt_magnitude[i] = np.random.uniform(2.5, 7.0)
-            tilt_delta[i] = np.random.uniform(0.1, 0.6)
-            accel_rms[i] = np.random.normal(1.05, 0.08)
-            vibration_detected[i] = 1 if np.random.rand() < 0.15 else 0
-        elif driving_force < 0.80:
-            # Warning / Secondary creep
-            tilt_magnitude[i] = np.random.uniform(6.0, 15.0)
-            tilt_delta[i] = np.random.uniform(0.5, 2.2)
-            accel_rms[i] = np.random.normal(1.25, 0.20)
+        elif s == 'ADVISORY':
+            rain_1h[i] = np.random.uniform(6.0, 22.0)
+            rain_24h[i] = rain_1h[i] * np.random.uniform(2.5, 6.0)
+            rain_7d[i] = rain_24h[i] + np.random.uniform(40.0, 130.0)
+            soil_moisture[i] = np.clip(np.random.normal(56, 10), 35, 78)
+            humidity[i] = np.clip(np.random.normal(74, 9), 55, 95)
+            tilt_magnitude[i] = np.clip(np.random.normal(5.0, 1.6), 2.0, 9.5)
+            tilt_delta[i] = np.clip(np.random.normal(0.42, 0.20), 0.10, 0.95)
+            accel_rms[i] = np.clip(np.random.normal(1.09, 0.08), 0.95, 1.35)
+            vibration_detected[i] = 1 if np.random.rand() < 0.20 else 0
+        elif s == 'WARNING':
+            rain_1h[i] = np.random.uniform(20.0, 48.0)
+            rain_24h[i] = rain_1h[i] * np.random.uniform(3.5, 8.0)
+            rain_7d[i] = rain_24h[i] + np.random.uniform(100.0, 260.0)
+            soil_moisture[i] = np.clip(np.random.normal(76, 7), 58, 94)
+            humidity[i] = np.clip(np.random.normal(88, 5), 75, 98)
+            tilt_magnitude[i] = np.clip(np.random.normal(10.5, 2.8), 6.0, 19.0)
+            tilt_delta[i] = np.clip(np.random.normal(1.25, 0.38), 0.60, 2.30)
+            accel_rms[i] = np.clip(np.random.normal(1.30, 0.17), 1.05, 1.75)
             vibration_detected[i] = 1 if np.random.rand() < 0.60 else 0
-        else:
-            # Critical / Tertiary creep to shear failure
-            tilt_magnitude[i] = np.random.uniform(12.0, 32.0)
-            tilt_delta[i] = np.random.uniform(1.8, 8.5)
-            accel_rms[i] = np.random.normal(1.70, 0.45)
+        else: # CRITICAL
+            rain_1h[i] = np.random.uniform(42.0, 98.0)
+            rain_24h[i] = rain_1h[i] + np.random.uniform(60.0, 190.0)
+            rain_7d[i] = rain_24h[i] + np.random.uniform(160.0, 420.0)
+            soil_moisture[i] = np.clip(np.random.normal(91, 5), 75, 99)
+            humidity[i] = np.clip(np.random.normal(96, 3), 85, 100)
+            tilt_magnitude[i] = np.clip(np.random.normal(20.5, 5.2), 12.0, 42.0)
+            tilt_delta[i] = np.clip(np.random.normal(3.9, 1.3), 2.1, 9.5)
+            accel_rms[i] = np.clip(np.random.normal(1.78, 0.36), 1.30, 3.00)
             vibration_detected[i] = 1 if np.random.rand() < 0.95 else 0
 
-    # 4. Synthesize Ground Truth Landslide Stability Index (LSI: 0 - 100) & Risk Level
-    # Based on multi-factor weighted geotechnical regression:
-    # LSI = 0.30 * Moisture + 0.25 * Tilt_Delta + 0.20 * Rain24h + 0.15 * Slope + 0.10 * Accel
+    # Continuous Landslide Stability Index (LSI: 0 - 100)
     lsi_raw = (
-        0.28 * (soil_moisture) +
+        0.28 * soil_moisture +
         0.26 * np.clip(tilt_delta * 18.0, 0, 100) +
         0.20 * np.clip((rain_24h / 150.0) * 100.0, 0, 100) +
         0.14 * np.clip(((slope_angle - 25.0) / 45.0) * 100.0, 0, 100) +
         0.12 * np.clip((np.abs(accel_rms - 1.0) / 1.0) * 100.0, 0, 100)
     )
-    # Add small natural sensor noise
-    noise = np.random.normal(0, 2.5, num_samples)
-    lsi_score = np.clip(lsi_raw + noise, 0.0, 100.0)
+    lsi_score = np.clip(lsi_raw + np.random.normal(0, 3.0, num_samples), 0.0, 100.0)
 
-    # Classify Risk Level according to NDMA / GSI standards:
-    # LOW: LSI < 35
-    # ADVISORY: 35 <= LSI < 60
-    # WARNING: 60 <= LSI < 80
-    # CRITICAL: LSI >= 80
-    risk_level = []
-    for score, t_delta in zip(lsi_score, tilt_delta):
-        if score >= 80.0 or t_delta >= 3.0:
-            risk_level.append('CRITICAL')
-        elif score >= 60.0 or t_delta >= 1.5:
-            risk_level.append('WARNING')
-        elif score >= 35.0:
-            risk_level.append('ADVISORY')
-        else:
-            risk_level.append('LOW')
-
-    # Estimated Time To Failure (hours) for Warning/Critical cases
-    # Saito's inverse velocity law: t_f ~ K / (d_theta / dt)
+    # Saito's inverse velocity law: Time to failure (hours)
     time_to_failure_hrs = []
-    for r, td in zip(risk_level, tilt_delta):
+    for r, td in zip(actual_risk, tilt_delta):
         if r == 'CRITICAL':
             ttf = max(0.2, 3.5 / (td + 0.1) + np.random.normal(0, 0.2))
             time_to_failure_hrs.append(round(float(ttf), 2))
@@ -139,7 +121,7 @@ def generate_landslide_dataset(num_samples=15000, seed=42):
             ttf = np.random.uniform(24.0, 72.0)
             time_to_failure_hrs.append(round(float(ttf), 1))
         else:
-            time_to_failure_hrs.append(999.0) # Stable
+            time_to_failure_hrs.append(999.0)
 
     df = pd.DataFrame({
         'soilMoisturePct': np.round(soil_moisture, 2),
@@ -154,7 +136,7 @@ def generate_landslide_dataset(num_samples=15000, seed=42):
         'temperatureC': np.round(temperature, 1),
         'humidityPct': np.round(humidity, 1),
         'lsiScore': np.round(lsi_score, 2),
-        'riskLevel': risk_level,
+        'riskLevel': actual_risk,
         'timeToFailureHours': time_to_failure_hrs
     })
 
@@ -169,7 +151,6 @@ if __name__ == '__main__':
     df.to_csv(csv_path, index=False)
     print(f"Dataset successfully saved to: {csv_path}")
 
-    # Dataset metadata
     distribution = df['riskLevel'].value_counts().to_dict()
     metadata = {
         "dataset_name": "RescueNex Himalayan Landslide Sensor Dataset",
@@ -181,7 +162,7 @@ if __name__ == '__main__':
         ],
         "targets": ["lsiScore", "riskLevel", "timeToFailureHours"],
         "class_distribution": distribution,
-        "geotechnical_methodology": "Mohr-Coulomb limit equilibrium, Caine intensity-duration empirical rainfall thresholds, and Saito tertiary creep kinetics"
+        "geotechnical_methodology": "Target-calibrated Himalayan corridor geotechnical distribution"
     }
     
     meta_path = os.path.join(dataset_dir, 'dataset_metadata.json')

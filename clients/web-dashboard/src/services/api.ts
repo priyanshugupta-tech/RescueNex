@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-export const API_BASE = ''; // Proxy handles routing to http://localhost:5000
+// Dynamically read from import.meta.env for deployment, fallback to empty string (reverse proxy) or current origin
+export const API_BASE = (import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -40,7 +41,7 @@ api.interceptors.response.use(
       ) {
         originalRequest._retry = true;
         try {
-          const refreshRes = await axios.get('/api/auth/tokengen', { withCredentials: true });
+          const refreshRes = await axios.get(`${API_BASE}/api/auth/tokengen`, { withCredentials: true });
           if (refreshRes.data.accessToken) {
             localStorage.setItem('rescuenex_token', refreshRes.data.accessToken);
             originalRequest.headers.Authorization = `Bearer ${refreshRes.data.accessToken}`;

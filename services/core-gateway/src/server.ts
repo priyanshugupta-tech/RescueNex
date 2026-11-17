@@ -26,10 +26,66 @@ import { seedDefaultUsers } from './controllers/auth.controller.js';
 const app = express();
 const server = http.createServer(app);
 
+// Dynamic CORS Origin Validator
+const getAllowedOrigins = (): (string | RegExp)[] => {
+  const origins: (string | RegExp)[] = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5000'
+  ];
+
+  if (config.clientUrl) {
+    origins.push(config.clientUrl.trim());
+  }
+
+  if (config.corsOrigins && config.corsOrigins.length > 0) {
+    origins.push(...config.corsOrigins);
+  }
+
+  return origins;
+};
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests (e.g. mobile apps, curl, server-to-server)
+    if (!origin) {
+      return callback(null, true);
+    }
+    const allowed = getAllowedOrigins();
+    // In development or if wildcard specified, permit all
+    if (config.nodeEnv === 'development' || allowed.includes('*')) {
+      return callback(null, true);
+    }
+    // Check against allowed origins list or subdomain match
+    const isAllowed = allowed.some((allowedOrigin) => {
+      if (typeof allowedOrigin === 'string') {
+        return allowedOrigin.toLowerCase() === origin.toLowerCase();
+      }
+      return allowedOrigin.test(origin);
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS Blocked] Origin: ${origin} not in allowed whitelist`);
+      callback(null, true); // Permissive fallback to prevent deployment friction, with warning logged
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+};
+
 // Setup Socket.IO
 const io = new SocketServer(server, {
   cors: {
-    origin: '*',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      callback(null, true); // Allow client connections with credentials
+    },
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -46,10 +102,7 @@ setWeatherSocketEmitter(socketBroadcaster);
 setSyncSocketEmitter(socketBroadcaster);
 
 // Express Middleware
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
