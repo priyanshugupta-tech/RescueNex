@@ -167,11 +167,11 @@ export const TelemetryTrendChart: React.FC<TelemetryTrendChartProps> = ({
 
   // SVG Coordinate Mathematics
   const width = 760;
-  const height = 180;
-  const padLeft = 45;
-  const padRight = 20;
-  const padTop = 15;
-  const padBottom = 25;
+  const height = 210;
+  const padLeft = 48;
+  const padRight = 30;
+  const padTop = 20;
+  const padBottom = 30;
   const chartW = width - padLeft - padRight;
   const chartH = height - padTop - padBottom;
 
@@ -286,6 +286,28 @@ export const TelemetryTrendChart: React.FC<TelemetryTrendChartProps> = ({
         </div>
       </div>
 
+      {/* Threshold Reference Legend (Non-overlapping & clean) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] font-mono text-slate-400">
+        <div className="flex items-center gap-4">
+          {metricConfig.warningThreshold && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-3.5 h-0 border-t-2 border-dashed border-[#6E7681]" />
+              <span>Warning: <strong className="text-slate-200 font-semibold">{metricConfig.warningThreshold}{metricConfig.unit}</strong></span>
+            </div>
+          )}
+          {metricConfig.criticalThreshold && (
+            <div className="flex items-center gap-1.5">
+              <span className="w-3.5 h-0 border-t-2 border-dashed border-[#8B949E]" />
+              <span>Critical: <strong className="text-slate-200 font-semibold">{metricConfig.criticalThreshold}{metricConfig.unit}</strong></span>
+            </div>
+          )}
+        </div>
+
+        <span className="text-[10px] text-slate-500">
+          Showing {dataPoints.length} sequential sample{dataPoints.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
       {/* SVG Chart Area */}
       <div className="relative bg-[#0D1117] rounded border border-[#21262D] p-2">
         {dataPoints.length === 0 ? (
@@ -333,53 +355,29 @@ export const TelemetryTrendChart: React.FC<TelemetryTrendChartProps> = ({
                 </g>
               ))}
 
-              {/* Geotechnical Baseline Thresholds (Subtle dashed lines) */}
+              {/* Geotechnical Baseline Thresholds (Clean dashed lines without overlapping text) */}
               {metricConfig.warningThreshold && maxVal >= metricConfig.warningThreshold && (
-                <g>
-                  <line
-                    x1={padLeft}
-                    y1={getY(metricConfig.warningThreshold)}
-                    x2={width - padRight}
-                    y2={getY(metricConfig.warningThreshold)}
-                    stroke="#6E7681"
-                    strokeDasharray="4 4"
-                    strokeWidth="1"
-                  />
-                  <text
-                    x={width - padRight}
-                    y={getY(metricConfig.warningThreshold) - 3}
-                    textAnchor="end"
-                    fill="#8B949E"
-                    fontSize="8.5"
-                    fontFamily="monospace"
-                  >
-                    Warning: {metricConfig.warningThreshold}{metricConfig.unit}
-                  </text>
-                </g>
+                <line
+                  x1={padLeft}
+                  y1={getY(metricConfig.warningThreshold)}
+                  x2={width - padRight}
+                  y2={getY(metricConfig.warningThreshold)}
+                  stroke="#6E7681"
+                  strokeDasharray="4 4"
+                  strokeWidth="1.2"
+                />
               )}
 
               {metricConfig.criticalThreshold && maxVal >= metricConfig.criticalThreshold && (
-                <g>
-                  <line
-                    x1={padLeft}
-                    y1={getY(metricConfig.criticalThreshold)}
-                    x2={width - padRight}
-                    y2={getY(metricConfig.criticalThreshold)}
-                    stroke="#8B949E"
-                    strokeDasharray="2 3"
-                    strokeWidth="1"
-                  />
-                  <text
-                    x={width - padRight}
-                    y={getY(metricConfig.criticalThreshold) - 3}
-                    textAnchor="end"
-                    fill="#8B949E"
-                    fontSize="8.5"
-                    fontFamily="monospace"
-                  >
-                    Critical: {metricConfig.criticalThreshold}{metricConfig.unit}
-                  </text>
-                </g>
+                <line
+                  x1={padLeft}
+                  y1={getY(metricConfig.criticalThreshold)}
+                  x2={width - padRight}
+                  y2={getY(metricConfig.criticalThreshold)}
+                  stroke="#8B949E"
+                  strokeDasharray="2 3"
+                  strokeWidth="1.2"
+                />
               )}
 
               {/* Area Under Curve */}
@@ -531,25 +529,25 @@ export const TelemetryTrendChart: React.FC<TelemetryTrendChartProps> = ({
       {/* Summary Statistics Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[#21262D] text-xs font-mono">
         <div className="bg-[#0D1117] p-2 rounded border border-[#21262D]">
-          <span className="text-[10px] text-slate-400 block uppercase">Current Value</span>
+          <span className="text-[10px] text-slate-400 block uppercase">Current</span>
           <span className="text-sm font-semibold text-white">
             {latestVal.toFixed(1)}{metricConfig.unit}
           </span>
         </div>
         <div className="bg-[#0D1117] p-2 rounded border border-[#21262D]">
-          <span className="text-[10px] text-slate-400 block uppercase">Corridor Peak</span>
+          <span className="text-[10px] text-slate-400 block uppercase">Peak</span>
           <span className="text-sm font-semibold text-slate-200">
             {peakVal.toFixed(1)}{metricConfig.unit}
           </span>
         </div>
         <div className="bg-[#0D1117] p-2 rounded border border-[#21262D]">
-          <span className="text-[10px] text-slate-400 block uppercase">Baseline (Min)</span>
+          <span className="text-[10px] text-slate-400 block uppercase">Min</span>
           <span className="text-sm font-semibold text-slate-300">
             {minObserved.toFixed(1)}{metricConfig.unit}
           </span>
         </div>
         <div className="bg-[#0D1117] p-2 rounded border border-[#21262D]">
-          <span className="text-[10px] text-slate-400 block uppercase">Samples In Window</span>
+          <span className="text-[10px] text-slate-400 block uppercase">Total Samples</span>
           <span className="text-sm font-semibold text-slate-300">
             {dataPoints.length} packet{dataPoints.length === 1 ? '' : 's'}
           </span>
