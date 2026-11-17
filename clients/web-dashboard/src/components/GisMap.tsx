@@ -200,11 +200,6 @@ export const GisMap: React.FC<GisMapProps> = ({
                     {sec.currentRiskLevel} ({sec.lsiScore})
                   </span>
                 </div>
-                {sec.sirenActive && (
-                  <p className="text-[10px] text-rose-400 font-semibold mt-1">
-                    🚨 Evacuation Siren Triggered
-                  </p>
-                )}
               </div>
             </Popup>
           </Circle>

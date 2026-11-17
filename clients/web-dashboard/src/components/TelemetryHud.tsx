@@ -213,23 +213,12 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
           </p>
         </div>
 
-        {/* Sector Siren Status */}
+        {/* Relative Humidity */}
         <div className="mt-2.5 pt-2 border-t border-[#21262D] flex items-center justify-between text-xs font-mono">
-          <span className="text-slate-400">Sector Siren:</span>
-          <div className="flex items-center gap-2">
-            <span className={`font-medium ${sector?.sirenActive ? 'text-rose-400 font-bold' : 'text-slate-300'}`}>
-              {sector?.sirenActive ? '🚨 ACTIVE' : 'STANDBY'}
-            </span>
-            {(user?.role === 'ADMIN' || user?.role === 'OPERATOR') && (
-              <button
-                onClick={onOpenSirenModal}
-                className="text-[10px] text-slate-400 hover:text-slate-200 underline font-sans ml-1"
-                title="Manual Siren Override"
-              >
-                Override
-              </button>
-            )}
-          </div>
+          <span className="text-slate-400">Relative Humidity:</span>
+          <span className="text-slate-200 font-medium">
+            {typeof weather?.relativeHumidityPct === 'number' ? `${weather.relativeHumidityPct}%` : '--'}
+          </span>
         </div>
       </div>
 
