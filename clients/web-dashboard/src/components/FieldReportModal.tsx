@@ -12,13 +12,15 @@ interface FieldReportModalProps {
   onClose: () => void;
   userLocation: GeoLocation | null;
   onReportSubmitted?: () => void;
+  targetAlert?: { alertId: string; sectorName: string } | null;
 }
 
 export const FieldReportModal: React.FC<FieldReportModalProps> = ({
   isOpen,
   onClose,
   userLocation,
-  onReportSubmitted
+  onReportSubmitted,
+  targetAlert
 }) => {
   const { user } = useAuth();
   const isAuthorized = ['SCOUT', 'OPERATOR', 'ADMIN'].includes(user?.role || '');
@@ -80,11 +82,13 @@ export const FieldReportModal: React.FC<FieldReportModalProps> = ({
     const cityName = userLocation?.cityName ?? 'Highway Transit Sector';
 
     const reportData = {
+      alertId: targetAlert?.alertId,
+      sectorId: targetAlert?.sectorName,
       hazardType,
       severity,
       latitude: lat,
       longitude: lon,
-      cityName,
+      cityName: targetAlert?.sectorName || cityName,
       description: description.trim(),
       reportedAt: Date.now(),
       userName: user?.fullName || (user?.role === 'SCOUT' ? 'SDRF Field Scout' : 'Commuter Report'),
@@ -160,6 +164,15 @@ export const FieldReportModal: React.FC<FieldReportModalProps> = ({
               <X className="w-4 h-4" />
             </button>
           </div>
+
+          {targetAlert && (
+            <div className="px-5 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between text-xs font-mono">
+              <span className="text-amber-300 font-medium">
+                Direct Update For Alert: <strong>{targetAlert.sectorName}</strong>
+              </span>
+              <span className="text-[10px] text-amber-400/80">#{targetAlert.alertId}</span>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs font-mono">
             {/* Location Corridor Notice */}

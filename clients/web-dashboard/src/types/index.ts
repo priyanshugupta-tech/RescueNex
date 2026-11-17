@@ -112,6 +112,8 @@ export interface FieldReport {
   userId?: string;
   userName?: string;
   userRole?: UserRole;
+  alertId?: string;
+  sectorId?: string;
   hazardType: HazardType;
   severity: ReportSeverity;
   latitude: number;

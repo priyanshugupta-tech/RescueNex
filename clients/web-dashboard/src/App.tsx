@@ -113,6 +113,7 @@ const MainAppContent: React.FC = () => {
 
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [selectedTargetAlert, setSelectedTargetAlert] = useState<{ alertId: string; sectorName: string } | null>(null);
 
   // Auto-prompt location selector when user enters dashboard if not previously configured
   useEffect(() => {
@@ -375,7 +376,10 @@ const MainAppContent: React.FC = () => {
                     onUpdateLocation={handleUpdateLocation}
                     onRefreshData={loadInitialData}
                     alerts={activeAlerts}
-                    onOpenReportModal={() => setIsReportModalOpen(true)}
+                    onOpenReportModal={(alertCtx) => {
+                      setSelectedTargetAlert(alertCtx || null);
+                      setIsReportModalOpen(true);
+                    }}
                   />
                 } 
               />
@@ -389,7 +393,10 @@ const MainAppContent: React.FC = () => {
                       userLocation={userLocation}
                       sectors={sectors}
                       onOpenLocationModal={() => setIsLocationModalOpen(true)}
-                      onOpenReportModal={() => setIsReportModalOpen(true)}
+                      onOpenReportModal={(alertCtx) => {
+                        setSelectedTargetAlert(alertCtx || null);
+                        setIsReportModalOpen(true);
+                      }}
                     />
                   </ProtectedRoute>
                 } 
@@ -454,9 +461,13 @@ const MainAppContent: React.FC = () => {
       {/* Ground Scout & Hazard Observation Modal (With Offline Outbox Auto-Sync) */}
       <FieldReportModal
         isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
+        onClose={() => {
+          setIsReportModalOpen(false);
+          setSelectedTargetAlert(null);
+        }}
         userLocation={userLocation}
         onReportSubmitted={loadInitialData}
+        targetAlert={selectedTargetAlert}
       />
 
       <Footer activeAlertCount={activeAlertCount} />

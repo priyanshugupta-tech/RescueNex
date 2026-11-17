@@ -56,6 +56,8 @@ export const processBatchSync = async (req: Request, res: Response): Promise<voi
             userId: user.id,
             userName: user.fullName || user.userName || 'Verified Field Scout',
             userRole: user.role,
+            alertId: p.alertId || undefined,
+            sectorId: p.sectorId || undefined,
             hazardType: p.hazardType || 'ROCKFALL',
             severity: p.severity || 'MEDIUM',
             latitude: Number(p.latitude),
@@ -77,6 +79,8 @@ export const processBatchSync = async (req: Request, res: Response): Promise<voi
                 userId: report.userId,
                 userName: report.userName,
                 userRole: report.userRole,
+                alertId: report.alertId,
+                sectorId: report.sectorId,
                 hazardType: report.hazardType,
                 severity: report.severity,
                 latitude: report.latitude,
@@ -133,7 +137,7 @@ export const processBatchSync = async (req: Request, res: Response): Promise<voi
  */
 export const createFieldReport = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { hazardType, severity, latitude, longitude, cityName, description, reportedAt } = req.body;
+    const { alertId, sectorId, hazardType, severity, latitude, longitude, cityName, description, reportedAt } = req.body;
 
     if (!hazardType || latitude === undefined || longitude === undefined || !description) {
       res.status(400).json({
@@ -157,6 +161,8 @@ export const createFieldReport = async (req: Request, res: Response): Promise<vo
       userId: user.id,
       userName: user.fullName || user.userName || 'Field Scout',
       userRole: user.role,
+      alertId: alertId || undefined,
+      sectorId: sectorId || undefined,
       hazardType,
       severity: severity || 'MEDIUM',
       latitude: Number(latitude),
@@ -175,6 +181,8 @@ export const createFieldReport = async (req: Request, res: Response): Promise<vo
         userId: report.userId,
         userName: report.userName,
         userRole: report.userRole,
+        alertId: report.alertId,
+        sectorId: report.sectorId,
         hazardType: report.hazardType,
         severity: report.severity,
         latitude: report.latitude,
@@ -228,6 +236,8 @@ export const getFieldReports = async (req: Request, res: Response): Promise<void
         userId: d.userId,
         userName: d.userName,
         userRole: d.userRole,
+        alertId: d.alertId,
+        sectorId: d.sectorId,
         hazardType: d.hazardType,
         severity: d.severity,
         latitude: d.latitude,

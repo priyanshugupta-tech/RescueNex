@@ -6,6 +6,8 @@ export interface IFieldReportDocument extends Document {
   userId?: string;
   userName?: string;
   userRole?: UserRole;
+  alertId?: string;
+  sectorId?: string;
   hazardType: HazardType;
   severity: ReportSeverity;
   latitude: number;
@@ -22,6 +24,8 @@ const FieldReportSchema = new Schema<IFieldReportDocument>(
   {
     reportId: { type: String, required: true, unique: true, index: true },
     userId: { type: String, index: true },
+    alertId: { type: String, index: true },
+    sectorId: { type: String, index: true },
     userName: { type: String, default: 'Anonymous Commuter' },
     userRole: {
       type: String,
