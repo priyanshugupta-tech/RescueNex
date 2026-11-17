@@ -251,11 +251,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
-                        level === 'CRITICAL'
-                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                      }`}>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border bg-[#21262D] text-slate-200 border-[#30363D]">
                         {level}
                       </span>
                       <span className="text-sm font-semibold text-white font-sans">
@@ -335,9 +331,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                             className="p-2.5 rounded bg-[#0D1117] border border-[#21262D] flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs font-mono"
                           >
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`px-1.5 py-0.5 text-[9px] rounded font-bold border ${
-                                r.severity === 'CRITICAL' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              }`}>
+                              <span className="px-1.5 py-0.5 text-[9px] rounded font-medium border bg-[#21262D] text-slate-200 border-[#30363D]">
                                 {r.severity}
                               </span>
                               <span className="text-white font-sans font-medium">{r.hazardType.replace('_', ' ')}:</span>
@@ -383,12 +377,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
         ) : (
           <div className="space-y-2">
             {fieldReports.map((report) => {
-              const sevBadge =
-                report.severity === 'CRITICAL'
-                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                  : report.severity === 'HIGH'
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                  : 'bg-[#21262D] text-slate-300 border-[#30363D]';
+              const sevBadge = 'bg-[#21262D] text-slate-300 border-[#30363D]';
 
               return (
                 <div

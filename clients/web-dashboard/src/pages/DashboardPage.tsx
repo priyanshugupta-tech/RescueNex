@@ -96,13 +96,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-semibold">
               10 km Radar:
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded bg-[#21262D] text-slate-300 border border-[#30363D]">
-              <span className={`w-1.5 h-1.5 rounded-full ${
-                nodeSummary.threatLevel === 'CRITICAL' ? 'bg-rose-500' :
-                nodeSummary.threatLevel === 'WARNING' ? 'bg-amber-500' :
-                'bg-emerald-500'
-              }`} />
-              <span>{nodeSummary.badgeText}</span>
+            <span className="px-2.5 py-1 text-xs font-mono rounded bg-[#21262D] text-slate-200 border border-[#30363D]">
+              {nodeSummary.badgeText}
             </span>
           </div>
 
@@ -139,15 +134,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* Local 10km Emergency Alert Notification Banner if active within 10 km */}
       {activeCriticalAlert && (
-        <div className="p-4 bg-[#161B22] border-l-4 border-l-rose-500 border-y border-r border-[#30363D] text-slate-200 flex items-start gap-3 shadow-md rounded-md">
-          <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+        <div className="p-4 bg-[#161B22] border-l-4 border-l-slate-400 border-y border-r border-[#30363D] text-slate-200 flex items-start gap-3 shadow-md rounded-md">
+          <ShieldAlert className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-sm text-white tracking-wide">
                 Immediate Hazard Alert Inside 10 km Perimeter ({activeCriticalAlert.level})
               </h4>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">
-                EVACUATE / HALT
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#21262D] text-slate-300 border border-[#30363D] font-medium">
+                Evacuate / Halt
               </span>
             </div>
             <div className="space-y-1 mt-1 text-xs text-slate-300 leading-relaxed font-sans">
@@ -223,12 +218,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               {nodeSummary.nodesInRadius.length > 0 ? (
                 nodeSummary.nodesInRadius.map(({ node: n, distanceKm }) => {
                   const tilt = n.tiltMagnitude || 0;
-                  const nodeStatus = tilt >= 4.0 ? 'CRITICAL' : tilt >= 2.0 ? 'WARNING' : 'NORMAL';
-                  const badgeStyle = nodeStatus === 'CRITICAL' 
-                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' 
-                    : nodeStatus === 'WARNING' 
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
-                    : 'bg-[#21262D] text-slate-300 border-[#30363D]';
+                  const nodeStatus = tilt >= 4.0 ? 'Critical' : tilt >= 2.0 ? 'Warning' : 'Normal';
+                  const badgeStyle = 'bg-[#21262D] text-slate-300 border-[#30363D]';
 
                   return (
                     <div

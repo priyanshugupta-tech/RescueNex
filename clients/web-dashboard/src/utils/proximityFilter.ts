@@ -91,9 +91,9 @@ export const getNodeProximity = (
   if (hasCritical) {
     return {
       threatLevel: 'CRITICAL',
-      threatColor: '#EF4444',
-      badgeText: 'CRITICAL HAZARD DETECTED',
-      badgeClass: 'bg-rose-950/80 text-rose-300 border-rose-600',
+      threatColor: '#94A3B8',
+      badgeText: 'Critical Hazard Detected',
+      badgeClass: 'bg-[#21262D] text-slate-200 border-[#30363D]',
       nodesInRadius,
       nearestNode,
       hasCoverage: true
@@ -103,9 +103,9 @@ export const getNodeProximity = (
   if (hasWarning) {
     return {
       threatLevel: 'WARNING',
-      threatColor: '#F59E0B',
-      badgeText: 'ACTIVE HAZARD ADVISORY',
-      badgeClass: 'bg-amber-950/80 text-amber-300 border-amber-600',
+      threatColor: '#94A3B8',
+      badgeText: 'Active Hazard Advisory',
+      badgeClass: 'bg-[#21262D] text-slate-300 border-[#30363D]',
       nodesInRadius,
       nearestNode,
       hasCoverage: true
@@ -114,9 +114,9 @@ export const getNodeProximity = (
 
   return {
     threatLevel: 'SAFE',
-    threatColor: '#10B981',
-    badgeText: 'SLOPE STABLE',
-    badgeClass: 'bg-emerald-950/80 text-emerald-300 border-emerald-600',
+    threatColor: '#94A3B8',
+    badgeText: 'Slope Stable',
+    badgeClass: 'bg-[#21262D] text-slate-300 border-[#30363D]',
     nodesInRadius,
     nearestNode,
     hasCoverage: true

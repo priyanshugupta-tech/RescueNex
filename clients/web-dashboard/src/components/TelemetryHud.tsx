@@ -47,12 +47,12 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
     switch (riskLevel) {
       case 'CRITICAL':
         return {
-          bg: 'bg-rose-500/10 text-rose-400 border border-rose-500/30 font-medium',
+          bg: 'bg-[#21262D] text-slate-200 border border-[#30363D] font-medium',
           label: 'Critical Hazard'
         };
       case 'WARNING':
         return {
-          bg: 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-medium',
+          bg: 'bg-[#21262D] text-slate-300 border border-[#30363D] font-medium',
           label: 'Active Warning'
         };
       default:
@@ -129,7 +129,7 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
 
         <div className="flex items-center justify-between border-t border-[#21262D] pt-2 text-[11px]">
           <span className="text-slate-400">Deviation Δ:</span>
-          <span className={`font-mono font-medium ${telemetry && (telemetry.tiltDelta || 0) > 1.0 ? 'text-rose-400 font-bold' : 'text-slate-200'}`}>
+          <span className="font-mono font-medium text-slate-200">
             {typeof telemetry?.tiltDelta === 'number' ? `${telemetry.tiltDelta >= 0 ? '+' : ''}${telemetry.tiltDelta.toFixed(2)}°` : '--'}
           </span>
         </div>
@@ -159,13 +159,11 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
         <div className="flex items-center justify-between border-t border-[#21262D] pt-2 text-[11px]">
           <span className="text-slate-400">Vibration:</span>
           {telemetry ? (
-            <span className={`font-mono text-xs flex items-center gap-1 ${
-              telemetry.vibrationDetected ? 'text-rose-400 font-bold' : 'text-slate-300 font-medium'
-            }`}>
+            <span className="font-mono text-xs flex items-center gap-1 text-slate-300 font-medium">
               {telemetry.vibrationDetected ? (
                 <>
-                  <AlertOctagon className="w-3.5 h-3.5" />
-                  VIBRATION DETECTED
+                  <AlertOctagon className="w-3.5 h-3.5 text-slate-400" />
+                  Vibration Detected
                 </>
               ) : (
                 <>
