@@ -237,26 +237,26 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
               return (
                 <div 
                   key={alertId}
-                  className="p-4 rounded-none border border-rose-600 bg-[#161B22] shadow transition"
+                  className="p-4 rounded-md border border-[#30363D] bg-[#161B22] shadow-sm transition"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-2 py-0.5 rounded-none text-[10px] font-mono font-bold ${
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
                         level === 'CRITICAL'
-                          ? 'bg-rose-600 text-white'
-                          : 'bg-amber-600 text-white'
+                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                          : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                       }`}>
                         {level}
                       </span>
-                      <span className="text-sm font-bold text-white font-sans">
+                      <span className="text-sm font-semibold text-white font-sans">
                         {alert.sectorName}
                       </span>
                       <span className="text-xs font-mono text-slate-400">
                         {km}
                       </span>
                       {dist !== undefined && dist < 999 && (
-                        <span className="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                          {dist} km from you
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono text-slate-300 bg-[#21262D] border border-[#30363D]">
+                          {dist} km away
                         </span>
                       )}
                     </div>
@@ -264,7 +264,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleDownloadCAP(alertId)}
-                        className="px-2.5 py-1 rounded-none bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono border border-slate-700 transition"
+                        className="px-2.5 py-1 rounded bg-[#21262D] hover:bg-[#30363D] text-slate-300 text-xs font-mono border border-[#30363D] transition"
                         title="Download XML Document"
                       >
                         CAP XML
@@ -273,7 +273,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                       {['ADMIN', 'OPERATOR'].includes(user?.role || '') && alert.status === 'ACTIVE' && (
                         <button
                           onClick={() => handleAcknowledge(alertId)}
-                          className="px-3 py-1 rounded-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition"
+                          className="px-3 py-1 rounded bg-[#21262D] hover:bg-[#30363D] text-slate-200 border border-[#30363D] text-xs font-medium shadow-sm transition"
                         >
                           Acknowledge
                         </button>
@@ -282,7 +282,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                   </div>
 
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                    <div className="p-3 rounded-none bg-[#0D1117] border border-[#21262D]">
+                    <div className="p-3 rounded bg-[#0D1117] border border-[#21262D]">
                       <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">English Advisory</span>
                       <p className="text-slate-200 mt-1 font-sans leading-relaxed">{enMsg}</p>
                     </div>
@@ -333,34 +333,34 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
             {fieldReports.map((report) => {
               const sevBadge =
                 report.severity === 'CRITICAL'
-                  ? 'bg-rose-600 text-white'
+                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
                   : report.severity === 'HIGH'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-blue-600 text-white';
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  : 'bg-[#21262D] text-slate-300 border-[#30363D]';
 
               return (
                 <div
                   key={report.id}
-                  className="p-3 bg-[#161B22] border border-[#30363D] rounded-none flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono"
+                  className="p-3 bg-[#161B22] border border-[#30363D] rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-1.5 py-0.5 text-[10px] font-bold ${sevBadge}`}>
+                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded border ${sevBadge}`}>
                         {report.severity}
                       </span>
-                      <span className="text-white font-sans font-semibold">
+                      <span className="text-white font-sans font-medium">
                         {report.hazardType.replace('_', ' ')}
                       </span>
                       <span className="text-slate-400 text-[11px]">
                         at {report.cityName || 'Corridor Point'}
                       </span>
                       {report.distanceKm !== undefined && (
-                        <span className="text-amber-400 font-bold text-[11px]">
+                        <span className="text-slate-300 font-mono text-[11px]">
                           ({report.distanceKm} km away)
                         </span>
                       )}
                       {report.source === 'OFFLINE_SYNC' && (
-                        <span className="px-1 text-[9px] bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="px-1.5 py-0.5 text-[9px] rounded bg-[#21262D] text-slate-300 border border-[#30363D]">
                           [OFFLINE SYNCED]
                         </span>
                       )}
