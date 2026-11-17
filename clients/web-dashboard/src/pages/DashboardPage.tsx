@@ -92,39 +92,34 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   return (
     <div className="space-y-6">
       
-      {/* Location Status Banner with Dynamic 10 km Threat Color */}
-      <div 
-        className="p-3.5 rounded-none bg-[#161B22] border flex flex-wrap items-center justify-between gap-3 shadow-md transition-colors"
-        style={{ borderColor: `${nodeSummary.threatColor}88` }}
-      >
+      {/* Location Status Banner */}
+      <div className="p-3.5 rounded-md bg-[#161B22] border border-[#30363D] flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-1 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-mono uppercase tracking-wider text-slate-300 font-bold">
+            <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-semibold">
               10 km Radar:
             </span>
-            <span
-              className="px-2 py-0.5 text-[11px] font-mono font-bold uppercase rounded-none border"
-              style={{
-                color: nodeSummary.threatColor,
-                borderColor: `${nodeSummary.threatColor}66`,
-                backgroundColor: `${nodeSummary.threatColor}15`
-              }}
-            >
-              {nodeSummary.badgeText}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded bg-[#21262D] text-slate-300 border border-[#30363D]">
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                nodeSummary.threatLevel === 'CRITICAL' ? 'bg-rose-500' :
+                nodeSummary.threatLevel === 'WARNING' ? 'bg-amber-500' :
+                'bg-emerald-500'
+              }`} />
+              <span>{nodeSummary.badgeText}</span>
             </span>
           </div>
 
           <div className="text-xs text-slate-300 flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
             <span className="text-slate-400">Current Transit:</span>
-            <span className="font-bold text-white font-mono">
+            <span className="font-semibold text-white font-mono">
               {userLocation?.cityName || 'Custom GPS'}
             </span>
             <span className="text-slate-400 font-mono text-[11px]">
               ({userLat.toFixed(2)}°N, {userLon.toFixed(2)}°E)
             </span>
             {nodeSummary.hasCoverage ? (
-              <span className="text-emerald-400 font-mono text-[11px] font-semibold">
-                • {nodeSummary.nodesInRadius.length} active node(s) in range
+              <span className="text-slate-400 font-mono text-[11px]">
+                • <span className="text-slate-200 font-medium">{nodeSummary.nodesInRadius.length}</span> active node(s) in range
               </span>
             ) : (
               <span className="text-slate-400 font-mono text-[11px]">
@@ -138,19 +133,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {onOpenReportModal && isAuthorizedFieldPersonnel && (
             <button
               onClick={onOpenReportModal}
-              className="px-3 py-1.5 rounded-none bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold flex items-center gap-1.5 transition shrink-0 shadow-sm"
+              className="px-3 py-1.5 rounded bg-[#21262D] hover:bg-[#30363D] text-slate-200 border border-[#30363D] text-xs font-medium flex items-center gap-1.5 transition shrink-0 shadow-sm"
               title="Report Rockfall or Road Crack"
             >
-              <PlusCircle className="w-3.5 h-3.5" />
+              <PlusCircle className="w-3.5 h-3.5 text-slate-400" />
               <span>Report Hazard</span>
             </button>
           )}
 
           <button
             onClick={() => setIsLocationModalOpen(true)}
-            className="px-3 py-1.5 rounded-none bg-[#21262D] hover:bg-[#30363D] text-amber-400 border border-[#30363D] hover:border-amber-400/50 text-xs font-mono font-bold flex items-center gap-1.5 transition shrink-0 shadow-sm"
+            className="px-3 py-1.5 rounded bg-[#21262D] hover:bg-[#30363D] text-slate-200 hover:text-white border border-[#30363D] text-xs font-medium flex items-center gap-1.5 transition shrink-0 shadow-sm"
           >
-            <MapPin className="w-3.5 h-3.5" />
+            <MapPin className="w-3.5 h-3.5 text-slate-400" />
             <span>Change Location</span>
           </button>
         </div>
@@ -158,21 +153,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* Local 10km Emergency Alert Notification Banner if active within 10 km */}
       {activeCriticalAlert && (
-        <div className="p-4 bg-rose-950/40 border-2 border-rose-600/80 text-rose-200 flex items-start gap-3 shadow-2xl animate-pulse">
-          <ShieldAlert className="w-6 h-6 text-rose-500 shrink-0 mt-0.5" />
+        <div className="p-4 bg-[#161B22] border-l-4 border-l-rose-500 border-y border-r border-[#30363D] text-slate-200 flex items-start gap-3 shadow-md rounded-md">
+          <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
           <div className="flex-1">
             <div className="flex items-center justify-between">
-              <h4 className="font-bold text-sm text-white uppercase tracking-wider">
-                🚨 Immediate Hazard Alert Inside Your 10 km Perimeter ({activeCriticalAlert.level})
+              <h4 className="font-semibold text-sm text-white tracking-wide">
+                Immediate Hazard Alert Inside 10 km Perimeter ({activeCriticalAlert.level})
               </h4>
-              <span className="text-[11px] font-mono px-2 py-0.5 bg-rose-600 text-white font-bold">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">
                 EVACUATE / HALT
               </span>
             </div>
-            <p className="text-xs mt-1 text-rose-200 leading-relaxed font-sans">
+            <p className="text-xs mt-1 text-slate-300 leading-relaxed font-sans">
               {activeCriticalAlert.multilingual?.hi || activeCriticalAlert.multilingual?.en || activeCriticalAlert.triggerCause}
             </p>
-            <p className="text-[11px] font-mono text-rose-400 mt-1">
+            <p className="text-[11px] font-mono text-slate-400 mt-1">
               Sector: {activeCriticalAlert.sectorName} • Status: {activeCriticalAlert.status}
             </p>
           </div>
@@ -195,8 +190,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         {/* Left 2 Cols: Leaflet GIS Terrain Map with 10km Dynamic Threat Radar */}
         <div className="lg:col-span-2 space-y-2">
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
-              <Radio className="w-4 h-4 text-sky-400" />
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-300">
+              <Radio className="w-4 h-4 text-slate-400" />
               <span>Spatial Corridor Radar (10 km Dynamic Perimeter Active)</span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
@@ -219,11 +214,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="space-y-4 flex flex-col justify-start">
           
           {/* Proximity Warning Matrix (Sensors within 10 km) */}
-          <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] shadow-lg">
-            <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+          <div className="p-4 rounded-md bg-[#161B22] border border-[#30363D] shadow-sm">
+            <div className="flex items-center justify-between mb-3 border-b border-[#21262D] pb-2">
               <div className="flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-amber-400" />
-                <h4 className="text-xs font-bold text-white uppercase tracking-wide">
+                <Cpu className="w-4 h-4 text-slate-400" />
+                <h4 className="text-xs font-semibold text-slate-200 uppercase tracking-wide">
                   Sensors in 10 km Zone
                 </h4>
               </div>
@@ -237,24 +232,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 nodeSummary.nodesInRadius.map(({ node: n, distanceKm }) => {
                   const tilt = n.tiltMagnitude || 0;
                   const nodeStatus = tilt >= 4.0 ? 'CRITICAL' : tilt >= 2.0 ? 'WARNING' : 'NORMAL';
-                  const badgeColor = nodeStatus === 'CRITICAL' ? 'bg-rose-600' : nodeStatus === 'WARNING' ? 'bg-amber-600' : 'bg-emerald-600';
+                  const badgeStyle = nodeStatus === 'CRITICAL' 
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' 
+                    : nodeStatus === 'WARNING' 
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
+                    : 'bg-[#21262D] text-slate-300 border-[#30363D]';
 
                   return (
                     <div
                       key={n.nodeId}
-                      className="p-2.5 bg-[#0D1117] border border-[#21262D] transition flex flex-col gap-1"
+                      className="p-2.5 bg-[#0D1117] border border-[#21262D] rounded transition flex flex-col gap-1"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-white font-sans font-semibold">
+                        <span className="text-slate-200 font-sans font-medium">
                           Node: {n.nodeId}
                         </span>
-                        <span className={`px-1.5 py-0.5 text-[10px] font-bold text-white ${badgeColor}`}>
+                        <span className={`px-2 py-0.5 text-[10px] font-mono rounded border ${badgeStyle}`}>
                           {nodeStatus} ({tilt.toFixed(1)}°)
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-sans">
                         <span>Moisture: {n.soilMoisturePct}%</span>
-                        <span className="text-amber-400 font-bold">
+                        <span className="text-slate-300 font-mono">
                           {distanceKm} km away
                         </span>
                       </div>
@@ -262,8 +261,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   );
                 })
               ) : (
-                <div className="p-3 bg-[#0D1117] border border-[#21262D] text-slate-400 text-xs font-sans space-y-1">
-                  <p className="font-semibold text-slate-300">
+                <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-400 text-xs font-sans space-y-1">
+                  <p className="font-medium text-slate-300">
                     No active sensor nodes deployed within 10 km of this location.
                   </p>
                   {nodeSummary.nearestNode && (
@@ -277,20 +276,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           {/* Multilingual Corridor Advisory Box */}
-          <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-white">
-                <Volume2 className="w-4 h-4 text-amber-400" />
+          <div className="p-4 rounded-md bg-[#161B22] border border-[#30363D] space-y-3 shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#21262D] pb-2">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                <Volume2 className="w-4 h-4 text-slate-400" />
                 <span>Localized Advisory</span>
               </div>
-              <span 
-                className="text-[10px] font-mono px-1.5 py-0.5 border"
-                style={{
-                  color: nodeSummary.threatColor,
-                  borderColor: `${nodeSummary.threatColor}66`,
-                  backgroundColor: `${nodeSummary.threatColor}15`
-                }}
-              >
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#21262D] text-slate-300 border border-[#30363D]">
                 {nodeSummary.threatLevel}
               </span>
             </div>
@@ -298,30 +290,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <div className="space-y-2 text-xs max-h-56 overflow-y-auto custom-scrollbar pr-1">
               {nodeSummary.threatLevel === 'CRITICAL' ? (
                 <>
-                  <div className="p-2.5 bg-rose-950/30 border border-rose-800 text-rose-200">
-                    <p className="font-bold text-[11px] font-mono text-rose-400">ENGLISH</p>
-                    <p className="mt-0.5">🚨 Critical slope displacement detected within 10 km. Halt immediately and move to designated evacuation shelter.</p>
+                  <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                    <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">English Advisory</p>
+                    <p className="text-xs text-slate-200 leading-relaxed font-sans">Critical slope displacement detected within 10 km. Halt immediately and move to designated evacuation shelter.</p>
                   </div>
-                  <div className="p-2.5 bg-rose-950/30 border border-rose-800 text-rose-200">
-                    <p className="font-bold text-[11px] font-mono text-rose-400">HINDI</p>
-                    <p className="mt-0.5">🚨 10 किमी के भीतर गंभीर भूस्खलन खतरा। तुरंत वाहन रोकें और सुरक्षित स्थान पर जाएं।</p>
+                  <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                    <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Hindi Advisory (हिंदी)</p>
+                    <p className="text-xs text-slate-200 leading-relaxed font-sans">10 किमी के भीतर गंभीर भूस्खलन खतरा। तुरंत वाहन रोकें और सुरक्षित स्थान पर जाएं।</p>
                   </div>
                 </>
               ) : nodeSummary.threatLevel === 'WARNING' ? (
                 <>
-                  <div className="p-2.5 bg-amber-950/30 border border-amber-800 text-amber-200">
-                    <p className="font-bold text-[11px] font-mono text-amber-400">ENGLISH</p>
-                    <p className="mt-0.5">⚠️ Caution: Active slope movement or elevated rainfall within 10 km. Drive with extreme caution.</p>
+                  <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                    <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">English Advisory</p>
+                    <p className="text-xs text-slate-200 leading-relaxed font-sans">Caution: Active slope movement or elevated rainfall within 10 km. Drive with extreme caution.</p>
                   </div>
-                  <div className="p-2.5 bg-amber-950/30 border border-amber-800 text-amber-200">
-                    <p className="font-bold text-[11px] font-mono text-amber-400">HINDI</p>
-                    <p className="mt-0.5">⚠️ सावधानी: 10 किमी के भीतर हल्का भूस्खलन या भारी बारिश दर्ज की गई है। सतर्क रहें।</p>
+                  <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                    <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Hindi Advisory (हिंदी)</p>
+                    <p className="text-xs text-slate-200 leading-relaxed font-sans">सावधानी: 10 किमी के भीतर हल्का भूस्खलन या भारी बारिश दर्ज की गई है। सतर्क रहें।</p>
                   </div>
                 </>
               ) : (
-                <div className="p-2.5 bg-emerald-950/20 border border-emerald-800/40 text-emerald-200 font-sans">
-                  <p className="font-bold text-[11px] font-mono text-emerald-400">STATUS: NORMAL</p>
-                  <p className="mt-0.5 text-xs">
+                <div className="p-3 bg-[#0D1117] border border-[#21262D] rounded text-slate-300 space-y-1">
+                  <p className="font-semibold text-[10px] font-mono uppercase tracking-wider text-slate-400">Status: Normal</p>
+                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
                     {nodeSummary.hasCoverage
                       ? 'All slope monitoring nodes within 10 km report stable terrain. Highway traffic running normally.'
                       : 'No active sensor nodes in this 10 km perimeter. Drive cautiously and observe highway markers.'}

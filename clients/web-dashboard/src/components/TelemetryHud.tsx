@@ -38,23 +38,23 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
     if (lsiScore === null) {
       return {
         bg: 'bg-[#21262D] text-slate-400 border border-[#30363D]',
-        label: 'Awaiting Sensor Data'
+        label: 'Awaiting Data'
       };
     }
     switch (riskLevel) {
       case 'CRITICAL':
         return {
-          bg: 'bg-rose-600 text-white font-semibold',
+          bg: 'bg-rose-500/10 text-rose-400 border border-rose-500/30 font-medium',
           label: 'Critical Hazard'
         };
       case 'WARNING':
         return {
-          bg: 'bg-amber-600 text-white font-semibold',
+          bg: 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-medium',
           label: 'Active Warning'
         };
       default:
         return {
-          bg: 'bg-emerald-600 text-white font-semibold',
+          bg: 'bg-[#21262D] text-slate-300 border border-[#30363D] font-medium',
           label: 'Stable'
         };
     }
@@ -66,13 +66,13 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       
       {/* 1. LSI Risk Score Card */}
-      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
+      <div className="p-4 rounded-md bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Gauge className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-semibold text-slate-300 font-sans">Risk Score</span>
+            <Gauge className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-300 font-sans">Risk Score</span>
           </div>
-          <span className={`px-2.5 py-0.5 rounded-none text-[11px] font-sans ${badge.bg}`}>
+          <span className={`px-2 py-0.5 rounded text-[11px] font-sans ${badge.bg}`}>
             {badge.label}
           </span>
         </div>
@@ -85,10 +85,10 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
         </div>
 
         {/* Dynamic Progress bar */}
-        <div className="w-full h-1.5 rounded-none bg-[#0D1117] overflow-hidden">
+        <div className="w-full h-1.5 rounded bg-[#0D1117] border border-[#21262D] overflow-hidden">
           <div 
             className={`h-full transition-all duration-300 ${
-              (lsiScore ?? 0) >= 75 ? 'bg-rose-500' : (lsiScore ?? 0) >= 40 ? 'bg-amber-500' : 'bg-emerald-500'
+              (lsiScore ?? 0) >= 75 ? 'bg-rose-500' : (lsiScore ?? 0) >= 40 ? 'bg-amber-500' : 'bg-slate-400'
             }`}
             style={{ width: `${Math.min(lsiScore ?? 0, 100)}%` }}
           />
@@ -100,13 +100,13 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
       </div>
 
       {/* 2. Bi-axial Tilt Meter Card */}
-      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
+      <div className="p-4 rounded-md bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-sky-400" />
-            <span className="text-xs font-semibold text-slate-300 font-sans">Slope Tilt</span>
+            <Compass className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-300 font-sans">Slope Tilt</span>
           </div>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-none bg-[#0D1117] border border-[#21262D] text-slate-400">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0D1117] border border-[#21262D] text-slate-400">
             {telemetry ? 'MPU-6050' : 'Standby'}
           </span>
         </div>
@@ -133,13 +133,13 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
       </div>
 
       {/* 3. Soil Moisture & Saturation Card */}
-      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
+      <div className="p-4 rounded-md bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Droplets className="w-4 h-4 text-sky-400" />
-            <span className="text-xs font-semibold text-slate-300 font-sans">Soil Moisture</span>
+            <Droplets className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-300 font-sans">Soil Moisture</span>
           </div>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-none bg-[#0D1117] border border-[#21262D] text-slate-400">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#0D1117] border border-[#21262D] text-slate-400">
             Volumetric %
           </span>
         </div>
@@ -157,7 +157,7 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
           <span className="text-slate-400">Vibration:</span>
           {telemetry ? (
             <span className={`font-mono text-xs flex items-center gap-1 ${
-              telemetry.vibrationDetected ? 'text-rose-400 font-bold' : 'text-emerald-400 font-medium'
+              telemetry.vibrationDetected ? 'text-rose-400 font-bold' : 'text-slate-300 font-medium'
             }`}>
               {telemetry.vibrationDetected ? (
                 <>
@@ -166,7 +166,7 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
                   NORMAL
                 </>
               )}
@@ -178,19 +178,19 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
       </div>
 
       {/* 4. Live Rainfall & Siren Actions Card */}
-      <div className="p-4 rounded-none bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
+      <div className="p-4 rounded-md bg-[#161B22] border border-[#30363D] flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CloudRain className="w-4 h-4 text-sky-400" />
-            <span className="text-xs font-semibold text-slate-300 font-sans">Rainfall</span>
+            <CloudRain className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-300 font-sans">Rainfall</span>
           </div>
           <button 
             onClick={onTriggerWeatherSync}
             disabled={isWeatherSyncing}
             title="Sync weather"
-            className="p-1 rounded-none bg-[#0D1117] hover:bg-[#21262D] border border-[#21262D] text-slate-400 hover:text-white transition"
+            className="p-1 rounded bg-[#21262D] hover:bg-[#30363D] border border-[#30363D] text-slate-400 hover:text-white transition"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isWeatherSyncing ? 'animate-spin text-amber-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isWeatherSyncing ? 'animate-spin text-slate-200' : ''}`} />
           </button>
         </div>
 
@@ -209,13 +209,13 @@ export const TelemetryHud: React.FC<TelemetryHudProps> = ({
         <div className="mt-2.5 pt-2 border-t border-[#21262D] flex items-center justify-between text-xs font-mono">
           <span className="text-slate-400">Sector Siren:</span>
           <div className="flex items-center gap-2">
-            <span className={`font-bold ${sector?.sirenActive ? 'text-rose-400' : 'text-slate-300'}`}>
+            <span className={`font-medium ${sector?.sirenActive ? 'text-rose-400 font-bold' : 'text-slate-300'}`}>
               {sector?.sirenActive ? '🚨 ACTIVE' : 'STANDBY'}
             </span>
             {(user?.role === 'ADMIN' || user?.role === 'OPERATOR') && (
               <button
                 onClick={onOpenSirenModal}
-                className="text-[10px] text-amber-400 hover:text-amber-300 underline font-sans ml-1"
+                className="text-[10px] text-slate-400 hover:text-slate-200 underline font-sans ml-1"
                 title="Manual Siren Override"
               >
                 Override
