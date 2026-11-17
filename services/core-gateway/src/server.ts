@@ -24,6 +24,8 @@ import { setWeatherSocketEmitter } from './controllers/weather.controller.js';
 import { setSyncSocketEmitter } from './controllers/sync.controller.js';
 import { setBroadcastSocketEmitter } from './controllers/broadcast.controller.js';
 import { seedDefaultUsers } from './controllers/auth.controller.js';
+import { AlertModel } from './models/alert.model.js';
+import { stateService } from './services/state.service.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -153,6 +155,17 @@ const startServer = async () => {
     // 1. Mandatory connection to MongoDB Atlas
     await connectDatabase();
     await seedDefaultUsers();
+
+    // Clear previous alerts from DB and in-memory cache as requested
+    try {
+      if (isDatabaseConnected()) {
+        const deleted = await AlertModel.deleteMany({});
+        console.log(`🧹 [MongoDB] Cleared all ${deleted.deletedCount} previous alerts from Atlas.`);
+      }
+      stateService.clearAlerts();
+    } catch (e: any) {
+      console.warn('⚠️ [MongoDB] Alert cleanup notice:', e.message);
+    }
   } catch (err: any) {
     console.error(`💥 [Fatal Startup Aborted] ${err.message}`);
     process.exit(1);

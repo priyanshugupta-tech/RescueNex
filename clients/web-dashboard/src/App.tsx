@@ -376,10 +376,6 @@ const MainAppContent: React.FC = () => {
                     onUpdateLocation={handleUpdateLocation}
                     onRefreshData={loadInitialData}
                     alerts={activeAlerts}
-                    onOpenReportModal={(alertCtx) => {
-                      setSelectedTargetAlert(alertCtx || null);
-                      setIsReportModalOpen(true);
-                    }}
                   />
                 } 
               />

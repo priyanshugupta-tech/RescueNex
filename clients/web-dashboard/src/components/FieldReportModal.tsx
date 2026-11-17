@@ -32,6 +32,41 @@ export const FieldReportModal: React.FC<FieldReportModalProps> = ({
 
   if (!isOpen) return null;
 
+  if (!targetAlert) {
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-full max-w-md bg-[#0D1117] border border-[#30363D] shadow-2xl rounded-none text-slate-200 overflow-hidden"
+          >
+            <div className="px-5 py-3.5 bg-[#161B22] border-b border-[#30363D] flex items-center justify-between">
+              <span className="text-xs font-bold font-mono text-amber-400 uppercase">[ ALERT ATTACHMENT REQUIRED ]</span>
+              <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-none hover:bg-[#21262D]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3 font-sans text-xs">
+              <p className="text-slate-200">
+                Ground situation updates must be attached directly to an active emergency alert. Please click <strong>+ Submit Report</strong> directly on the relevant alert card.
+              </p>
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-1.5 bg-[#21262D] hover:bg-[#30363D] text-slate-200 border border-[#30363D] rounded-none text-xs font-mono transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </AnimatePresence>
+    );
+  }
+
   if (!isAuthorized) {
     return (
       <AnimatePresence>

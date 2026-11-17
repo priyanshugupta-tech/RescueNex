@@ -139,6 +139,27 @@ export const resolveAlert = async (req: AuthenticatedRequest, res: Response): Pr
   });
 };
 
+export const clearAllAlerts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    stateService.clearAlerts();
+    let deletedCount = 0;
+    if (isDatabaseConnected()) {
+      const result = await AlertModel.deleteMany({});
+      deletedCount = result.deletedCount;
+    }
+    if (alertSocketEmitter) {
+      alertSocketEmitter('ALERTS_CLEARED', { timestamp: Date.now() });
+    }
+    res.json({
+      success: true,
+      message: `Cleared all ${deletedCount} alerts from database and reset in-memory state.`,
+      deletedCount
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Failed to clear alerts.', error: err.message });
+  }
+};
+
 export const toggleSiren = (req: AuthenticatedRequest, res: Response): void => {
   const { sectorId, active } = req.body;
   if (!sectorId || typeof active !== 'boolean') {

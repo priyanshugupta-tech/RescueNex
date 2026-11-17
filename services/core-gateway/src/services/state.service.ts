@@ -125,6 +125,16 @@ class StateService {
     return false;
   }
 
+  public clearAlerts(): void {
+    this.activeAlerts.clear();
+    this.alertHistory = [];
+    this.sectors.forEach((sec) => {
+      sec.currentRiskLevel = 'LOW';
+      sec.currentLsiScore = 0;
+      sec.sirenActive = false;
+    });
+  }
+
   // Field Reports (Scout / Commuter ground observations)
   public addFieldReport(report: FieldReport): void {
     const existingIdx = this.fieldReports.findIndex((r) => r.id === report.id);

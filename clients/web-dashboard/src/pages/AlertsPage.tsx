@@ -5,7 +5,7 @@ import { offlineSync } from '../services/offlineSync.ts';
 import { EmergencyAlert, MountainSector, FieldReport } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
-import { Loader2, ShieldAlert, PlusCircle } from 'lucide-react';
+import { Loader2, ShieldAlert } from 'lucide-react';
 
 interface AlertsPageProps {
   userLocation: GeoLocation | null;
@@ -112,8 +112,17 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
     }
   };
 
-  const handleDownloadCAP = (alertId: string) => {
-    window.open(`/api/alerts/${alertId}/cap-xml`, '_blank');
+  const handleClearAllAlerts = async () => {
+    if (!window.confirm('Are you sure you want to clear all alerts from database and memory?')) return;
+    try {
+      await api.post('/api/alerts/clear-all');
+      setActionSuccess('All alerts cleared from database and RAM.');
+      setTimeout(() => setActionSuccess(''), 3000);
+      fetchAlertsAndReports();
+    } catch (e: any) {
+      setActionSuccess(`Failed to clear alerts: ${e.message}`);
+      setTimeout(() => setActionSuccess(''), 3500);
+    }
   };
 
   // Associate each alert with geographical distance to user location
@@ -164,13 +173,13 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
             </span>
           )}
 
-          {onOpenReportModal && isAuthorizedFieldPersonnel && (
+          {user?.role === 'ADMIN' && (
             <button
-              onClick={onOpenReportModal}
-              className="px-3 py-1.5 rounded-none bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold flex items-center gap-1.5 transition shadow-sm"
+              onClick={handleClearAllAlerts}
+              className="px-3 py-1.5 rounded-md bg-[#21262D] hover:bg-rose-950/40 text-slate-300 hover:text-rose-300 text-xs font-mono border border-[#30363D] hover:border-rose-500/30 transition shadow-sm"
+              title="Purge all active and historical alerts from DB"
             >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>Report Hazard</span>
+              Clear All Alerts (DB)
             </button>
           )}
         </div>
@@ -205,14 +214,6 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {onOpenReportModal && isAuthorizedFieldPersonnel && (
-            <button
-              onClick={onOpenReportModal}
-              className="px-3 py-1.5 rounded-md bg-[#21262D] hover:bg-[#30363D] text-slate-200 border border-[#30363D] text-xs font-mono font-medium transition"
-            >
-              + Field Report
-            </button>
-          )}
           {onOpenLocationModal && (
             <button
               onClick={onOpenLocationModal}
@@ -291,14 +292,6 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        onClick={() => handleDownloadCAP(alertId)}
-                        className="px-2.5 py-1 rounded bg-[#21262D] hover:bg-[#30363D] text-slate-300 text-xs font-mono border border-[#30363D] transition"
-                        title="Download XML Document"
-                      >
-                        CAP XML
-                      </button>
-
                       {alert.status === 'ACKNOWLEDGED' && (
                         <span className="px-2 py-1 rounded bg-[#21262D] border border-amber-500/30 text-amber-400 text-[11px] font-mono">
                           ACKNOWLEDGED
@@ -326,9 +319,9 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                       {isAuthorizedFieldPersonnel && onOpenReportModal && (
                         <button
                           onClick={() => onOpenReportModal({ alertId, sectorName: alert.sectorName })}
-                          className="px-2.5 py-1 rounded bg-[#21262D] hover:bg-[#30363D] text-amber-300 border border-amber-500/30 text-xs font-mono transition flex items-center gap-1"
+                          className="px-3 py-1 rounded bg-[#21262D] hover:bg-[#30363D] text-amber-300 border border-amber-500/30 text-xs font-mono transition flex items-center gap-1 font-bold shadow-sm"
                         >
-                          + Respond
+                          + Submit Report
                         </button>
                       )}
                     </div>
@@ -404,14 +397,6 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
               Ground Scout Field Reports Within 10 km ({fieldReports.length})
             </h3>
           </div>
-          {onOpenReportModal && isAuthorizedFieldPersonnel && (
-            <button
-              onClick={onOpenReportModal}
-              className="text-xs font-mono text-amber-400 hover:text-amber-300 underline"
-            >
-              + Submit Observation
-            </button>
-          )}
         </div>
 
         {fieldReports.length === 0 ? (
@@ -444,6 +429,11 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
                       <span className="text-slate-400 text-[11px]">
                         at {report.cityName || 'Corridor Point'}
                       </span>
+                      {(report.sectorId || report.alertId) && (
+                        <span className="px-1.5 py-0.5 text-[9px] rounded bg-[#21262D] text-amber-300 border border-amber-500/20">
+                          Alert: {report.sectorId || report.alertId}
+                        </span>
+                      )}
                       {report.distanceKm !== undefined && (
                         <span className="text-slate-300 font-mono text-[11px]">
                           ({report.distanceKm} km away)

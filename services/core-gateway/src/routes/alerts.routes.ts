@@ -3,6 +3,7 @@ import {
   getAlerts,
   acknowledgeAlert,
   resolveAlert,
+  clearAllAlerts,
   toggleSiren,
   getAlertCAP
 } from '../controllers/alerts.controller.js';
@@ -16,6 +17,8 @@ const router = Router();
 
 // Publicly readable alerts
 router.get('/', getAlerts);
+router.post('/clear-all', clearAllAlerts);
+router.delete('/clear-all', clearAllAlerts);
 router.get('/:id/cap-xml', getAlertCAP);
 
 // Operators/Admins can acknowledge alerts

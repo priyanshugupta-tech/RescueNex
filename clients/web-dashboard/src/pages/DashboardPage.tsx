@@ -8,7 +8,7 @@ import { GeoLocation, calculateDistanceKm } from '../utils/geoUtils.ts';
 import { getNodeProximity } from '../utils/proximityFilter.ts';
 import { api } from '../services/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Radio, Volume2, MapPin, ShieldAlert, Cpu, PlusCircle } from 'lucide-react';
+import { Radio, Volume2, MapPin, ShieldAlert, Cpu } from 'lucide-react';
 
 interface DashboardPageProps {
   sectors: MountainSector[];
@@ -19,7 +19,6 @@ interface DashboardPageProps {
   onUpdateLocation: (loc: GeoLocation) => void;
   onRefreshData: () => void;
   alerts?: EmergencyAlert[];
-  onOpenReportModal?: () => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -30,14 +29,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   userLocation,
   onUpdateLocation,
   onRefreshData,
-  alerts = [],
-  onOpenReportModal
+  alerts = []
 }) => {
   const { user } = useAuth();
   const [isSirenModalOpen, setIsSirenModalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isSyncingWeather, setIsSyncingWeather] = useState(false);
-  const isAuthorizedFieldPersonnel = ['SCOUT', 'OPERATOR', 'ADMIN'].includes(user?.role || '');
 
   // 10 km Geofence Proximity Calculations (Strict numeric coercion)
   const userLat = Number(userLocation?.latitude) || 33.2422;
@@ -130,17 +127,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {onOpenReportModal && isAuthorizedFieldPersonnel && (
-            <button
-              onClick={onOpenReportModal}
-              className="px-3 py-1.5 rounded bg-[#21262D] hover:bg-[#30363D] text-slate-200 border border-[#30363D] text-xs font-medium flex items-center gap-1.5 transition shrink-0 shadow-sm"
-              title="Report Rockfall or Road Crack"
-            >
-              <PlusCircle className="w-3.5 h-3.5 text-slate-400" />
-              <span>Report Hazard</span>
-            </button>
-          )}
-
           <button
             onClick={() => setIsLocationModalOpen(true)}
             className="px-3 py-1.5 rounded bg-[#21262D] hover:bg-[#30363D] text-slate-200 hover:text-white border border-[#30363D] text-xs font-medium flex items-center gap-1.5 transition shrink-0 shadow-sm"
