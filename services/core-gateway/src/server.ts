@@ -17,6 +17,7 @@ import broadcastRoutes from './routes/broadcast.routes.js';
 // Services & Sockets
 import { alertService } from './services/alert.service.js';
 import { weatherService } from './services/weather.service.js';
+import { aiService } from './services/ai.service.js';
 import { setTelemetrySocketEmitter } from './controllers/telemetry.controller.js';
 import { setAlertSocketEmitter } from './controllers/alerts.controller.js';
 import { setWeatherSocketEmitter } from './controllers/weather.controller.js';
@@ -120,8 +121,8 @@ app.use('/api', syncRoutes);
 app.get('/api/health', async (req, res) => {
   let aiStatus = 'OFFLINE';
   try {
-    const aiCheck = await fetch(`${config.aiEngineUrl}/health`, { signal: AbortSignal.timeout(1000) });
-    if (aiCheck.ok) {
+    const aiCheck = await aiService.checkHealth();
+    if (aiCheck.online) {
       aiStatus = 'HEALTHY';
     }
   } catch {
@@ -176,6 +177,16 @@ const startServer = async () => {
       console.error('[WeatherService] Periodic sync error:', err.message);
     });
   }, config.weatherPollIntervalMins * 60 * 1000);
+
+  // 3. Proactive Keep-Alive: Ping AI Engine immediately on startup & every 10 mins to prevent Render Free Tier sleep
+  console.log('[AIService] Triggering initial keep-alive ping for AI Engine...');
+  aiService.pingAndKeepAlive().catch((e) => console.warn('[AIService] Initial keep-alive notice:', e.message));
+
+  setInterval(() => {
+    aiService.pingAndKeepAlive().catch((err) => {
+      console.warn('[AIService] Periodic keep-alive error:', err.message);
+    });
+  }, 10 * 60 * 1000);
 };
 
 startServer().catch((err) => {
