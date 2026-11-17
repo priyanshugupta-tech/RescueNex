@@ -11,7 +11,7 @@ import { isDatabaseConnected } from '../config/database.js';
 
 // Schema for incoming telemetry from physical ESP32 (Hardware nodes send their own GPS coordinates)
 const telemetryIngestSchema = z.object({
-  node_id: z.string().default('NODE_01'),
+  node_id: z.string().min(1, 'node_id is required'),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   altitude_m: z.number().optional().default(1500),
