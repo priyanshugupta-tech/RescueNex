@@ -91,7 +91,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             <span className="font-bold text-slate-300 uppercase tracking-wide">
               Active Transit Corridor:
             </span>
-            <span className="font-bold text-amber-400 bg-[#0D1117] px-2 py-0.5 border border-[#30363D]">
+            <span className="font-semibold text-white bg-[#0D1117] px-2 py-0.5 border border-[#30363D] rounded">
               {userLocation?.cityName || 'Ramban Central'}
             </span>
             <span className="text-slate-400 text-[11px]">
@@ -99,15 +99,15 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </span>
           </div>
 
-          <p className="text-xs text-slate-400 font-sans mt-0.5">
+          <p className="text-xs text-slate-300 font-sans mt-0.5">
             {displayedRecords.length > 0 ? (
-              <span className="text-emerald-400 font-semibold font-mono">
+              <span>
                 Showing {displayedRecords.length} live telemetry packet(s) within 10 km.
               </span>
             ) : (
-              <span className="text-slate-400 font-mono text-xs">
+              <span className="text-slate-400 font-sans text-xs">
                 No active sensor stations within 10 km. Nearest station: {' '}
-                <span className="text-amber-400 font-bold">{nearestRecord?.nodeId || 'PHYSICAL_ESP32_01'}</span>{' '}
+                <span className="text-slate-200 font-semibold">{nearestRecord?.nodeId || 'PHYSICAL_ESP32_01'}</span>{' '}
                 ({nearestRecord?.distanceKm ?? '--'} km away).
               </span>
             )}
@@ -117,7 +117,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
         {onOpenLocationModal && (
           <button
             onClick={onOpenLocationModal}
-            className="px-3 py-1.5 rounded-none bg-[#21262D] hover:bg-[#30363D] text-amber-400 border border-amber-500/30 text-xs font-mono font-medium transition"
+            className="px-3 py-1.5 rounded-md bg-[#21262D] hover:bg-[#30363D] text-slate-200 border border-[#30363D] text-xs font-mono font-medium transition"
           >
             Edit Location
           </button>
@@ -134,7 +134,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 
         {loading ? (
           <div className="p-10 flex flex-col items-center justify-center space-y-2 text-center">
-            <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
             <p className="text-xs font-mono text-slate-400">Fetching live sensor readings...</p>
           </div>
         ) : displayedRecords.length === 0 ? (
@@ -192,7 +192,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                           : 'N/A'}
                       </td>
                       <td className="py-2.5 px-3">
-                        <span className={isCritical ? 'text-rose-400 font-bold' : isWarning ? 'text-amber-400 font-bold' : 'text-slate-300'}>
+                        <span className="text-slate-200 font-medium">
                           {tilt.toFixed(1)}°
                         </span>
                       </td>

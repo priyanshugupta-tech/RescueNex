@@ -179,8 +179,8 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
 
           <p className="text-xs font-sans mt-0.5">
             {displayedAlerts.length > 0 ? (
-              <span className="text-rose-400 font-medium font-mono">
-                [!] {displayedAlerts.length} hazard bulletin(s) active inside your 10 km zone.
+              <span className="text-slate-200 font-medium font-sans">
+                {displayedAlerts.length} hazard bulletin(s) active inside your 10 km zone.
               </span>
             ) : (
               <span className="text-slate-300 font-sans">
